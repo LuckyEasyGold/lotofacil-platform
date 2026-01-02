@@ -1,0 +1,138 @@
+openapi: 3.0.3
+info:
+  title: Auth Service
+  version: 1.0.0
+  description: Serviço de identidade e autenticação
+
+paths:
+  /auth/register:
+    post:
+      summary: Registro tradicional
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "200":
+          description: Usuário criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /auth/login:
+    post:
+      summary: Login tradicional
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Token JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthToken"
+
+  /auth/login/pubkey:
+    post:
+      summary: Login por chave pública
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicKeyLogin"
+      responses:
+        "200":
+          description: Token JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthToken"
+
+  /auth/verify:
+    get:
+      summary: Validar token
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Contexto de identidade
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityContext"
+
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        publicName:
+          type: string
+        avatarUrl:
+          type: string
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    PublicKeyLogin:
+      type: object
+      properties:
+        publicKey:
+          type: string
+        signature:
+          type: string
+        challenge:
+          type: string
+
+    AuthToken:
+      type: object
+      properties:
+        token:
+          type: string
+
+    User:
+      type: object
+      properties:
+        uuid:
+          type: string
+        publicName:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+
+    IdentityContext:
+      type: object
+      properties:
+        uuid:
+          type: string
+        public_name:
+          type: string
+        avatar_url:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
