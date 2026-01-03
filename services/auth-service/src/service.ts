@@ -5,7 +5,7 @@ import { UserRepository } from "./repository";
 import { User } from "./types";
 import crypto from "crypto";
 
-const SECRET = "DEV_SECRET";
+const SECRET = process.env.JWT_SECRET || "DEV_SECRET_CHANGE_IN_PROD";
 
 export class AuthService {
   constructor(private repo = new UserRepository()) {}
@@ -19,6 +19,7 @@ export class AuthService {
       passwordHash: data.password
         ? await bcrypt.hash(data.password, 10)
         : undefined,
+      publicKey: data.publicKey,
       publicName: data.publicName || "anon",
       avatarUrl: data.avatarUrl,
       role: "user",
@@ -30,6 +31,10 @@ export class AuthService {
   }
 
   async login(data: any) {
+    if (data.publicKey && data.signature) {
+      return this.loginWithPublicKey(data);
+    }
+
     const user = await this.repo.findByEmail(data.email);
     if (!user || !user.passwordHash) throw new Error("INVALID_CREDENTIALS");
 
@@ -37,10 +42,44 @@ export class AuthService {
     if (!valid) throw new Error("INVALID_CREDENTIALS");
 
     const token = jwt.sign({ uuid: user.uuid }, SECRET, { expiresIn: "1h" });
-    return { token };
+    return { token, user: this.sanitizeUser(user) };
+  }
+
+  async loginWithPublicKey(data: any) {
+    const { publicKey, signature, challenge } = data;
+
+    if (!publicKey || !signature) {
+      throw new Error("MISSING_PUBKEY_OR_SIGNATURE");
+    }
+
+    const isValid = crypto.verify(
+      "sha256",
+      Buffer.from(challenge || "default-auth-challenge"),
+      publicKey,
+      Buffer.from(signature, "hex")
+    );
+
+    if (!isValid) throw new Error("INVALID_SIGNATURE");
+
+    let user = await this.repo.findByPublicKey(publicKey);
+
+    if (!user) {
+      user = await this.repo.create({
+        uuid: uuidv4(),
+        publicKey,
+        publicName: "anon-" + publicKey.slice(0, 8),
+        role: "user",
+        status: "active"
+      });
+    }
+
+    const token = jwt.sign({ uuid: user.uuid }, SECRET, { expiresIn: "1h" });
+    return { token, user: this.sanitizeUser(user) };
   }
 
   async verifyToken(token: string) {
+    if (!token) throw new Error("NO_TOKEN_PROVIDED");
+
     const decoded: any = jwt.verify(token, SECRET);
     const user = await this.repo.findByUUID(decoded.uuid);
     if (!user) throw new Error("INVALID_TOKEN");
@@ -54,31 +93,13 @@ export class AuthService {
     };
   }
 
-  async loginWithPublicKey(data: any) {
-  const { publicKey, signature, challenge } = data;
-
-  const isValid = crypto.verify(
-    "sha256",
-    Buffer.from(challenge),
-    publicKey,
-    Buffer.from(signature, "hex")
-  );
-
-  if (!isValid) throw new Error("INVALID_SIGNATURE");
-
-  let user = await this.repo.findByPublicKey(publicKey);
-
-  if (!user) {
-    user = await this.repo.create({
-      uuid: uuidv4(),
-      publicKey,
-      publicName: "anon",
-      role: "user",
-      status: "active"
-    });
+  private sanitizeUser(user: User) {
+    return {
+      uuid: user.uuid,
+      publicName: user.publicName,
+      avatarUrl: user.avatarUrl,
+      role: user.role,
+      status: user.status
+    };
   }
-
-  const token = jwt.sign({ uuid: user.uuid }, SECRET, { expiresIn: "1h" });
-  return { token };
-}
 }
