@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: lotofacil-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lotofacil_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lotofacil-network
+
+  auth-service:
+    build: ../services/auth-service
+    container_name: lotofacil-auth
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/lotofacil_db"
+      JWT_SECRET: "sua_chave_secreta_muito_longa_aqui_mude_em_producao"
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    networks:
+      - lotofacil-network
+    command: sh -c "npx prisma migrate deploy && npm run dev"
+
+networks:
+  lotofacil-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -8,13 +8,14 @@ generator client {
 }
 
 model User {
-  uuid          String   @id
+  uuid          String   @id @default(uuid())
   email         String?  @unique
   passwordHash  String?
   publicName    String
   avatarUrl     String?
-  role          String
-  status        String
+  role          String   @default("user")
+  status        String   @default("active")
   publicKey     String?  @unique
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
