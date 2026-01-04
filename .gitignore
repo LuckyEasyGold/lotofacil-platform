@@ -47,3 +47,8 @@ docker-compose.override.yml
 *.pid
 *.seed
 *.pid.lock
+
+# Prisma
+prisma/migrations/dev.db
+prisma/*.db
+.env
