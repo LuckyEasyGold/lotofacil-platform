@@ -38,3 +38,17 @@ networks:
 
 volumes:
   postgres_data:
+
+gateway:
+  build: ../services/gateway
+  container_name: lotofacil-gateway
+  restart: unless-stopped
+  environment:
+    JWT_SECRET: "dev_secret_change_in_prod"
+    PORT: 3000
+  ports:
+    - "3000:3000"
+  depends_on:
+    - auth-service
+  networks:
+    - lotofacil-network
