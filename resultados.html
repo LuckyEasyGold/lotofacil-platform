@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotofacil Platform - Resultados</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --primary-dark: #4338CA;
+            --primary-light: #818CF8;
+            --secondary-color: #10B981;
+            --accent-color: #F59E0B;
+            --danger-color: #EF4444;
+            --background-dark: #0F172A;
+            --background-card: #1E293B;
+            --background-input: #334155;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --border-color: #475569;
+            --gradient-primary: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            --gradient-secondary: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            --gradient-accent: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.3s ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app-container { display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: 280px;
+            background: var(--background-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            transition: transform var(--transition-normal);
+        }
+
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--border-color); }
+
+        .sidebar-logo { display: flex; align-items: center; gap: 12px; }
+
+        .sidebar-logo .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-logo .logo-icon i { font-size: 22px; color: white; }
+        .sidebar-logo span { font-size: 18px; font-weight: 700; }
+
+        .sidebar-nav { flex: 1; padding: 16px; overflow-y: auto; }
+
+        .nav-section { margin-bottom: 24px; }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            padding: 8px 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .nav-item:hover { background: var(--background-input); color: var(--text-primary); }
+        .nav-item.active { background: rgba(79, 70, 229, 0.15); color: var(--primary-light); }
+        .nav-item i { width: 20px; text-align: center; }
+        .nav-item-badge {
+            margin-left: auto;
+            background: var(--danger-color);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .sidebar-footer { padding: 16px; border-top: 1px solid var(--border-color); }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            position: relative;
+        }
+
+        .user-profile:hover { background: var(--background-input); }
+
+        .user-profile .avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .user-profile .user-details { flex: 1; }
+        .user-profile .user-name { font-size: 14px; font-weight: 600; }
+        .user-profile .user-email { font-size: 12px; color: var(--text-muted); }
+        .user-profile .dropdown-icon { color: var(--text-muted); }
+
+        .dropdown-menu {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            margin-bottom: 8px;
+            background: var(--background-card);
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 200px;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border-color);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all var(--transition-fast);
+        }
+
+        .dropdown.open .dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .dropdown-item:hover { background: var(--background-input); color: var(--text-primary); }
+        .dropdown-item.danger { color: var(--danger-color); }
+        .dropdown-item.danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+        .main-content { flex: 1; margin-left: 280px; }
+
+        .top-bar {
+            background: var(--background-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .menu-toggle { display: none; background: none; border: none; color: var(--text-primary); font-size: 20px; cursor: pointer; padding: 8px; }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--background-input);
+            border-radius: 12px;
+            padding: 12px 16px;
+            width: 400px;
+        }
+
+        .search-bar i { color: var(--text-muted); }
+        .search-bar input { flex: 1; background: none; border: none; color: var(--text-primary); font-size: 14px; outline: none; }
+        .search-bar input::placeholder { color: var(--text-muted); }
+
+        .top-bar-actions { display: flex; align-items: center; gap: 16px; }
+
+        .action-btn {
+            position: relative;
+            background: var(--background-input);
+            border: none;
+            color: var(--text-secondary);
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-size: 16px;
+        }
+
+        .action-btn:hover { background: var(--background-dark); color: var(--text-primary); }
+        .action-btn .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 18px;
+            height: 18px;
+            background: var(--danger-color);
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .page-content { padding: 32px; }
+
+        .page-header { margin-bottom: 32px; }
+
+        .page-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        .page-subtitle { color: var(--text-muted); font-size: 15px; }
+
+        /* Lottery Filter */
+        .lottery-filter {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: var(--background-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            border-color: var(--primary-color);
+            color: var(--primary-light);
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        /* Latest Result Card */
+        .latest-result {
+            background: var(--background-card);
+            border-radius: 20px;
+            padding: 32px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 32px;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .result-info h3 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+        .result-info p { font-size: 14px; color: var(--text-muted); }
+        .result-info .contest { font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
+
+        .result-prize { text-align: right; }
+        .result-prize .label { font-size: 12px; color: var(--text-muted); }
+        .result-prize .value { font-size: 28px; font-weight: 700; color: var(--accent-color); }
+
+        .result-numbers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .result-number {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .result-details {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .result-detail-item { text-align: center; }
+        .result-detail-item .label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+        .result-detail-item .value { font-size: 16px; font-weight: 600; }
+
+        /* Results List */
+        .results-section { background: var(--background-card); border-radius: 20px; padding: 28px; border: 1px solid var(--border-color); }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .results-title { font-size: 18px; font-weight: 600; }
+
+        .results-list { display: flex; flex-direction: column; gap: 16px; }
+
+        .result-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            background: var(--background-input);
+            border-radius: 14px;
+            transition: all var(--transition-fast);
+            cursor: pointer;
+        }
+
+        .result-item:hover { background: var(--background-dark); transform: translateX(4px); }
+
+        .result-item-left { display: flex; align-items: center; gap: 16px; }
+
+        .result-item-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .result-item-icon.lotofacil { background: rgba(79, 70, 229, 0.15); color: var(--primary-light); }
+        .result-item-icon.megasena { background: rgba(16, 185, 129, 0.15); color: var(--secondary-color); }
+        .result-item-icon.quina { background: rgba(245, 158, 11, 0.15); color: var(--accent-color); }
+        .result-item-icon.lotomania { background: rgba(236, 72, 153, 0.15); color: #EC4899; }
+
+        .result-item-info h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .result-item-info p { font-size: 13px; color: var(--text-muted); }
+
+        .result-item-numbers {
+            display: flex;
+            gap: 6px;
+        }
+
+        .result-item-numbers .mini-number {
+            width: 28px;
+            height: 28px;
+            background: var(--background-card);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .result-item-right { text-align: right; }
+        .result-item-date { font-size: 12px; color: var(--text-muted); }
+
+        /* Winner Info */
+        .winner-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 12px;
+            margin-top: 24px;
+        }
+
+        .winner-info i { font-size: 24px; color: var(--secondary-color); }
+        .winner-info .text { flex: 1; font-size: 14px; color: var(--text-secondary); }
+        .winner-info .count { font-size: 20px; font-weight: 700; color: var(--secondary-color); }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            background: var(--background-card);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            animation: slideIn 0.3s ease;
+            min-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { border-left: 4px solid var(--secondary-color); }
+        .toast.error { border-left: 4px solid var(--danger-color); }
+        .toast.info { border-left: 4px solid var(--primary-color); }
+
+        .toast i { font-size: 20px; }
+        .toast.success i { color: var(--secondary-color); }
+        .toast.error i { color: var(--danger-color); }
+        .toast.info i { color: var(--primary-color); }
+        .toast-message { flex: 1; font-size: 14px; }
+        .toast-close { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .menu-toggle { display: block; }
+            .search-bar { width: 100%; max-width: 300px; }
+        }
+
+        @media (max-width: 768px) {
+            .top-bar { padding: 16px; }
+            .page-content { padding: 16px; }
+            .latest-result { padding: 20px; }
+            .result-header { flex-direction: column; gap: 16px; }
+            .result-prize { text-align: left; }
+            .result-details { flex-wrap: wrap; gap: 16px; }
+            .result-item { flex-direction: column; gap: 12px; }
+            .result-item-right { text-align: left; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="logo-icon"><i class="fas fa-ticket-alt"></i></div>
+                    <span>Lotofacil</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <span class="nav-section-title">Principal</span>
+                    <button class="nav-item" onclick="navigateTo('dashboard', this)">
+                        <i class="fas fa-home"></i>Dashboard
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('games', this)">
+                        <i class="fas fa-dice"></i>Jogos
+                    </button>
+                    <button class="nav-item active" onclick="navigateTo('results', this)">
+                        <i class="fas fa-chart-bar"></i>Resultados
+                    </button>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">Minha Conta</span>
+                    <button class="nav-item" onclick="navigateTo('bets', this)">
+                        <i class="fas fa-ticket-alt"></i>Minhas Apostas
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('wallet', this)">
+                        <i class="fas fa-wallet"></i>Carteira
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('history', this)">
+                        <i class="fas fa-history"></i>Histórico
+                    </button>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">Configurações</span>
+                    <button class="nav-item" onclick="navigateTo('profile', this)">
+                        <i class="fas fa-user"></i>Perfil
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('notifications', this)">
+                        <i class="fas fa-bell"></i>Notificações
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('settings', this)">
+                        <i class="fas fa-cog"></i>Configurações
+                    </button>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile dropdown" id="userDropdown">
+                    <div class="avatar">JD</div>
+                    <div class="user-details">
+                        <div class="user-name">João Silva</div>
+                        <div class="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b6dcd9d7d9f6d3dbd7dfda98d5d9db">[email&#160;protected]</a></div>
+                    </div>
+                    <i class="fas fa-chevron-up dropdown-icon"></i>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" onclick="navigateTo('profile')"><i class="fas fa-user"></i>Meu Perfil</div>
+                        <div class="dropdown-item" onclick="navigateTo('settings')"><i class="fas fa-cog"></i>Configurações</div>
+                        <div class="dropdown-item" onclick="switchUser()"><i class="fas fa-users"></i>Trocar Usuário</div>
+                        <div class="dropdown-item danger" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i>Sair</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Buscar resultados...">
+                    </div>
+                </div>
+                <div class="top-bar-actions">
+                    <button class="action-btn" onclick="navigateTo('notifications')">
+                        <i class="fas fa-bell"></i><span class="badge">3</span>
+                    </button>
+                    <button class="action-btn" onclick="navigateTo('messages')">
+                        <i class="fas fa-envelope"></i><span class="badge">5</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="page-content">
+                <div class="page-header">
+                    <h1 class="page-title">Resultados</h1>
+                    <p class="page-subtitle">Confira os últimos sorteios e resultados das loterias</p>
+                </div>
+
+                <div class="lottery-filter">
+                    <button class="filter-btn active" onclick="filterLottery('all', this)">
+                        <i class="fas fa-globe"></i>Todas
+                    </button>
+                    <button class="filter-btn" onclick="filterLottery('lotofacil', this)">
+                        <i class="fas fa-ticket-alt"></i>Lotofácil
+                    </button>
+                    <button class="filter-btn" onclick="filterLottery('megasena', this)">
+                        <i class="fas fa-star"></i>Mega-Sena
+                    </button>
+                    <button class="filter-btn" onclick="filterLottery('quina', this)">
+                        <i class="fas fa-gem"></i>Quina
+                    </button>
+                    <button class="filter-btn" onclick="filterLottery('lotomania', this)">
+                        <i class="fas fa-th-large"></i>Lotomania
+                    </button>
+                </div>
+
+                <div class="latest-result">
+                    <div class="result-header">
+                        <div class="result-info">
+                            <h3>Lotofácil</h3>
+                            <p>Concurso mais recente</p>
+                            <div class="contest">Concurso #3225 • 15/01/2025</div>
+                        </div>
+                        <div class="result-prize">
+                            <div class="label">Prêmio Acumulado</div>
+                            <div class="value">R$ 1.500.000</div>
+                        </div>
+                    </div>
+
+                    <div class="result-numbers">
+                        <span class="result-number">03</span>
+                        <span class="result-number">07</span>
+                        <span class="result-number">11</span>
+                        <span class="result-number">15</span>
+                        <span class="result-number">18</span>
+                        <span class="result-number">22</span>
+                        <span class="result-number">25</span>
+                        <span class="result-number">04</span>
+                        <span class="result-number">08</span>
+                        <span class="result-number">12</span>
+                        <span class="result-number">16</span>
+                        <span class="result-number">19</span>
+                        <span class="result-number">23</span>
+                        <span class="result-number">02</span>
+                        <span class="result-number">09</span>
+                    </div>
+
+                    <div class="result-details">
+                        <div class="result-detail-item">
+                            <div class="label">15 Acertos</div>
+                            <div class="value" style="color: var(--secondary-color);">2 apostas</div>
+                        </div>
+                        <div class="result-detail-item">
+                            <div class="label">14 Acertos</div>
+                            <div class="value">245 apostas</div>
+                        </div>
+                        <div class="result-detail-item">
+                            <div class="label">13 Acertos</div>
+                            <div class="value">8.432 apostas</div>
+                        </div>
+                        <div class="result-detail-item">
+                            <div class="label">12 Acertos</div>
+                            <div class="value">98.765 apostas</div>
+                        </div>
+                        <div class="result-detail-item">
+                            <div class="label">11 Acertos</div>
+                            <div class="value">543.210 apostas</div>
+                        </div>
+                    </div>
+
+                    <div class="winner-info">
+                        <i class="fas fa-trophy"></i>
+                        <span class="text">Houve vencedores neste concurso! 2 apostas acertaram as 15 dezenas.</span>
+                        <span class="count">R$ 750.000</span>
+                    </div>
+                </div>
+
+                <div class="results-section">
+                    <div class="results-header">
+                        <h3 class="results-title">Últimos Sorteios</h3>
+                    </div>
+
+                    <div class="results-list">
+                        <div class="result-item" onclick="viewResult('3224')">
+                            <div class="result-item-left">
+                                <div class="result-item-icon lotofacil"><i class="fas fa-ticket-alt"></i></div>
+                                <div class="result-item-info">
+                                    <h4>Lotofácil</h4>
+                                    <p>Concurso #3224 • 13/01/2025</p>
+                                </div>
+                            </div>
+                            <div class="result-item-numbers">
+                                <span class="mini-number">01</span>
+                                <span class="mini-number">05</span>
+                                <span class="mini-number">09</span>
+                                <span class="mini-number">13</span>
+                                <span class="mini-number">17</span>
+                                <span class="mini-number">21</span>
+                                <span class="mini-number">24</span>
+                            </div>
+                            <div class="result-item-right">
+                                <div class="result-item-date">Acumulou</div>
+                            </div>
+                        </div>
+
+                        <div class="result-item" onclick="viewResult('2675')">
+                            <div class="result-item-left">
+                                <div class="result-item-icon megasena"><i class="fas fa-star"></i></div>
+                                <div class="result-item-info">
+                                    <h4>Mega-Sena</h4>
+                                    <p>Concurso #2675 • 14/01/2025</p>
+                                </div>
+                            </div>
+                            <div class="result-item-numbers">
+                                <span class="mini-number">04</span>
+                                <span class="mini-number">18</span>
+                                <span class="mini-number">27</span>
+                                <span class="mini-number">33</span>
+                                <span class="mini-number">45</span>
+                                <span class="mini-number">52</span>
+                            </div>
+                            <div class="result-item-right">
+                                <div class="result-item-date">Acumulou</div>
+                            </div>
+                        </div>
+
+                        <div class="result-item" onclick="viewResult('6567')">
+                            <div class="result-item-left">
+                                <div class="result-item-icon quina"><i class="fas fa-gem"></i></div>
+                                <div class="result-item-info">
+                                    <h4>Quina</h4>
+                                    <p>Concurso #6567 • 14/01/2025</p>
+                                </div>
+                            </div>
+                            <div class="result-item-numbers">
+                                <span class="mini-number">07</span>
+                                <span class="mini-number">14</span>
+                                <span class="mini-number">28</span>
+                                <span class="mini-number">39</span>
+                                <span class="mini-number">55</span>
+                            </div>
+                            <div class="result-item-right">
+                                <div class="result-item-date">1 aposta</div>
+                            </div>
+                        </div>
+
+                        <div class="result-item" onclick="viewResult('2180')">
+                            <div class="result-item-left">
+                                <div class="result-item-icon lotomania"><i class="fas fa-th-large"></i></div>
+                                <div class="result-item-info">
+                                    <h4>Lotomania</h4>
+                                    <p>Concurso #2180 • 13/01/2025</p>
+                                </div>
+                            </div>
+                            <div class="result-item-numbers">
+                                <span class="mini-number">02</span>
+                                <span class="mini-number">15</span>
+                                <span class="mini-number">31</span>
+                                <span class="mini-number">47</span>
+                                <span class="mini-number">63</span>
+                            </div>
+                            <div class="result-item-right">
+                                <div class="result-item-date">Acumulou</div>
+                            </div>
+                        </div>
+
+                        <div class="result-item" onclick="viewResult('3223')">
+                            <div class="result-item-left">
+                                <div class="result-item-icon lotofacil"><i class="fas fa-ticket-alt"></i></div>
+                                <div class="result-item-info">
+                                    <h4>Lotofácil</h4>
+                                    <p>Concurso #3223 • 11/01/2025</p>
+                                </div>
+                            </div>
+                            <div class="result-item-numbers">
+                                <span class="mini-number">03</span>
+                                <span class="mini-number">06</span>
+                                <span class="mini-number">12</span>
+                                <span class="mini-number">19</span>
+                                <span class="mini-number">23</span>
+                                <span class="mini-number">25</span>
+                                <span class="mini-number">08</span>
+                            </div>
+                            <div class="result-item-right">
+                                <div class="result-item-date">Acumulou</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        function navigateTo(page, element) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            if (element) element.classList.add('active');
+            document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
+            window.location.href = page + '.html';
+        }
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+        function switchUser() { showToast('Selecione outro usuário', 'info'); }
+        function handleLogout() { showToast('Saindo...', 'info'); setTimeout(() => location.reload(), 500); }
+
+        document.getElementById('userDropdown').addEventListener('click', function() { this.classList.toggle('open'); });
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.dropdown')) document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
+            const sidebar = document.getElementById('sidebar');
+            const menuToggle = document.querySelector('.menu-toggle');
+            if (window.innerWidth <= 992 && !sidebar.contains(e.target) && !menuToggle.contains(e.target) && sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        function filterLottery(type, element) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            showToast('Filtrando por: ' + (type === 'all' ? 'Todas as loterias' : type), 'info');
+        }
+
+        function viewResult(id) { showToast('Carregando concurso #' + id + '...', 'info'); }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = `<i class="fas ${icons[type]}"></i><span class="toast-message">${message}</span><button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.animation = 'slideIn 0.3s ease reverse'; setTimeout(() => toast.remove(), 300); }, 5000);
+        }
+    </script>
+</body>
+</html>

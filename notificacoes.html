@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificações - Lotofácil</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --primary-light: #6366F1;
+            --primary-dark: #3730A3;
+            --secondary-color: #10B981;
+            --secondary-light: #34D399;
+            --accent-color: #F59E0B;
+            --danger-color: #EF4444;
+            --warning-color: #F59E0B;
+            --success-color: #10B981;
+            --background-dark: #0F172A;
+            --background-card: #1E293B;
+            --background-input: #334155;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --border-color: #334155;
+            --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.2);
+            --gradient-primary: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            --gradient-card: linear-gradient(145deg, var(--background-card), #263146);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--background-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 280px;
+            background: var(--background-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            transition: var(--transition);
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient-primary);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo-text h1 {
+            font-size: 20px;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-text span {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            padding-left: 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition);
+            margin-bottom: 4px;
+        }
+
+        .nav-item:hover {
+            background: var(--background-input);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .nav-item i {
+            width: 20px;
+            font-size: 18px;
+        }
+
+        .nav-item .badge {
+            margin-left: auto;
+            background: var(--danger-color);
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--background-input);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .user-profile:hover {
+            background: var(--border-color);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .user-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .user-info span {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--background-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: var(--background-input);
+            border: none;
+            color: var(--text-primary);
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: var(--background-input);
+            border-radius: var(--radius-md);
+            padding: 8px 16px;
+            gap: 8px;
+            min-width: 280px;
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            outline: none;
+            width: 100%;
+            font-size: 14px;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .header-btn {
+            background: var(--background-input);
+            border: none;
+            color: var(--text-secondary);
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .header-btn:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .header-btn .notification-dot {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background: var(--danger-color);
+            border-radius: 50%;
+        }
+
+        .content {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        /* Notifications Page Styles */
+        .notifications-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .notifications-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .notifications-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: var(--background-input);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #DC2626;
+        }
+
+        /* Filter Tabs */
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+
+        .filter-tab {
+            padding: 10px 20px;
+            background: var(--background-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .filter-tab:hover {
+            border-color: var(--primary-color);
+            color: var(--text-primary);
+        }
+
+        .filter-tab.active {
+            background: var(--gradient-primary);
+            border-color: transparent;
+            color: white;
+        }
+
+        .filter-tab .count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        /* Notification Cards */
+        .notifications-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .notification-card {
+            background: var(--gradient-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            display: flex;
+            gap: 16px;
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .notification-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .notification-card.unread {
+            border-left: 3px solid var(--primary-color);
+            background: linear-gradient(145deg, var(--background-card), #1e3a5f);
+        }
+
+        .notification-card.selected {
+            border-color: var(--primary-color);
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        .notification-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .notification-icon.prize {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent-color);
+        }
+
+        .notification-icon.bet {
+            background: rgba(79, 70, 229, 0.2);
+            color: var(--primary-light);
+        }
+
+        .notification-icon.system {
+            background: rgba(100, 116, 139, 0.2);
+            color: var(--text-muted);
+        }
+
+        .notification-icon.promo {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--secondary-color);
+        }
+
+        .notification-icon.alert {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger-color);
+        }
+
+        .notification-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .notification-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .notification-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .notification-message {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .notification-meta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .notification-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .notification-meta-item i {
+            font-size: 12px;
+        }
+
+        .notification-actions-menu {
+            display: flex;
+            gap: 8px;
+        }
+
+        .notification-action-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+
+        .notification-action-btn:hover {
+            background: var(--background-input);
+            color: var(--text-primary);
+        }
+
+        .notification-checkbox {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .notification-card.selectable .notification-checkbox {
+            display: block;
+        }
+
+        .notification-card.selected .notification-checkbox {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        /* Bulk Actions Bar */
+        .bulk-actions-bar {
+            background: var(--gradient-card);
+            border: 1px solid var(--primary-color);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .bulk-actions-bar.active {
+            display: flex;
+        }
+
+        .bulk-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .bulk-info span {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .bulk-info strong {
+            color: var(--text-primary);
+        }
+
+        .bulk-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            display: none;
+        }
+
+        .empty-state.active {
+            display: block;
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        /* Message Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--background-card);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            background: var(--background-input);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .message-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message-detail-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .message-detail-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .message-detail-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .message-detail-date {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .message-detail-content {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            padding: 16px;
+            background: var(--background-input);
+            border-radius: var(--radius-md);
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        /* Toast Notification */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            background: var(--background-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            box-shadow: var(--shadow-lg);
+            animation: toastSlideIn 0.3s ease;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .toast.success {
+            border-left: 3px solid var(--success-color);
+        }
+
+        .toast.error {
+            border-left: 3px solid var(--danger-color);
+        }
+
+        .toast.info {
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .toast i {
+            font-size: 20px;
+        }
+
+        .toast.success i {
+            color: var(--success-color);
+        }
+
+        .toast.error i {
+            color: var(--danger-color);
+        }
+
+        .toast.info i {
+            color: var(--primary-color);
+        }
+
+        .toast-message {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        /* Mobile Sidebar Overlay */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .search-box {
+                min-width: 200px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .menu-toggle {
+                display: flex;
+            }
+
+            .search-box {
+                display: none;
+            }
+
+            .header {
+                padding: 16px;
+            }
+
+            .page-title {
+                font-size: 18px;
+            }
+
+            .content {
+                padding: 16px;
+            }
+
+            .notifications-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .notification-card {
+                flex-direction: column;
+            }
+
+            .notification-actions-menu {
+                position: absolute;
+                top: 20px;
+                right: 50px;
+            }
+
+            .bulk-actions-bar {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .bulk-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .bulk-actions .btn {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .filter-tabs {
+                gap: 6px;
+            }
+
+            .filter-tab {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+
+            .btn {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon">
+                <i class="fas fa-ticket-alt"></i>
+            </div>
+            <div class="logo-text">
+                <h1>Lotofácil</h1>
+                <span>Plataforma</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Principal</div>
+                <a href="dashboard plataforma.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Início</span>
+                </a>
+                <a href="jogos.html" class="nav-item">
+                    <i class="fas fa-dice"></i>
+                    <span>Jogos</span>
+                </a>
+                <a href="resultados.html" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Resultados</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Minha Conta</div>
+                <a href="minhas-apostas.html" class="nav-item">
+                    <i class="fas fa-ticket"></i>
+                    <span>Minhas Apostas</span>
+                </a>
+                <a href="carteira.html" class="nav-item">
+                    <i class="fas fa-wallet"></i>
+                    <span>Carteira</span>
+                </a>
+                <a href="historico.html" class="nav-item">
+                    <i class="fas fa-history"></i>
+                    <span>Histórico</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Comunicação</div>
+                <a href="notificacoes.html" class="nav-item active">
+                    <i class="fas fa-bell"></i>
+                    <span>Notificações</span>
+                    <span class="badge">5</span>
+                </a>
+                <a href="perfil.html" class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>Perfil</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Sistema</div>
+                <a href="configuracoes.html" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Configurações</span>
+                </a>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <a href="interface plataforma.html" class="user-profile">
+                <div class="user-avatar">JD</div>
+                <div class="user-info">
+                    <h4>João Silva</h4>
+                    <span>Sair da conta</span>
+                </div>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h2 class="page-title">Notificações</h2>
+            </div>
+            <div class="header-right">
+                <div class="search-box">
+                    <i class="fas fa-search" style="color: var(--text-muted);"></i>
+                    <input type="text" placeholder="Buscar notificações...">
+                </div>
+                <button class="header-btn" id="markAllRead">
+                    <i class="fas fa-check-double"></i>
+                    <span class="notification-dot"></span>
+                </button>
+                <button class="header-btn" id="selectModeToggle">
+                    <i class="fas fa-check-square"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="notifications-container">
+                <!-- Bulk Actions Bar -->
+                <div class="bulk-actions-bar" id="bulkActionsBar">
+                    <div class="bulk-info">
+                        <span><strong id="selectedCount">0</strong> selecionados</span>
+                    </div>
+                    <div class="bulk-actions">
+                        <button class="btn btn-secondary" id="markSelectedRead">
+                            <i class="fas fa-check"></i>
+                            Marcar como lido
+                        </button>
+                        <button class="btn btn-danger" id="deleteSelected">
+                            <i class="fas fa-trash"></i>
+                            Excluir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Tabs -->
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">
+                        Todas <span class="count">12</span>
+                    </button>
+                    <button class="filter-tab" data-filter="unread">
+                        Não lidas <span class="count">5</span>
+                    </button>
+                    <button class="filter-tab" data-filter="prize">
+                        Prêmios <span class="count">3</span>
+                    </button>
+                    <button class="filter-tab" data-filter="bet">
+                        Apostas <span class="count">4</span>
+                    </button>
+                    <button class="filter-tab" data-filter="promo">
+                        Promoções <span class="count">2</span>
+                    </button>
+                    <button class="filter-tab" data-filter="system">
+                        Sistema <span class="count">3</span>
+                    </button>
+                </div>
+
+                <!-- Notifications List -->
+                <div class="notifications-list" id="notificationsList">
+                    <!-- Prize Notification -->
+                    <div class="notification-card unread selectable" data-id="1">
+                        <div class="notification-checkbox"></div>
+                        <div class="notification-icon prize">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div>
+                                    <div class="notification-title">Parabéns! Você ganhou um prêmio!</div>
+                                    <div class="notification-time">Há 2 horas</div>
+                                </div>
+                            </div>
+                            <div class="notification-message">
+                                Sua aposta no concurso 3220 foi contemplada! Você acertou 14 números e ganhou R$ 2.500,00.
+                            </div>
+                            <div class="notification-meta">
+                                <div class="notification-meta-item">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                    R$ 2.500,00
+                                </div>
+                                <div class="notification-meta-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    Pago
+                                </div>
+                            </div>
+                        </div>
+                        <div class="notification-actions-menu">
+                            <button class="notification-action-btn" title="Arquivar">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="notification-action-btn" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bet Notification -->
+                    <div class="notification-card unread selectable" data-id="2">
+                        <div class="notification-checkbox"></div>
+                        <div class="notification-icon bet">
+                            <i class="fas fa-ticket-alt"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div>
+                                    <div class="notification-title">Aposta confirmada!</div>
+                                    <div class="notification-time">Há 5 horas</div>
+                                </div>
+                            </div>
+                            <div class="notification-message">
+                                Sua aposta para o concurso 3222 foi registrada com sucesso. Boa sorte!
+                            </div>
+                            <div class="notification-meta">
+                                <div class="notification-meta-item">
+                                    <i class="fas fa-coins"></i>
+                                    R$ 25,00
+                                </div>
+                                <div class="notification-meta-item">
+                                    <i class="fas fa-numbers"></i>
+                                    15 números
+                                </div>
+                            </div>
+                        </div>
+                        <div class="notification-actions-menu">
+                            <button class="notification-action-btn" title="Arquivar">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="notification-action-btn" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Promo Notification -->
+                    <div class="notification-card unread selectable" data-id="3">
+                        <div class="notification-checkbox"></div>
+                        <div class="notification-icon promo">
+                            <i class="fas fa-gift"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div>
+                                    <div class="notification-title">Oferta especial: 50% de bônus no primeiro depósito!</div>
+                                    <div class="notification-time">Há 1 dia</div>
+                                </div>
+                            </div>
+                            <div class="notification-message">
+                                Aproveite essa oportunidade única! Faça seu primeiro depósito hoje e receba 50% de bônus extra para suas apostas.
+                            </div>
+                            <div class="notification-meta">
+                                <div class="notification-meta-item">
+                                    <i class="fas fa-clock"></i>
+                                    Válido até domingo
+                                </div>
+                            </div>
+                        </div>
+                        <div class="notification-actions-menu">
+                            <button class="notification-action-btn" title="Arquivar">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="notification-action-btn" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- System Notification -->
+                    <div class="notification-card selectable" data-id="4">
+                        <div class="notification-checkbox"></div>
+                        <div class="notification-icon system">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div>
+                                    <div class="notification-title">Segurança: Novo dispositivo detectado</div>
+                                    <div class="notification-time">Há 2 dias</div>
+                                </div>
+                            </div>
+                            <div class="notification-message">
+                                Notamos um acesso à sua conta de um novo dispositivo. Se foi você, ignore esta mensagem. Caso contrário, recomendamos alterar sua senha.
+                            </div>
+                            <div class="notification-meta">
+                                <div class="notification-meta-item">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    São Paulo, Brasil
+                                </div>
+                                <div class="notification-meta-item">
+                                    <i class="fas fa-desktop"></i>
+                                    Windows / Chrome
+                                </div>
+                            </div>
+                        </div>
+                        <div class="notification-actions-menu">
+                            <button class="notification-action-btn" title="Arquivar">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="notification-action-btn" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bet Result Notification -->
+                    <div class="notification-card unread selectable" data-id="5">
+                        <div class="notification-checkbox"></div>
+                        <div class="notification-icon prize">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div>
+                                    <div class="notification-title">Resultado do concurso 3219</div>
+                                    <div class="notification-time">Há 3 dias</div>
+                                </div>
+                            </div>
+                            <div class="notification-message">
+                                Os números sorteados foram: 01, 04, 07, 10, 13, 15, 18, 20, 21, 23, 24, 25. Você acertou 11 números.
+                            </div>
+                            <div class="notification-meta">
+                                <div class="notification-meta-item">
+                                    <i class="fas fa-coins"></i>
+                                    R$ 4,00 retornados
+                                </div>
+                            </div>
+                        </div>
+                        <div class="notification-actions-menu">
+                            <button class="notification-action-btn" title="Arquivar">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="notification-action-btn" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- System Update Notification -->
+                    <div class="notification-card selectable" data-id="6">
+                        <div class="notification-checkbox"></div>
+                        <div class="notification-icon system">
+                            <i class="fas fa-sync-alt"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div>
+                                    <div class="notification-title">Nova funcionalidade: Histórico de transações</div>
+                                    <div class="notification-time">Há 4 dias</div>
+                                </div>
+                            </div>
+                            <div class="notification-message">
+                                Agora você pode visualizar todo o histórico de depósitos e saques na nova seção "Carteira" do seu painel.
+                            </div>
+                            <div class="notification-meta">
+                                <div class="notification-meta-item">
+                                    <i class="fas fa-star"></i>
+                                    Novo recurso
+                                </div>
+                            </div>
+                        </div>
+                        <div class="notification-actions-menu">
+                            <button class="notification-action-btn" title="Arquivar">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="notification-action-btn" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Alert Notification -->
+                    <div class="notification-card selectable" data-id="7">
+                        <div class="notification-checkbox"></div>
+                        <div class="notification-icon alert">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div>
+                                    <div class="notification-title">Atenção: Praça de apostas fecha em breve</div>
+                                    <div class="notification-time">Há 5 dias</div>
+                                </div>
+                            </div>
+                            <div class="notification-message">
+                                As apostas para o concurso 3220 encerram-se às 19:00 de hoje. Não perca a chance de participar!
+                            </div>
+                            <div class="notification-meta">
+                                <div class="notification-meta-item">
+                                    <i class="fas fa-clock"></i>
+                                    Fecha às 19:00
+                                </div>
+                            </div>
+                        </div>
+                        <div class="notification-actions-menu">
+                            <button class="notification-action-btn" title="Arquivar">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="notification-action-btn" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Promo Notification 2 -->
+                    <div class="notification-card selectable" data-id="8">
+                        <div class="notification-checkbox"></div>
+                        <div class="notification-icon promo">
+                            <i class="fas fa-percentage"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div>
+                                    <div class="notification-title">Desconto especial em apostas múltiplas!</div>
+                                    <div class="notification-time">Há 6 dias</div>
+                                </div>
+                            </div>
+                            <div class="notification-message">
+                                Apostas com mais de 15 números agora têm 10% de desconto. Quanto mais números, maior a chance de ganhar!
+                            </div>
+                            <div class="notification-meta">
+                                <div class="notification-meta-item">
+                                    <i class="fas fa-tag"></i>
+                                    10% OFF
+                                </div>
+                            </div>
+                        </div>
+                        <div class="notification-actions-menu">
+                            <button class="notification-action-btn" title="Arquivar">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="notification-action-btn" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="emptyState">
+                    <i class="fas fa-bell-slash"></i>
+                    <h3>Nenhuma notificação encontrada</h3>
+                    <p>Você não tem notificações com os filtros selecionados.</p>
+                    <button class="btn btn-primary" id="clearFilters">
+                        <i class="fas fa-filter"></i>
+                        Limpar filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // DOM Elements
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuToggle = document.getElementById('menuToggle');
+        const filterTabs = document.querySelectorAll('.filter-tab');
+        const notificationCards = document.querySelectorAll('.notification-card');
+        const selectModeToggle = document.getElementById('selectModeToggle');
+        const bulkActionsBar = document.getElementById('bulkActionsBar');
+        const selectedCountEl = document.getElementById('selectedCount');
+        const notificationsList = document.getElementById('notificationsList');
+        const emptyState = document.getElementById('emptyState');
+        const markAllReadBtn = document.getElementById('markAllRead');
+
+        let isSelectMode = false;
+        let selectedNotifications = new Set();
+
+        // Mobile Menu Toggle
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+        });
+
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+        });
+
+        // Select Mode Toggle
+        selectModeToggle.addEventListener('click', () => {
+            isSelectMode = !isSelectMode;
+            
+            if (isSelectMode) {
+                selectModeToggle.style.background = 'var(--primary-color)';
+                selectModeToggle.style.color = 'white';
+                bulkActionsBar.classList.add('active');
+                notificationCards.forEach(card => {
+                    card.classList.add('selectable');
+                });
+                showToast('Modo seleção ativado', 'info');
+            } else {
+                selectModeToggle.style.background = '';
+                selectModeToggle.style.color = '';
+                bulkActionsBar.classList.remove('active');
+                selectedNotifications.clear();
+                updateSelectedCount();
+                notificationCards.forEach(card => {
+                    card.classList.remove('selectable', 'selected');
+                });
+            }
+        });
+
+        // Notification Card Selection
+        notificationCards.forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (!isSelectMode) {
+                    // Open message detail modal
+                    openMessageModal(card);
+                    return;
+                }
+
+                const checkbox = card.querySelector('.notification-checkbox');
+                if (e.target === checkbox || e.target.closest('.notification-checkbox')) {
+                    toggleSelection(card);
+                } else {
+                    toggleSelection(card);
+                }
+            });
+        });
+
+        function toggleSelection(card) {
+            const id = card.dataset.id;
+            
+            if (selectedNotifications.has(id)) {
+                selectedNotifications.delete(id);
+                card.classList.remove('selected');
+            } else {
+                selectedNotifications.add(id);
+                card.classList.add('selected');
+            }
+            
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            selectedCountEl.textContent = selectedNotifications.size;
+        }
+
+        // Filter Tabs
+        filterTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                filterTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                const filter = tab.dataset.filter;
+                filterNotifications(filter);
+            });
+        });
+
+        function filterNotifications(filter) {
+            let visibleCount = 0;
+            
+            notificationCards.forEach(card => {
+                const isUnread = card.classList.contains('unread');
+                let show = false;
+
+                if (filter === 'all') {
+                    show = true;
+                } else if (filter === 'unread') {
+                    show = isUnread;
+                } else if (filter === 'prize') {
+                    show = card.querySelector('.notification-icon.prize') !== null;
+                } else if (filter === 'bet') {
+                    show = card.querySelector('.notification-icon.bet') !== null;
+                } else if (filter === 'promo') {
+                    show = card.querySelector('.notification-icon.promo') !== null;
+                } else if (filter === 'system') {
+                    show = card.querySelector('.notification-icon.system') !== null;
+                }
+
+                card.style.display = show ? 'flex' : 'none';
+                if (show) visibleCount++;
+            });
+
+            if (visibleCount === 0) {
+                notificationsList.style.display = 'none';
+                emptyState.classList.add('active');
+            } else {
+                notificationsList.style.display = 'flex';
+                emptyState.classList.remove('active');
+            }
+        }
+
+        // Clear Filters
+        document.getElementById('clearFilters').addEventListener('click', () => {
+            filterTabs.forEach(t => t.classList.remove('active'));
+            filterTabs[0].classList.add('active');
+            filterNotifications('all');
+        });
+
+        // Mark All as Read
+        markAllReadBtn.addEventListener('click', () => {
+            let count = 0;
+            notificationCards.forEach(card => {
+                if (card.classList.contains('unread')) {
+                    card.classList.remove('unread');
+                    count++;
+                }
+            });
+            
+            // Update tab counts
+            document.querySelectorAll('.filter-tab .count')[0].textContent = '0';
+            document.querySelectorAll('.filter-tab .count')[1].textContent = '0';
+            
+            // Update sidebar badge
+            document.querySelector('.nav-item .badge').style.display = 'none';
+            
+            showToast(`${count} notificações marcadas como lidas`, 'success');
+        });
+
+        // Bulk Actions
+        document.getElementById('markSelectedRead').addEventListener('click', () => {
+            selectedNotifications.forEach(id => {
+                const card = document.querySelector(`.notification-card[data-id="${id}"]`);
+                if (card) card.classList.remove('unread');
+            });
+            
+            updateUnreadCount();
+            showToast('Notificações marcadas como lidas', 'success');
+            exitSelectMode();
+        });
+
+        document.getElementById('deleteSelected').addEventListener('click', () => {
+            selectedNotifications.forEach(id => {
+                const card = document.querySelector(`.notification-card[data-id="${id}"]`);
+                if (card) card.remove();
+            });
+            
+            updateUnreadCount();
+            showToast('Notificações excluídas', 'success');
+            exitSelectMode();
+        });
+
+        function exitSelectMode() {
+            isSelectMode = false;
+            selectedNotifications.clear();
+            updateSelectedCount();
+            selectModeToggle.style.background = '';
+            selectModeToggle.style.color = '';
+            bulkActionsBar.classList.remove('active');
+            notificationCards.forEach(card => {
+                card.classList.remove('selectable', 'selected');
+            });
+        }
+
+        function updateUnreadCount() {
+            const unreadCards = document.querySelectorAll('.notification-card.unread');
+            const count = unreadCards.length;
+            
+            document.querySelectorAll('.filter-tab .count')[0].textContent = count;
+            document.querySelectorAll('.filter-tab .count')[1].textContent = count;
+            
+            const badge = document.querySelector('.nav-item .badge');
+            if (count > 0) {
+                badge.textContent = count;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // Message Modal
+        function openMessageModal(card) {
+            const title = card.querySelector('.notification-title').textContent;
+            const message = card.querySelector('.notification-message').textContent;
+            const time = card.querySelector('.notification-time').textContent;
+            const icon = card.querySelector('.notification-icon');
+            const iconClass = icon.className.split(' ').find(c => c !== 'notification-icon');
+
+            const modalHTML = `
+                <div class="modal-overlay active" id="messageModal">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h3>Detalhes da Notificação</h3>
+                            <button class="modal-close" onclick="closeMessageModal()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="message-detail">
+                                <div class="message-detail-header">
+                                    <div class="notification-icon ${iconClass}">
+                                        <i class="${icon.querySelector('i').className}"></i>
+                                    </div>
+                                    <div>
+                                        <div class="message-detail-title">${title}</div>
+                                        <div class="message-detail-date">${time}</div>
+                                    </div>
+                                </div>
+                                <div class="message-detail-content">
+                                    ${message}
+                                </div>
+                                <div class="message-actions">
+                                    <button class="btn btn-secondary" onclick="closeMessageModal()">
+                                        <i class="fas fa-check"></i>
+                                        Marcar como lida
+                                    </button>
+                                    <button class="btn btn-danger" onclick="deleteNotification('${card.dataset.id}'); closeMessageModal();">
+                                        <i class="fas fa-trash"></i>
+                                        Excluir
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+            // Mark as read
+            card.classList.remove('unread');
+            updateUnreadCount();
+        }
+
+        function closeMessageModal() {
+            const modal = document.getElementById('messageModal');
+            if (modal) modal.remove();
+        }
+
+        function deleteNotification(id) {
+            const card = document.querySelector(`.notification-card[data-id="${id}"]`);
+            if (card) {
+                card.remove();
+                updateUnreadCount();
+                showToast('Notificação excluída', 'success');
+            }
+        }
+
+        // Close modal on overlay click
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.remove();
+            }
+        });
+
+        // Toast Notification
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            
+            const icons = {
+                success: 'fas fa-check-circle',
+                error: 'fas fa-exclamation-circle',
+                info: 'fas fa-info-circle'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="${icons[type]}"></i>
+                <span class="toast-message">${message}</span>
+            `;
+
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'toastSlideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Make functions globally available
+        window.closeMessageModal = closeMessageModal;
+        window.deleteNotification = deleteNotification;
+
+        console.log('Notificações page loaded successfully');
+    </script>
+</body>
+</html>

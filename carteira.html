@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotofacil Platform - Carteira</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --primary-dark: #4338CA;
+            --primary-light: #818CF8;
+            --secondary-color: #10B981;
+            --accent-color: #F59E0B;
+            --danger-color: #EF4444;
+            --background-dark: #0F172A;
+            --background-card: #1E293B;
+            --background-input: #334155;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --border-color: #475569;
+            --gradient-primary: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            --gradient-secondary: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            --gradient-accent: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            --gradient-gold: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.3s ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app-container { display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: 280px;
+            background: var(--background-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            transition: transform var(--transition-normal);
+        }
+
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--border-color); }
+
+        .sidebar-logo { display: flex; align-items: center; gap: 12px; }
+
+        .sidebar-logo .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-logo .logo-icon i { font-size: 22px; color: white; }
+        .sidebar-logo span { font-size: 18px; font-weight: 700; }
+
+        .sidebar-nav { flex: 1; padding: 16px; overflow-y: auto; }
+
+        .nav-section { margin-bottom: 24px; }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            padding: 8px 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .nav-item:hover { background: var(--background-input); color: var(--text-primary); }
+        .nav-item.active { background: rgba(79, 70, 229, 0.15); color: var(--primary-light); }
+        .nav-item i { width: 20px; text-align: center; }
+        .nav-item-badge {
+            margin-left: auto;
+            background: var(--danger-color);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .sidebar-footer { padding: 16px; border-top: 1px solid var(--border-color); }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            position: relative;
+        }
+
+        .user-profile:hover { background: var(--background-input); }
+
+        .user-profile .avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .user-profile .user-details { flex: 1; }
+        .user-profile .user-name { font-size: 14px; font-weight: 600; }
+        .user-profile .user-email { font-size: 12px; color: var(--text-muted); }
+        .user-profile .dropdown-icon { color: var(--text-muted); }
+
+        .dropdown-menu {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            margin-bottom: 8px;
+            background: var(--background-card);
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 200px;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border-color);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all var(--transition-fast);
+        }
+
+        .dropdown.open .dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .dropdown-item:hover { background: var(--background-input); color: var(--text-primary); }
+        .dropdown-item.danger { color: var(--danger-color); }
+        .dropdown-item.danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+        .main-content { flex: 1; margin-left: 280px; }
+
+        .top-bar {
+            background: var(--background-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .menu-toggle { display: none; background: none; border: none; color: var(--text-primary); font-size: 20px; cursor: pointer; padding: 8px; }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--background-input);
+            border-radius: 12px;
+            padding: 12px 16px;
+            width: 400px;
+        }
+
+        .search-bar i { color: var(--text-muted); }
+        .search-bar input { flex: 1; background: none; border: none; color: var(--text-primary); font-size: 14px; outline: none; }
+        .search-bar input::placeholder { color: var(--text-muted); }
+
+        .top-bar-actions { display: flex; align-items: center; gap: 16px; }
+
+        .action-btn {
+            position: relative;
+            background: var(--background-input);
+            border: none;
+            color: var(--text-secondary);
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-size: 16px;
+        }
+
+        .action-btn:hover { background: var(--background-dark); color: var(--text-primary); }
+        .action-btn .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 18px;
+            height: 18px;
+            background: var(--danger-color);
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .page-content { padding: 32px; }
+
+        .page-header { margin-bottom: 32px; display: flex; justify-content: space-between; align-items: flex-start; }
+        .page-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        .page-subtitle { color: var(--text-muted); font-size: 15px; }
+
+        /* Balance Cards */
+        .balance-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .balance-card {
+            background: var(--background-card);
+            border-radius: 20px;
+            padding: 28px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .balance-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 120px;
+            height: 120px;
+            border-radius: 0 0 0 100%;
+            opacity: 0.1;
+        }
+
+        .balance-card.main::before { background: var(--gradient-primary); }
+        .balance-card.bonus::before { background: var(--gradient-accent); }
+        .balance-card.winnings::before { background: var(--gradient-secondary); }
+
+        .balance-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .balance-card.main .balance-icon { background: rgba(79, 70, 229, 0.15); color: var(--primary-light); }
+        .balance-card.bonus .balance-icon { background: rgba(245, 158, 11, 0.15); color: var(--accent-color); }
+        .balance-card.winnings .balance-icon { background: rgba(16, 185, 129, 0.15); color: var(--secondary-color); }
+
+        .balance-label { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
+        .balance-value { font-size: 32px; font-weight: 700; margin-bottom: 16px; }
+        .balance-card.main .balance-value { background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .balance-card.bonus .balance-value { color: var(--accent-color); }
+        .balance-card.winnings .balance-value { color: var(--secondary-color); }
+
+        .balance-actions { display: flex; gap: 12px; }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: none;
+        }
+
+        .btn-primary { background: var(--gradient-primary); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .btn-secondary { background: var(--background-input); color: var(--text-primary); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background: var(--background-dark); }
+        .btn-success { background: var(--gradient-secondary); color: white; }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .btn-full { flex: 1; }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .quick-action {
+            background: var(--background-card);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .quick-action:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--primary-color); }
+
+        .quick-action i { font-size: 28px; margin-bottom: 12px; display: block; }
+        .quick-action.deposit i { color: var(--secondary-color); }
+        .quick-action.withdraw i { color: var(--accent-color); }
+        .quick-action.transfer i { color: var(--primary-light); }
+        .quick-action.history i { color: var(--text-secondary); }
+
+        .quick-action span { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+
+        /* Transactions */
+        .transactions-section {
+            background: var(--background-card);
+            border-radius: 20px;
+            padding: 28px;
+            border: 1px solid var(--border-color);
+        }
+
+        .transactions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .transactions-title { font-size: 18px; font-weight: 600; }
+
+        .filter-select {
+            padding: 10px 16px;
+            background: var(--background-input);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .transactions-list { display: flex; flex-direction: column; gap: 12px; }
+
+        .transaction-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--background-input);
+            border-radius: 12px;
+            transition: all var(--transition-fast);
+        }
+
+        .transaction-item:hover { background: var(--background-dark); }
+
+        .transaction-left { display: flex; align-items: center; gap: 16px; }
+
+        .transaction-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .transaction-icon.deposit { background: rgba(16, 185, 129, 0.15); color: var(--secondary-color); }
+        .transaction-icon.withdraw { background: rgba(245, 158, 11, 0.15); color: var(--accent-color); }
+        .transaction-icon.bet { background: rgba(79, 70, 229, 0.15); color: var(--primary-light); }
+        .transaction-icon.win { background: rgba(16, 185, 129, 0.15); color: var(--secondary-color); }
+        .transaction-icon.transfer { background: rgba(79, 70, 229, 0.15); color: var(--primary-light); }
+
+        .transaction-info h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+        .transaction-info p { font-size: 12px; color: var(--text-muted); }
+
+        .transaction-right { text-align: right; }
+        .transaction-amount { font-size: 16px; font-weight: 600; }
+        .transaction-amount.positive { color: var(--secondary-color); }
+        .transaction-amount.negative { color: var(--danger-color); }
+        .transaction-date { font-size: 12px; color: var(--text-muted); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-normal);
+        }
+
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+
+        .modal {
+            background: var(--background-card);
+            border-radius: 20px;
+            padding: 32px;
+            width: 100%;
+            max-width: 480px;
+            margin: 20px;
+            transform: scale(0.9) translateY(20px);
+            transition: transform var(--transition-normal);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-overlay.visible .modal { transform: scale(1) translateY(0); }
+
+        .modal-header { text-align: center; margin-bottom: 24px; }
+        .modal-header h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .modal-header p { color: var(--text-muted); font-size: 14px; }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 24px;
+            cursor: pointer;
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all var(--transition-fast);
+        }
+
+        .modal-close:hover { background: var(--background-input); color: var(--text-primary); }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 14px; font-weight: 500; color: var(--text-secondary); margin-bottom: 8px; }
+        .form-input {
+            position: relative;
+        }
+
+        .form-input input {
+            width: 100%;
+            padding: 14px 16px;
+            padding-left: 48px;
+            background: var(--background-input);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 16px;
+            color: var(--text-primary);
+            transition: all var(--transition-fast);
+        }
+
+        .form-input input:focus { outline: none; border-color: var(--primary-color); }
+        .form-input .input-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .modal-actions { display: flex; gap: 12px; margin-top: 32px; }
+        .modal-actions .btn { flex: 1; padding: 16px; }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            background: var(--background-card);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            animation: slideIn 0.3s ease;
+            min-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { border-left: 4px solid var(--secondary-color); }
+        .toast.error { border-left: 4px solid var(--danger-color); }
+        .toast.info { border-left: 4px solid var(--primary-color); }
+
+        .toast i { font-size: 20px; }
+        .toast.success i { color: var(--secondary-color); }
+        .toast.error i { color: var(--danger-color); }
+        .toast.info i { color: var(--primary-color); }
+        .toast-message { flex: 1; font-size: 14px; }
+        .toast-close { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; }
+
+        /* Responsive */
+        @media (max-width: 1200px) { .balance-grid { grid-template-columns: 1fr; } .quick-actions { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 992px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .menu-toggle { display: block; }
+            .search-bar { width: 100%; max-width: 300px; }
+        }
+
+        @media (max-width: 768px) {
+            .top-bar { padding: 16px; }
+            .page-content { padding: 16px; }
+            .page-header { flex-direction: column; gap: 16px; }
+            .balance-card { padding: 20px; }
+            .balance-value { font-size: 24px; }
+            .quick-actions { grid-template-columns: repeat(2, 1fr); }
+            .transactions-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="logo-icon"><i class="fas fa-ticket-alt"></i></div>
+                    <span>Lotofacil</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <span class="nav-section-title">Principal</span>
+                    <button class="nav-item" onclick="navigateTo('dashboard', this)">
+                        <i class="fas fa-home"></i>Dashboard
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('games', this)">
+                        <i class="fas fa-dice"></i>Jogos
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('results', this)">
+                        <i class="fas fa-chart-bar"></i>Resultados
+                    </button>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">Minha Conta</span>
+                    <button class="nav-item" onclick="navigateTo('bets', this)">
+                        <i class="fas fa-ticket-alt"></i>Minhas Apostas
+                    </button>
+                    <button class="nav-item active" onclick="navigateTo('wallet', this)">
+                        <i class="fas fa-wallet"></i>Carteira
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('history', this)">
+                        <i class="fas fa-history"></i>Histórico
+                    </button>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">Configurações</span>
+                    <button class="nav-item" onclick="navigateTo('profile', this)">
+                        <i class="fas fa-user"></i>Perfil
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('notifications', this)">
+                        <i class="fas fa-bell"></i>Notificações
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('settings', this)">
+                        <i class="fas fa-cog"></i>Configurações
+                    </button>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile dropdown" id="userDropdown">
+                    <div class="avatar">JD</div>
+                    <div class="user-details">
+                        <div class="user-name">João Silva</div>
+                        <div class="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5c36333d331c39313d3530723f3331">[email&#160;protected]</a></div>
+                    </div>
+                    <i class="fas fa-chevron-up dropdown-icon"></i>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" onclick="navigateTo('profile')"><i class="fas fa-user"></i>Meu Perfil</div>
+                        <div class="dropdown-item" onclick="navigateTo('settings')"><i class="fas fa-cog"></i>Configurações</div>
+                        <div class="dropdown-item" onclick="switchUser()"><i class="fas fa-users"></i>Trocar Usuário</div>
+                        <div class="dropdown-item danger" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i>Sair</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Buscar na carteira...">
+                    </div>
+                </div>
+                <div class="top-bar-actions">
+                    <button class="action-btn" onclick="navigateTo('notifications')">
+                        <i class="fas fa-bell"></i><span class="badge">3</span>
+                    </button>
+                    <button class="action-btn" onclick="navigateTo('messages')">
+                        <i class="fas fa-envelope"></i><span class="badge">5</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Carteira</h1>
+                        <p class="page-subtitle">Gerencie seu saldo, faça depósitos e saques</p>
+                    </div>
+                </div>
+
+                <div class="balance-grid">
+                    <div class="balance-card main">
+                        <div class="balance-icon"><i class="fas fa-wallet"></i></div>
+                        <div class="balance-label">Saldo Disponível</div>
+                        <div class="balance-value">R$ 1.250,00</div>
+                        <div class="balance-actions">
+                            <button class="btn btn-primary btn-full" onclick="openModal('deposit')">
+                                <i class="fas fa-plus"></i>Depositar
+                            </button>
+                            <button class="btn btn-secondary btn-full" onclick="openModal('withdraw')">
+                                <i class="fas fa-minus"></i>Sacar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="balance-card bonus">
+                        <div class="balance-icon"><i class="fas fa-gift"></i></div>
+                        <div class="balance-label">Bônus Available</div>
+                        <div class="balance-value">R$ 50,00</div>
+                        <p style="font-size: 13px; color: var(--text-muted);">Válido até 20/01/2025</p>
+                        <div class="balance-actions">
+                            <button class="btn btn-secondary btn-full" onclick="openModal('deposit')">
+                                <i class="fas fa-info-circle"></i>Ver Bônus
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="balance-card winnings">
+                        <div class="balance-icon"><i class="fas fa-trophy"></i></div>
+                        <div class="balance-label">Prêmios a Receber</div>
+                        <div class="balance-value">R$ 1.200,00</div>
+                        <p style="font-size: 13px; color: var(--text-muted);">2 prêmios pendentes</p>
+                        <div class="balance-actions">
+                            <button class="btn btn-success btn-full" onclick="openModal('withdraw')">
+                                <i class="fas fa-download"></i>Resgatar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <div class="quick-action deposit" onclick="openModal('deposit')">
+                        <i class="fas fa-credit-card"></i>
+                        <span>Depositar</span>
+                    </div>
+                    <div class="quick-action withdraw" onclick="openModal('withdraw')">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Sacar</span>
+                    </div>
+                    <div class="quick-action transfer" onclick="openModal('transfer')">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>Transferir</span>
+                    </div>
+                    <div class="quick-action history" onclick="navigateTo('history')">
+                        <i class="fas fa-history"></i>
+                        <span>Ver Tudo</span>
+                    </div>
+                </div>
+
+                <div class="transactions-section">
+                    <div class="transactions-header">
+                        <h3 class="transactions-title">Últimas Transações</h3>
+                        <select class="filter-select" onchange="filterTransactions(this.value)">
+                            <option value="all">Todas</option>
+                            <option value="deposit">Depósitos</option>
+                            <option value="withdraw">Saques</option>
+                            <option value="bet">Apostas</option>
+                            <option value="win">Prêmios</option>
+                        </select>
+                    </div>
+
+                    <div class="transactions-list">
+                        <div class="transaction-item" data-type="deposit">
+                            <div class="transaction-left">
+                                <div class="transaction-icon deposit"><i class="fas fa-arrow-down"></i></div>
+                                <div class="transaction-info">
+                                    <h4>Depósito via Cartão</h4>
+                                    <p>Cartão ending em 4242</p>
+                                </div>
+                            </div>
+                            <div class="transaction-right">
+                                <div class="transaction-amount positive">+ R$ 500,00</div>
+                                <div class="transaction-date">Hoje, 14:30</div>
+                            </div>
+                        </div>
+
+                        <div class="transaction-item" data-type="win">
+                            <div class="transaction-left">
+                                <div class="transaction-icon win"><i class="fas fa-trophy"></i></div>
+                                <div class="transaction-info">
+                                    <h4>Prêmio Lotofácil</h4>
+                                    <p>Concurso #3220</p>
+                                </div>
+                            </div>
+                            <div class="transaction-right">
+                                <div class="transaction-amount positive">+ R$ 1.200,00</div>
+                                <div class="transaction-date">Ontem, 18:45</div>
+                            </div>
+                        </div>
+
+                        <div class="transaction-item" data-type="bet">
+                            <div class="transaction-left">
+                                <div class="transaction-icon bet"><i class="fas fa-ticket-alt"></i></div>
+                                <div class="transaction-info">
+                                    <h4>Aposta Lotofácil</h4>
+                                    <p>3 jogos • 15 números</p>
+                                </div>
+                            </div>
+                            <div class="transaction-right">
+                                <div class="transaction-amount negative">- R$ 7,50</div>
+                                <div class="transaction-date">12/01/2025</div>
+                            </div>
+                        </div>
+
+                        <div class="transaction-item" data-type="withdraw">
+                            <div class="transaction-left">
+                                <div class="transaction-icon withdraw"><i class="fas fa-arrow-up"></i></div>
+                                <div class="transaction-info">
+                                    <h4>Saque para Banco</h4>
+                                    <p>Conta ending em 8899</p>
+                                </div>
+                            </div>
+                            <div class="transaction-right">
+                                <div class="transaction-amount negative">- R$ 200,00</div>
+                                <div class="transaction-date">10/01/2025</div>
+                            </div>
+                        </div>
+
+                        <div class="transaction-item" data-type="deposit">
+                            <div class="transaction-left">
+                                <div class="transaction-icon deposit"><i class="fas fa-arrow-down"></i></div>
+                                <div class="transaction-info">
+                                    <h4>Depósito via PIX</h4>
+                                    <p>Transferência imediata</p>
+                                </div>
+                            </div>
+                            <div class="transaction-right">
+                                <div class="transaction-amount positive">+ R$ 100,00</div>
+                                <div class="transaction-date">08/01/2025</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Deposit Modal -->
+    <div class="modal-overlay" id="depositModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal('deposit')"><i class="fas fa-times"></i></button>
+            <div class="modal-header">
+                <h2>Depositar</h2>
+                <p>Escolha um método de pagamento</p>
+            </div>
+            <div class="form-group">
+                <label>Valor do Depósito</label>
+                <div class="form-input">
+                    <i class="fas fa-dollar-sign input-icon"></i>
+                    <input type="text" id="depositAmount" placeholder="R$ 0,00" oninput="formatCurrency(this)">
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                <button class="btn btn-secondary" onclick="setDepositAmount(50)">R$ 50</button>
+                <button class="btn btn-secondary" onclick="setDepositAmount(100)">R$ 100</button>
+                <button class="btn btn-secondary" onclick="setDepositAmount(200)">R$ 200</button>
+                <button class="btn btn-secondary" onclick="setDepositAmount(500)">R$ 500</button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('deposit')">Cancelar</button>
+                <button class="btn btn-primary" onclick="processDeposit()">Continuar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Withdraw Modal -->
+    <div class="modal-overlay" id="withdrawModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal('withdraw')"><i class="fas fa-times"></i></button>
+            <div class="modal-header">
+                <h2>Sacar</h2>
+                <p>O dinheiro será enviado para sua conta bancária</p>
+            </div>
+            <div class="form-group">
+                <label>Valor do Saque</label>
+                <div class="form-input">
+                    <i class="fas fa-dollar-sign input-icon"></i>
+                    <input type="text" id="withdrawAmount" placeholder="R$ 0,00" oninput="formatCurrency(this)">
+                </div>
+            </div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
+                <i class="fas fa-info-circle"></i> Saldo disponível para saque: R$ 1.250,00
+            </p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('withdraw')">Cancelar</button>
+                <button class="btn btn-success" onclick="processWithdraw()">Solicitar Saque</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        function navigateTo(page, element) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            if (element) element.classList.add('active');
+            document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
+            window.location.href = page + '.html';
+        }
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+        function switchUser() { showToast('Selecione outro usuário', 'info'); }
+        function handleLogout() { showToast('Saindo...', 'info'); setTimeout(() => location.reload(), 500); }
+
+        document.getElementById('userDropdown').addEventListener('click', function() { this.classList.toggle('open'); });
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.dropdown')) document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
+            const sidebar = document.getElementById('sidebar');
+            const menuToggle = document.querySelector('.menu-toggle');
+            if (window.innerWidth <= 992 && !sidebar.contains(e.target) && !menuToggle.contains(e.target) && sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        function openModal(type) {
+            document.getElementById(type + 'Modal').classList.add('visible');
+        }
+
+        function closeModal(type) {
+            document.getElementById(type + 'Modal').classList.remove('visible');
+        }
+
+        function setDepositAmount(amount) {
+            document.getElementById('depositAmount').value = 'R$ ' + amount.toFixed(2).replace('.', ',');
+        }
+
+        function formatCurrency(input) {
+            let value = input.value.replace(/\D/g, '');
+            value = (value / 100).toFixed(2);
+            value = 'R$ ' + value.replace('.', ',');
+            input.value = value;
+        }
+
+        function processDeposit() {
+            const amount = document.getElementById('depositAmount').value;
+            if (!amount || amount === 'R$ 0,00') {
+                showToast('Por favor, insira um valor válido', 'error');
+                return;
+            }
+            closeModal('deposit');
+            showToast('Redirecionando para pagamento...', 'success');
+        }
+
+        function processWithdraw() {
+            const amount = document.getElementById('withdrawAmount').value;
+            if (!amount || amount === 'R$ 0,00') {
+                showToast('Por favor, insira um valor válido', 'error');
+                return;
+            }
+            closeModal('withdraw');
+            showToast('Solicitação de saque enviada!', 'success');
+        }
+
+        function filterTransactions(type) {
+            document.querySelectorAll('.transaction-item').forEach(item => {
+                if (type === 'all' || item.dataset.type === type) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = `<i class="fas ${icons[type]}"></i><span class="toast-message">${message}</span><button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.animation = 'slideIn 0.3s ease reverse'; setTimeout(() => toast.remove(), 300); }, 5000);
+        }
+
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) this.classList.remove('visible');
+            });
+        });
+    </script>
+</body>
+</html>

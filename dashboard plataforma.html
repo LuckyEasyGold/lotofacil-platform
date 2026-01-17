@@ -1,0 +1,1989 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotofacil Platform - Apostas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --primary-dark: #4338CA;
+            --primary-light: #818CF8;
+            --secondary-color: #10B981;
+            --accent-color: #F59E0B;
+            --danger-color: #EF4444;
+            --background-dark: #0F172A;
+            --background-card: #1E293B;
+            --background-input: #334155;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --border-color: #475569;
+            --gradient-primary: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            --gradient-secondary: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            --gradient-accent: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            --gradient-gold: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ==================== APP LAYOUT ==================== */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--background-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            transition: transform var(--transition-normal);
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-logo .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-logo .logo-icon i {
+            font-size: 22px;
+            color: white;
+        }
+
+        .sidebar-logo span {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            padding: 8px 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .nav-item:hover {
+            background: var(--background-input);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(79, 70, 229, 0.15);
+            color: var(--primary-light);
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .nav-item-badge {
+            margin-left: auto;
+            background: var(--danger-color);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            position: relative;
+        }
+
+        .user-profile:hover {
+            background: var(--background-input);
+        }
+
+        .user-profile .avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .user-profile .user-details {
+            flex: 1;
+        }
+
+        .user-profile .user-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .user-profile .user-email {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .user-profile .dropdown-icon {
+            color: var(--text-muted);
+        }
+
+        /* Dropdown Menu */
+        .dropdown-menu {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            margin-bottom: 8px;
+            background: var(--background-card);
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 200px;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border-color);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all var(--transition-fast);
+        }
+
+        .dropdown.open .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .dropdown-item:hover {
+            background: var(--background-input);
+            color: var(--text-primary);
+        }
+
+        .dropdown-item.danger {
+            color: var(--danger-color);
+        }
+
+        .dropdown-item.danger:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+        }
+
+        .top-bar {
+            background: var(--background-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--background-input);
+            border-radius: 12px;
+            padding: 12px 16px;
+            width: 400px;
+        }
+
+        .search-bar i {
+            color: var(--text-muted);
+        }
+
+        .search-bar input {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .search-bar input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .top-bar-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .action-btn {
+            position: relative;
+            background: var(--background-input);
+            border: none;
+            color: var(--text-secondary);
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-size: 16px;
+        }
+
+        .action-btn:hover {
+            background: var(--background-dark);
+            color: var(--text-primary);
+        }
+
+        .action-btn .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 18px;
+            height: 18px;
+            background: var(--danger-color);
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        /* Page Content */
+        .page-content {
+            padding: 32px;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        /* ==================== LOTTERY SELECTOR ==================== */
+        .lottery-selector {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 32px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+
+        .lottery-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: var(--background-card);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            min-width: 200px;
+            flex-shrink: 0;
+        }
+
+        .lottery-option:hover {
+            border-color: var(--primary-color);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .lottery-option.active {
+            border-color: var(--primary-color);
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        .lottery-option .lottery-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .lottery-option.lotofacil .lottery-icon {
+            background: linear-gradient(135deg, #4F46E5, #7C3AED);
+            color: white;
+        }
+
+        .lottery-option.megasena .lottery-icon {
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: white;
+        }
+
+        .lottery-option.quina .lottery-icon {
+            background: linear-gradient(135deg, #F59E0B, #D97706);
+            color: white;
+        }
+
+        .lottery-option.lotomania .lottery-icon {
+            background: linear-gradient(135deg, #EC4899, #DB2777);
+            color: white;
+        }
+
+        .lottery-option .lottery-info h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .lottery-option .lottery-info p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ==================== BET AREA ==================== */
+        .bet-area {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 32px;
+        }
+
+        /* Numbers Grid */
+        .bet-card {
+            background: var(--background-card);
+            border-radius: 20px;
+            padding: 28px;
+            border: 1px solid var(--border-color);
+        }
+
+        .bet-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .bet-card-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .bet-card-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .selection-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(79, 70, 229, 0.1);
+            border-radius: 10px;
+        }
+
+        .selection-info .count {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .selection-info .text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .number-btn {
+            width: 100%;
+            aspect-ratio: 1;
+            border: 2px solid var(--border-color);
+            background: var(--background-input);
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .number-btn:hover {
+            border-color: var(--primary-color);
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        .number-btn.selected {
+            background: var(--gradient-primary);
+            border-color: transparent;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .number-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .quick-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--background-input);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .quick-btn:hover {
+            background: var(--background-dark);
+            color: var(--text-primary);
+            border-color: var(--primary-color);
+        }
+
+        .quick-btn.primary {
+            background: rgba(79, 70, 229, 0.15);
+            border-color: var(--primary-color);
+            color: var(--primary-light);
+        }
+
+        .quick-btn.primary:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* ==================== BET SUMMARY ==================== */
+        .summary-card {
+            background: var(--background-card);
+            border-radius: 20px;
+            padding: 28px;
+            border: 1px solid var(--border-color);
+            position: sticky;
+            top: 100px;
+        }
+
+        .summary-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .summary-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .summary-icon i {
+            font-size: 22px;
+            color: white;
+        }
+
+        .summary-title h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .summary-title p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Selected Numbers Preview */
+        .selected-preview {
+            margin-bottom: 24px;
+        }
+
+        .selected-preview h4 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .selected-numbers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 44px;
+            padding: 12px;
+            background: var(--background-input);
+            border-radius: 10px;
+        }
+
+        .selected-number {
+            width: 36px;
+            height: 36px;
+            background: var(--gradient-primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: white;
+            animation: popIn 0.2s ease;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .empty-state {
+            color: var(--text-muted);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Game Settings */
+        .game-settings {
+            margin-bottom: 24px;
+        }
+
+        .setting-group {
+            margin-bottom: 16px;
+        }
+
+        .setting-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .setting-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .setting-select {
+            flex: 1;
+        }
+
+        .setting-select select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--background-input);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .setting-select select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        /* Price Display */
+        .price-display {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            text-align: center;
+            border: 1px solid rgba(79, 70, 229, 0.2);
+        }
+
+        .price-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .price-value {
+            font-size: 36px;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .price-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* Action Buttons */
+        .bet-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--background-input);
+            border-color: var(--primary-color);
+        }
+
+        .btn-accent {
+            background: var(--gradient-accent);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Recent Bets */
+        .recent-bets {
+            margin-top: 32px;
+            background: var(--background-card);
+            border-radius: 20px;
+            padding: 28px;
+            border: 1px solid var(--border-color);
+        }
+
+        .recent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .recent-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .see-all {
+            color: var(--primary-light);
+            font-size: 14px;
+            cursor: pointer;
+            transition: color var(--transition-fast);
+        }
+
+        .see-all:hover {
+            color: var(--primary-color);
+        }
+
+        .bets-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .bet-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: var(--background-input);
+            border-radius: 12px;
+            transition: all var(--transition-fast);
+        }
+
+        .bet-item:hover {
+            background: var(--background-dark);
+        }
+
+        .bet-item-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .bet-item-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .bet-item-icon.lotofacil {
+            background: rgba(79, 70, 229, 0.15);
+            color: var(--primary-light);
+        }
+
+        .bet-item-info h4 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .bet-item-info p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .bet-item-right {
+            text-align: right;
+        }
+
+        .bet-item-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        .bet-item-date {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-normal);
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--background-card);
+            border-radius: 20px;
+            padding: 32px;
+            width: 100%;
+            max-width: 480px;
+            margin: 20px;
+            transform: scale(0.9) translateY(20px);
+            transition: transform var(--transition-normal);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-overlay.visible .modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(16, 185, 129, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .modal-icon i {
+            font-size: 36px;
+            color: var(--secondary-color);
+        }
+
+        .modal-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .modal-header p {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        .modal-details {
+            background: var(--background-input);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .modal-detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .modal-detail-row .label {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .modal-detail-row .value {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            background: var(--background-card);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            animation: slideIn 0.3s ease;
+            min-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .toast.info {
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .toast i {
+            font-size: 20px;
+        }
+
+        .toast.success i {
+            color: var(--secondary-color);
+        }
+
+        .toast.error i {
+            color: var(--danger-color);
+        }
+
+        .toast.info i {
+            color: var(--primary-color);
+        }
+
+        .toast-message {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .bet-area {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-card {
+                position: static;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .search-bar {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .numbers-grid {
+                grid-template-columns: repeat(8, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .lottery-selector {
+                flex-direction: column;
+            }
+
+            .lottery-option {
+                min-width: 100%;
+            }
+
+            .numbers-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .quick-actions {
+                justify-content: center;
+            }
+
+            .top-bar {
+                padding: 16px;
+            }
+
+            .page-content {
+                padding: 16px;
+            }
+
+            .setting-row {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .numbers-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .number-btn {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-ticket-alt"></i>
+                    </div>
+                    <span>Lotofacil</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <span class="nav-section-title">Principal</span>
+                    <button class="nav-item" onclick="navigateTo('dashboard', this)">
+                        <i class="fas fa-home"></i>
+                        Dashboard
+                    </button>
+                    <button class="nav-item active" onclick="navigateTo('games', this)">
+                        <i class="fas fa-dice"></i>
+                        Jogos
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('results', this)">
+                        <i class="fas fa-chart-bar"></i>
+                        Resultados
+                    </button>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">Minha Conta</span>
+                    <button class="nav-item" onclick="navigateTo('bets', this)">
+                        <i class="fas fa-ticket-alt"></i>
+                        Minhas Apostas
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('wallet', this)">
+                        <i class="fas fa-wallet"></i>
+                        Carteira
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('history', this)">
+                        <i class="fas fa-history"></i>
+                        Histórico
+                    </button>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">Configurações</span>
+                    <button class="nav-item" onclick="navigateTo('profile', this)">
+                        <i class="fas fa-user"></i>
+                        Perfil
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('notifications', this)">
+                        <i class="fas fa-bell"></i>
+                        Notificações
+                    </button>
+                    <button class="nav-item" onclick="navigateTo('settings', this)">
+                        <i class="fas fa-cog"></i>
+                        Configurações
+                    </button>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile dropdown" id="userDropdown">
+                    <div class="avatar">JD</div>
+                    <div class="user-details">
+                        <div class="user-name">João Silva</div>
+                        <div class="user-email">joao@email.com</div>
+                    </div>
+                    <i class="fas fa-chevron-up dropdown-icon"></i>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" onclick="navigateTo('profile')">
+                            <i class="fas fa-user"></i>
+                            Meu Perfil
+                        </div>
+                        <div class="dropdown-item" onclick="navigateTo('settings')">
+                            <i class="fas fa-cog"></i>
+                            Configurações
+                        </div>
+                        <div class="dropdown-item" onclick="switchUser()">
+                            <i class="fas fa-users"></i>
+                            Trocar Usuário
+                        </div>
+                        <div class="dropdown-item danger" onclick="handleLogout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Sair
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button class="menu-toggle" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Buscar jogos, resultados...">
+                    </div>
+                </div>
+
+                <div class="top-bar-actions">
+                    <button class="action-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </button>
+                    <button class="action-btn">
+                        <i class="fas fa-envelope"></i>
+                        <span class="badge">5</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="page-content">
+                <div class="page-header">
+                    <h1 class="page-title">Fazer Apostas</h1>
+                    <p class="page-subtitle">Escolha seus números da sorte e boa sorte!</p>
+                </div>
+
+                <!-- Lottery Selector -->
+                <div class="lottery-selector">
+                    <div class="lottery-option lotofacil active" onclick="selectLottery('lotofacil', this)">
+                        <div class="lottery-icon">
+                            <i class="fas fa-ticket-alt"></i>
+                        </div>
+                        <div class="lottery-info">
+                            <h4>Lotofácil</h4>
+                            <p>Escolha 15 números</p>
+                        </div>
+                    </div>
+
+                    <div class="lottery-option megasena" onclick="selectLottery('megasena', this)">
+                        <div class="lottery-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="lottery-info">
+                            <h4>Mega-Sena</h4>
+                            <p>Escolha 6 números</p>
+                        </div>
+                    </div>
+
+                    <div class="lottery-option quina" onclick="selectLottery('quina', this)">
+                        <div class="lottery-icon">
+                            <i class="fas fa-gem"></i>
+                        </div>
+                        <div class="lottery-info">
+                            <h4>Quina</h4>
+                            <p>Escolha 5 números</p>
+                        </div>
+                    </div>
+
+                    <div class="lottery-option lotomania" onclick="selectLottery('lotomania', this)">
+                        <div class="lottery-icon">
+                            <i class="fas fa-th-large"></i>
+                        </div>
+                        <div class="lottery-info">
+                            <h4>Lotomania</h4>
+                            <p>Escolha 50 números</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bet-area">
+                    <!-- Numbers Selection -->
+                    <div class="bet-card">
+                        <div class="bet-card-header">
+                            <div>
+                                <h3 class="bet-card-title">Selecione seus números</h3>
+                                <p class="bet-card-subtitle">Lotofácil - Escolha de 15 a 20 números</p>
+                            </div>
+                            <div class="selection-info">
+                                <span class="count" id="selectedCount">0</span>
+                                <span class="text">selecionados</span>
+                            </div>
+                        </div>
+
+                        <div class="numbers-grid" id="numbersGrid">
+                            <!-- Numbers will be generated by JavaScript -->
+                        </div>
+
+                        <div class="quick-actions">
+                            <button class="quick-btn primary" onclick="surpresinha()">
+                                <i class="fas fa-magic"></i>
+                                Surpresinha
+                            </button>
+                            <button class="quick-btn" onclick="clearSelection()">
+                                <i class="fas fa-trash-alt"></i>
+                                Limpar
+                            </button>
+                            <button class="quick-btn" onclick="selectAll()">
+                                <i class="fas fa-check-double"></i>
+                                Marcar Todos
+                            </button>
+                            <button class="quick-btn" onclick="selectLast()">
+                                <i class="fas fa-history"></i>
+                                Último Jogo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bet Summary -->
+                    <div class="summary-card">
+                        <div class="summary-header">
+                            <div class="summary-icon">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div class="summary-title">
+                                <h3>Resumo da Aposta</h3>
+                                <p>Lotofácil</p>
+                            </div>
+                        </div>
+
+                        <div class="selected-preview">
+                            <h4>Números selecionados</h4>
+                            <div class="selected-numbers" id="selectedNumbers">
+                                <span class="empty-state">Nenhum número selecionado</span>
+                            </div>
+                        </div>
+
+                        <div class="game-settings">
+                            <div class="setting-group">
+                                <label class="setting-label">Quantidade de números</label>
+                                <div class="setting-row">
+                                    <div class="setting-select">
+                                        <select id="numbersCount" onchange="updatePrice()">
+                                            <option value="15">15 números</option>
+                                            <option value="16">16 números</option>
+                                            <option value="17">17 números</option>
+                                            <option value="18">18 números</option>
+                                            <option value="19">19 números</option>
+                                            <option value="20">20 números</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label">Quantidade de jogos</label>
+                                <div class="setting-row">
+                                    <div class="setting-select">
+                                        <select id="gamesCount" onchange="updatePrice()">
+                                            <option value="1">1 jogo</option>
+                                            <option value="2">2 jogos</option>
+                                            <option value="3">3 jogos</option>
+                                            <option value="4">4 jogos</option>
+                                            <option value="5">5 jogos</option>
+                                            <option value="10">10 jogos</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label">Concursos consecutivos (Teimosinha)</label>
+                                <div class="setting-row">
+                                    <div class="setting-select">
+                                        <select id="teimosinha" onchange="updatePrice()">
+                                            <option value="1">1 concurso</option>
+                                            <option value="2">2 concursos</option>
+                                            <option value="3">3 concursos</option>
+                                            <option value="4">4 concursos</option>
+                                            <option value="5">5 concursos</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="price-display">
+                            <div class="price-label">Valor total da aposta</div>
+                            <div class="price-value" id="totalPrice">R$ 2,50</div>
+                            <div class="price-hint">* Valor por jogo: R$ 2,50</div>
+                        </div>
+
+                        <div class="bet-actions">
+                            <button class="btn btn-primary" id="betBtn" onclick="placeBet()" disabled>
+                                <i class="fas fa-ticket-alt"></i>
+                                <span>Colocar Aposta</span>
+                            </button>
+                            <button class="btn btn-accent" onclick="saveAsFavorite()">
+                                <i class="fas fa-heart"></i>
+                                <span>Salvar nos Favoritos</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Bets -->
+                <div class="recent-bets">
+                    <div class="recent-header">
+                        <h3 class="recent-title">Apostas Recentes</h3>
+                        <span class="see-all" onclick="viewAllBets()">Ver todas</span>
+                    </div>
+
+                    <div class="bets-list">
+                        <div class="bet-item">
+                            <div class="bet-item-left">
+                                <div class="bet-item-icon lotofacil">
+                                    <i class="fas fa-ticket-alt"></i>
+                                </div>
+                                <div class="bet-item-info">
+                                    <h4>Lotofácil</h4>
+                                    <p>15 números • 1 jogo</p>
+                                </div>
+                            </div>
+                            <div class="bet-item-right">
+                                <div class="bet-item-value">R$ 2,50</div>
+                                <div class="bet-item-date">Hoje, 14:30</div>
+                            </div>
+                        </div>
+
+                        <div class="bet-item">
+                            <div class="bet-item-left">
+                                <div class="bet-item-icon lotofacil">
+                                    <i class="fas fa-ticket-alt"></i>
+                                </div>
+                                <div class="bet-item-info">
+                                    <h4>Lotofácil</h4>
+                                    <p>18 números • 3 jogos</p>
+                                </div>
+                            </div>
+                            <div class="bet-item-right">
+                                <div class="bet-item-value">R$ 72,00</div>
+                                <div class="bet-item-date">Ontem, 09:15</div>
+                            </div>
+                        </div>
+
+                        <div class="bet-item">
+                            <div class="bet-item-left">
+                                <div class="bet-item-icon lotofacil">
+                                    <i class="fas fa-ticket-alt"></i>
+                                </div>
+                                <div class="bet-item-info">
+                                    <h4>Lotofácil</h4>
+                                    <p>15 números • 5 jogos</p>
+                                </div>
+                            </div>
+                            <div class="bet-item-right">
+                                <div class="bet-item-value">R$ 12,50</div>
+                                <div class="bet-item-date">3 dias atrás</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h2>Aposta Realizada!</h2>
+                <p>Sua aposta foi registrada com sucesso</p>
+            </div>
+            <div class="modal-details">
+                <div class="modal-detail-row">
+                    <span class="label">Jogo</span>
+                    <span class="value">Lotofácil</span>
+                </div>
+                <div class="modal-detail-row">
+                    <span class="label">Números</span>
+                    <span class="value" id="modalNumbers">15 números</span>
+                </div>
+                <div class="modal-detail-row">
+                    <span class="label">Quantidade</span>
+                    <span class="value" id="modalGames">1 jogo</span>
+                </div>
+                <div class="modal-detail-row">
+                    <span class="label">Total pago</span>
+                    <span class="value" id="modalPrice">R$ 2,50</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()" style="flex: 1;">
+                    Fechar
+                </button>
+                <button class="btn btn-primary" onclick="makeAnotherBet()" style="flex: 1;">
+                    Fazer Nova Aposta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // Configuration for each lottery type
+        const lotteryConfig = {
+            lotofacil: {
+                name: 'Lotofácil',
+                minNumbers: 15,
+                maxNumbers: 20,
+                totalNumbers: 25,
+                basePrice: 2.50,
+                pricePerExtraNumber: {
+                    15: 0,
+                    16: 4.00,
+                    17: 10.50,
+                    18: 24.00,
+                    19: 50.00,
+                    20: 100.00
+                }
+            },
+            megasena: {
+                name: 'Mega-Sena',
+                minNumbers: 6,
+                maxNumbers: 15,
+                totalNumbers: 60,
+                basePrice: 5.00,
+                pricePerExtraNumber: {
+                    6: 0,
+                    7: 35.00,
+                    8: 140.00,
+                    9: 420.00,
+                    10: 1050.00,
+                    11: 2310.00,
+                    12: 4620.00,
+                    13: 8580.00,
+                    14: 15015.00,
+                    15: 25025.00
+                }
+            },
+            quina: {
+                name: 'Quina',
+                minNumbers: 5,
+                maxNumbers: 15,
+                totalNumbers: 80,
+                basePrice: 2.00,
+                pricePerExtraNumber: {
+                    5: 0,
+                    6: 12.00,
+                    7: 42.00,
+                    8: 112.00,
+                    9: 252.00,
+                    10: 504.00,
+                    11: 924.00,
+                    12: 1584.00,
+                    13: 2574.00,
+                    14: 4004.00,
+                    15: 6006.00
+                }
+            },
+            lotomania: {
+                name: 'Lotomania',
+                minNumbers: 50,
+                maxNumbers: 50,
+                totalNumbers: 100,
+                basePrice: 2.50,
+                pricePerExtraNumber: {}
+            }
+        };
+
+        let currentLottery = 'lotofacil';
+        let selectedNumbers = new Set();
+        let lastBetNumbers = [3, 7, 11, 15, 18, 22, 25, 8, 12, 16, 19, 23, 2, 9, 14];
+
+        // Initialize the numbers grid
+        function initNumbersGrid() {
+            const grid = document.getElementById('numbersGrid');
+            grid.innerHTML = '';
+            
+            const config = lotteryConfig[currentLottery];
+            
+            for (let i = 1; i <= config.totalNumbers; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'number-btn';
+                btn.textContent = i.toString().padStart(2, '0');
+                btn.onclick = () => toggleNumber(i);
+                grid.appendChild(btn);
+            }
+        }
+
+        // Toggle number selection
+        function toggleNumber(num) {
+            const config = lotteryConfig[currentLottery];
+            
+            if (selectedNumbers.has(num)) {
+                selectedNumbers.delete(num);
+            } else if (selectedNumbers.size < config.maxNumbers) {
+                selectedNumbers.add(num);
+            } else {
+                showToast(`Máximo de ${config.maxNumbers} números permitido`, 'error');
+                return;
+            }
+            
+            updateNumberButtons();
+            updateSelectedDisplay();
+            updatePrice();
+        }
+
+        // Update number buttons visual state
+        function updateNumberButtons() {
+            const buttons = document.querySelectorAll('.number-btn');
+            const config = lotteryConfig[currentLottery];
+            
+            buttons.forEach((btn, index) => {
+                const num = index + 1;
+                btn.classList.remove('selected', 'disabled');
+                
+                if (selectedNumbers.has(num)) {
+                    btn.classList.add('selected');
+                }
+            });
+        }
+
+        // Update selected numbers display
+        function updateSelectedDisplay() {
+            const display = document.getElementById('selectedNumbers');
+            const countEl = document.getElementById('selectedCount');
+            const betBtn = document.getElementById('betBtn');
+            const config = lotteryConfig[currentLottery];
+            
+            const count = selectedNumbers.size;
+            countEl.textContent = count;
+            
+            if (count === 0) {
+                display.innerHTML = '<span class="empty-state">Nenhum número selecionado</span>';
+                betBtn.disabled = true;
+            } else {
+                display.innerHTML = '';
+                const sortedNums = Array.from(selectedNumbers).sort((a, b) => a - b);
+                sortedNums.forEach(num => {
+                    const span = document.createElement('span');
+                    span.className = 'selected-number';
+                    span.textContent = num.toString().padStart(2, '0');
+                    display.appendChild(span);
+                });
+                
+                betBtn.disabled = count < config.minNumbers;
+            }
+        }
+
+        // Calculate and update price
+        function updatePrice() {
+            const config = lotteryConfig[currentLottery];
+            const numbersCount = parseInt(document.getElementById('numbersCount').value);
+            const gamesCount = parseInt(document.getElementById('gamesCount').value);
+            const teimosinha = parseInt(document.getElementById('teimosinha').value);
+            
+            let basePrice = config.basePrice;
+            if (config.pricePerExtraNumber && config.pricePerExtraNumber[numbersCount]) {
+                basePrice = config.pricePerExtraNumber[numbersCount];
+            }
+            
+            const totalPrice = basePrice * gamesCount * teimosinha;
+            
+            document.getElementById('totalPrice').textContent = 
+                'R$ ' + totalPrice.toFixed(2).replace('.', ',');
+        }
+
+        // Surpresinha - random numbers
+        function surpresinha() {
+            const config = lotteryConfig[currentLottery];
+            const requiredCount = parseInt(document.getElementById('numbersCount').value);
+            
+            selectedNumbers.clear();
+            const available = Array.from({length: config.totalNumbers}, (_, i) => i + 1);
+            
+            for (let i = available.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [available[i], available[j]] = [available[j], available[i]];
+            }
+            
+            selectedNumbers = new Set(available.slice(0, requiredCount));
+            
+            updateNumberButtons();
+            updateSelectedDisplay();
+            updatePrice();
+            
+            showToast('Números aleatórios gerados!', 'success');
+        }
+
+        // Clear selection
+        function clearSelection() {
+            selectedNumbers.clear();
+            updateNumberButtons();
+            updateSelectedDisplay();
+            updatePrice();
+            showToast('Seleção limpa', 'info');
+        }
+
+        // Select all numbers
+        function selectAll() {
+            const config = lotteryConfig[currentLottery];
+            selectedNumbers = new Set(Array.from({length: config.totalNumbers}, (_, i) => i + 1));
+            updateNumberButtons();
+            updateSelectedDisplay();
+            updatePrice();
+            showToast('Todos os números selecionados', 'info');
+        }
+
+        // Use last bet numbers
+        function selectLast() {
+            selectedNumbers = new Set(lastBetNumbers);
+            updateNumberButtons();
+            updateSelectedDisplay();
+            updatePrice();
+            showToast('Números do último jogo carregados!', 'info');
+        }
+
+        // Select lottery type
+        function selectLottery(type, element) {
+            currentLottery = type;
+            
+            document.querySelectorAll('.lottery-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            // Update card subtitle
+            const config = lotteryConfig[type];
+            const subtitle = document.querySelector('.bet-card-subtitle');
+            subtitle.textContent = `${config.name} - Escolha de ${config.minNumbers} a ${config.maxNumbers} números`;
+            
+            // Reset selection
+            selectedNumbers.clear();
+            
+            // Update numbers count options
+            const numbersSelect = document.getElementById('numbersCount');
+            numbersSelect.innerHTML = '';
+            for (let i = config.minNumbers; i <= config.maxNumbers; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `${i} números`;
+                numbersSelect.appendChild(option);
+            }
+            
+            // Reset teimosinha
+            document.getElementById('teimosinha').innerHTML = `
+                <option value="1">1 concurso</option>
+                <option value="2">2 concursos</option>
+                <option value="3">3 concursos</option>
+            `;
+            
+            initNumbersGrid();
+            updateSelectedDisplay();
+            updatePrice();
+        }
+
+        // Place bet
+        function placeBet() {
+            const betBtn = document.getElementById('betBtn');
+            const originalText = betBtn.innerHTML;
+            
+            betBtn.innerHTML = '<div class="spinner"></div>';
+            betBtn.disabled = true;
+            
+            setTimeout(() => {
+                const config = lotteryConfig[currentLottery];
+                const numbersCount = document.getElementById('numbersCount').value;
+                const gamesCount = document.getElementById('gamesCount').value;
+                const totalPrice = document.getElementById('totalPrice').textContent;
+                
+                document.getElementById('modalNumbers').textContent = `${numbersCount} números`;
+                document.getElementById('modalGames').textContent = `${gamesCount} jogo(s)`;
+                document.getElementById('modalPrice').textContent = totalPrice;
+                
+                // Save as last bet
+                lastBetNumbers = Array.from(selectedNumbers);
+                
+                betBtn.innerHTML = originalText;
+                betBtn.disabled = false;
+                
+                document.getElementById('successModal').classList.add('visible');
+            }, 1500);
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('successModal').classList.remove('visible');
+        }
+
+        // Make another bet
+        function makeAnotherBet() {
+            closeModal();
+            clearSelection();
+            showToast('Pronto para nova aposta!', 'info');
+        }
+
+        // Save as favorite
+        function saveAsFavorite() {
+            if (selectedNumbers.size === 0) {
+                showToast('Selecione números primeiro', 'error');
+                return;
+            }
+            
+            showToast('Aposta salva nos favoritos!', 'success');
+        }
+
+        // Navigation
+        function navigateTo(page, element) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            if (element) {
+                element.classList.add('active');
+            }
+            
+            document.querySelectorAll('.dropdown').forEach(d => {
+                d.classList.remove('open');
+            });
+            
+            showToast('Navegando para ' + page + '...', 'info');
+        }
+
+        function switchUser() {
+            document.querySelector('.dropdown').classList.remove('open');
+            showToast('Selecione outro usuário', 'info');
+        }
+
+        function handleLogout() {
+            showToast('Saindo...', 'info');
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        function viewAllBets() {
+            showToast('Visualizando todas as apostas...', 'info');
+        }
+
+        // Dropdown toggle
+        document.getElementById('userDropdown').addEventListener('click', function() {
+            this.classList.toggle('open');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown').forEach(d => {
+                    d.classList.remove('open');
+                });
+            }
+            
+            // Close sidebar on mobile
+            const sidebar = document.getElementById('sidebar');
+            const menuToggle = document.querySelector('.menu-toggle');
+            if (window.innerWidth <= 992 && 
+                !sidebar.contains(e.target) && 
+                !menuToggle.contains(e.target) &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        // Toast notification
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                info: 'fa-info-circle'
+            };
+            
+            toast.innerHTML = `
+                <i class="fas ${icons[type]}"></i>
+                <span class="toast-message">${message}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.querySelectorAll('.dropdown').forEach(d => {
+                    d.classList.remove('open');
+                });
+            }
+        });
+
+        // Close modal on overlay click
+        document.getElementById('successModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Initialize
+        initNumbersGrid();
+        updatePrice();
+    </script>
+</body>
+</html>
