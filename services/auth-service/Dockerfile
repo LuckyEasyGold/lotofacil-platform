@@ -1,9 +1,14 @@
 FROM node:20
 WORKDIR /app
 
+
+
 # Copiar dependências
 COPY package*.json ./
 RUN npm ci
+
+# Reconstruir bcrypt para Linux
+RUN npm rebuild bcrypt --build-from-source
 
 # Copiar schema do Prisma
 COPY prisma ./prisma/
@@ -16,4 +21,4 @@ COPY . .
 
 # Build e execução
 RUN npm run build
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]
