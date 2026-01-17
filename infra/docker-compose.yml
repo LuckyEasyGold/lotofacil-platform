@@ -52,5 +52,8 @@ gateway:
     - auth-service
   networks:
     - lotofacil-network
+    - drivres: bridge
+  
+  volumes: postgres_data
 
  
