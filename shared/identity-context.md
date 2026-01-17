@@ -72,3 +72,4 @@ text
 8. Salve
 
 **São apenas esses dois blocos de texto para colar.** Depois me avise que seguimos para o Gateway Service.
+essa porcaria de texto acima foi criado por IA, ficou uma bosta nem faz sentido, foi o deepseek que gerou, mas estou com preguiça de fazer a documentação e vou deixar assim mesmo por enquanto.
