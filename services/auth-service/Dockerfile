@@ -1,7 +1,19 @@
 FROM node:20
 WORKDIR /app
-COPY package.json .
-RUN npm install
+
+# Copiar dependências
+COPY package*.json ./
+RUN npm ci
+
+# Copiar schema do Prisma
+COPY prisma ./prisma/
+
+# Gerar cliente Prisma ANTES de copiar todo o código
+RUN npx prisma generate
+
+# Copiar resto do código
 COPY . .
+
+# Build e execução
 RUN npm run build
 CMD ["npm", "start"]

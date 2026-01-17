@@ -1,0 +1,32 @@
+### 1. Registrar usuário
+POST http://localhost:3001/auth/register
+Content-Type: application/json
+
+{
+  "email": "teste@lotofacil.com",
+  "password": "123456",
+  "publicName": "Testador Primeiro"
+}
+
+### 2. Login com email/senha
+POST http://localhost:3001/auth/login
+Content-Type: application/json
+
+{
+  "email": "teste@lotofacil.com",
+  "password": "123456"
+}
+
+### 3. Login com chave pública (Nostr-style) - OPICIONAL
+POST http://localhost:3001/auth/login/pubkey
+Content-Type: application/json
+
+{
+  "publicKey": "chave_publica_exemplo_123",
+  "signature": "assinatura_hex_exemplo",
+  "challenge": "auth-challenge-123"
+}
+
+### 4. Verificar token (substitua SEU_TOKEN)
+GET http://localhost:3001/auth/verify
+Authorization: Bearer SEU_TOKEN_AQUI
