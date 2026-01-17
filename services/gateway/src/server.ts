@@ -56,7 +56,7 @@ export function startGateway() {
     res.status(404).json({ error: 'Rota não encontrada' });
   });
 
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`🚀 Gateway Service rodando na porta ${PORT}`);
     console.log(`📞 Auth Service: http://auth-service:3001`);
   });

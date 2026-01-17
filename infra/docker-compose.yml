@@ -52,3 +52,5 @@ gateway:
     - auth-service
   networks:
     - lotofacil-network
+
+ 
