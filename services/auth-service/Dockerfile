@@ -7,9 +7,6 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# Reconstruir bcrypt para Linux
-RUN npm rebuild bcrypt --build-from-source
-
 # Copiar schema do Prisma
 COPY prisma ./prisma/
 
