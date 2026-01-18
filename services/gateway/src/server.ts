@@ -48,7 +48,7 @@ export function startGateway() {
   app.use('/auth', createProxyMiddleware({
     target: 'http://auth-service:3001',
     changeOrigin: true,
-    pathRewrite: { '^/auth': '' }
+    // pathRewrite: { '^/auth': '' }
   }));
 
   // Rota padrão
