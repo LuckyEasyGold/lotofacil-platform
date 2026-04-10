@@ -1,54 +1,57 @@
-# Dependências
+```
+# Dependencies
 node_modules/
+
+# Build outputs
+dist/
+build/
+target/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.ENV
+.python-version
+
+# Logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
 
-# Ambiente
-.env
-.env.local
-.env.development
-.env.production
-.env.test
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# Build/Output
-dist/
-build/
-*.tsbuildinfo
-
-# Banco de dados
-*.db
-*.sqlite
-*.sqlite3
-prisma/dev.db
-prisma/*.db
-
-# IDE/Editor
+# Editor files
 .vscode/
 .idea/
 *.swp
 *.swo
-.DS_Store
+*~
 
-# Sistema operacional
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# Logs
-logs/
-*.log
-
-# Docker
-docker-compose.override.yml
-
-# Misc
-*.pid
-*.seed
-*.pid.lock
-
-# Prisma
-prisma/migrations/dev.db
-prisma/*.db
+# Environment variables
 .env
+.env.local
+.env.*
+!.env.example
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+```
