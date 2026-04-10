@@ -1,54 +1,52 @@
-# Dependências
+```
+# Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 
-# Ambiente
-.env
-.env.local
-.env.development
-.env.production
-.env.test
-
-# Build/Output
+# Build artifacts
 dist/
 build/
-*.tsbuildinfo
+target/
 
-# Banco de dados
-*.db
-*.sqlite
-*.sqlite3
-prisma/dev.db
-prisma/*.db
+# Logs and temp files
+*.log
+*.tmp
 
-# IDE/Editor
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
-.DS_Store
 
-# Sistema operacional
-Thumbs.db
-ehthumbs.db
-Desktop.ini
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# Logs
-logs/
-*.log
-
-# Docker
-docker-compose.override.yml
-
-# Misc
-*.pid
-*.seed
-*.pid.lock
-
-# Prisma
-prisma/migrations/dev.db
-prisma/*.db
-.env
+# Compression
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
+```
