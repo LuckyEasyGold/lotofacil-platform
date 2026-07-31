@@ -23,3 +23,4 @@ venv/
 
 # ==================== VERCEL ====================
 .vercel/
+api_jogos_ia_git_backup/
