@@ -1,0 +1,618 @@
+<% let body = `
+<!-- ==================== STATS CARDS ==================== -->
+<div class="stats-grid" id="gamesStats">
+  <div class="stat-card primary">
+    <div class="stat-icon"><i class="fas fa-dice-d6"></i></div>
+    <div class="stat-label">Total de Jogos</div>
+    <div class="stat-value gradient" id="statTotal">0</div>
+  </div>
+  <div class="stat-card success">
+    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+    <div class="stat-label">Ativos</div>
+    <div class="stat-value" style="color:var(--secondary);" id="statActive">0</div>
+  </div>
+  <div class="stat-card accent">
+    <div class="stat-icon"><i class="fas fa-trophy"></i></div>
+    <div class="stat-label">Premiados 🏆</div>
+    <div class="stat-value" style="color:var(--accent);" id="statWon">0</div>
+  </div>
+  <div class="stat-card info">
+    <div class="stat-icon"><i class="fas fa-history"></i></div>
+    <div class="stat-label">Vezes Usados</div>
+    <div class="stat-value" style="color:#60A5FA;" id="statUsed">0</div>
+  </div>
+</div>
+
+<!-- ==================== QUICK ACTIONS ==================== -->
+<div class="acoes-grid" style="margin-bottom:28px;">
+  <a href="/apostas" class="card acao-card">
+    <div class="acao-icon" style="background:linear-gradient(135deg,#4F46E5,#7C3AED);">
+      <i class="fas fa-plus"></i>
+    </div>
+    <span class="acao-label">Novo Jogo</span>
+    <span class="acao-desc">Criar manualmente</span>
+  </a>
+  <a href="/simulacao" class="card acao-card">
+    <div class="acao-icon" style="background:linear-gradient(135deg,#10B981,#059669);">
+      <i class="fas fa-brain"></i>
+    </div>
+    <span class="acao-label">Gerar com IA</span>
+    <span class="acao-desc">Usar inteligência artificial</span>
+  </a>
+  <a href="/boloes" class="card acao-card">
+    <div class="acao-icon" style="background:linear-gradient(135deg,#F59E0B,#D97706);">
+      <i class="fas fa-users"></i>
+    </div>
+    <span class="acao-label">Criar Bolão</span>
+    <span class="acao-desc">A partir de um jogo salvo</span>
+  </a>
+  <div class="card acao-card" onclick="showImportModal()" style="cursor:pointer;">
+    <div class="acao-icon" style="background:linear-gradient(135deg,#EC4899,#DB2777);">
+      <i class="fas fa-file-import"></i>
+    </div>
+    <span class="acao-label">Importar</span>
+    <span class="acao-desc">Adicionar números manualmente</span>
+  </div>
+</div>
+
+<!-- ==================== FILTER TABS ==================== -->
+<div class="tabs" id="gameTabs">
+  <button class="tab active" data-filter="all" onclick="filterGames('all')">📋 Todos</button>
+  <button class="tab" data-filter="active" onclick="filterGames('active')">✅ Ativos</button>
+  <button class="tab" data-filter="used" onclick="filterGames('used')">📌 Usados</button>
+  <button class="tab" data-filter="won" onclick="filterGames('won')">🏆 Premiados</button>
+  <button class="tab" data-filter="archived" onclick="filterGames('archived')">📦 Arquivados</button>
+  <button class="tab" data-filter="ai" onclick="filterGames('ai')">🤖 IA</button>
+</div>
+
+<!-- ==================== GAMES LIST ==================== -->
+<div id="gamesContainer">
+  <div class="loading-pulse" id="gamesLoading">
+    <i class="fas fa-spinner fa-spin"></i>
+    <span>Carregando seu portfólio...</span>
+  </div>
+  <div class="empty-state" id="gamesEmpty" style="display:none;">
+    <i class="fas fa-dice-d6"></i>
+    <h3>Nenhum jogo no portfólio</h3>
+    <p>Crie jogos nas páginas de Apostas ou Simulação com IA</p>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">
+      <a href="/apostas" class="btn btn-primary"><i class="fas fa-plus"></i> Criar Jogo</a>
+      <a href="/simulacao" class="btn btn-secondary"><i class="fas fa-brain"></i> Gerar com IA</a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL: IMPORTAR JOGO ==================== -->
+<div id="importModal" style="display:none;">
+  <div class="form-group">
+    <label>Nome do Jogo</label>
+    <div class="form-input">
+      <input type="text" id="importGameName" placeholder="Ex: Meu jogo da sorte">
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Números (15 números separados por vírgula)</label>
+    <div class="form-input">
+      <input type="text" id="importNumbers" placeholder="Ex: 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15">
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">
+    <i class="fas fa-info-circle"></i> Digite 15 números entre 01 e 25, separados por vírgula
+  </div>
+  <button class="btn btn-primary btn-full" onclick="importGame()">
+    <i class="fas fa-save"></i> Salvar no Portfólio
+  </button>
+</div>
+
+<!-- ==================== MODAL: USAR EM CONCURSO ==================== -->
+<div id="useModal" style="display:none;">
+  <p style="color:var(--text-secondary);margin-bottom:16px;">Registre que você usou este jogo em um concurso específico.</p>
+  <div class="form-group">
+    <label>Número do Concurso</label>
+    <div class="form-input">
+      <input type="number" id="useContestNumber" placeholder="Ex: 3000" min="1">
+    </div>
+  </div>
+  <button class="btn btn-primary btn-full" onclick="confirmUseGame()">
+    <i class="fas fa-check"></i> Confirmar Uso
+  </button>
+</div>
+
+<!-- ==================== MODAL: CRIAR BOLÃO DO JOGO ==================== -->
+<div id="poolFromGameModal" style="display:none;">
+  <p style="color:var(--text-secondary);margin-bottom:16px;">Crie um bolão usando os números deste jogo.</p>
+  <div class="form-group">
+    <label>Nome do Bolão</label>
+    <div class="form-input">
+      <input type="text" id="poolFromGameName" placeholder="Ex: Bolão da Sorte">
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Total de Cotas</label>
+    <div class="form-input">
+      <input type="number" id="poolFromGameShares" value="50" min="1">
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Valor por Cota (R$)</label>
+    <div class="form-input">
+      <input type="number" id="poolFromGamePrice" value="25.00" step="0.01" min="1">
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Concurso</label>
+    <div class="form-input">
+      <input type="number" id="poolFromGameContest" placeholder="Ex: 3005">
+    </div>
+  </div>
+  <button class="btn btn-accent btn-full" onclick="confirmPoolFromGame()">
+    <i class="fas fa-users"></i> Criar Bolão
+  </button>
+</div>
+
+<script>
+let allGames = [];
+let currentFilter = 'all';
+let selectedGameId = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadGames();
+  await loadStats();
+});
+
+async function loadGames() {
+  try {
+    const data = await api.getGames();
+    allGames = data.games || [];
+    renderGames();
+  } catch(e) {
+    showToast('Erro ao carregar jogos', 'error');
+  }
+}
+
+async function loadStats() {
+  try {
+    const stats = await api.getGameStats();
+    document.getElementById('statTotal').textContent = stats.total;
+    document.getElementById('statActive').textContent = stats.active;
+    document.getElementById('statWon').textContent = stats.won;
+    document.getElementById('statUsed').textContent = stats.totalUsed;
+  } catch(e) {}
+}
+
+function filterGames(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('#gameTabs .tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('#gameTabs .tab[data-filter="' + filter + '"]').classList.add('active');
+  renderGames();
+}
+
+function getFilteredGames() {
+  if (currentFilter === 'all') return allGames;
+  if (currentFilter === 'ai') return allGames.filter(g => g.source === 'ai');
+  return allGames.filter(g => g.status === currentFilter);
+}
+
+function renderGames() {
+  const container = document.getElementById('gamesContainer');
+  const filtered = getFilteredGames();
+
+  document.getElementById('gamesLoading').style.display = 'none';
+  document.getElementById('gamesEmpty').style.display = 'none';
+
+  if (filtered.length === 0) {
+    const msgs = {
+      all: 'Nenhum jogo no portfólio',
+      active: 'Nenhum jogo ativo',
+      used: 'Nenhum jogo usado ainda',
+      won: 'Nenhum jogo premiado ainda 🍀',
+      archived: 'Nenhum jogo arquivado',
+      ai: 'Nenhum jogo gerado por IA'
+    };
+    const msg = msgs[currentFilter] || msgs.all;
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-dice-d6"></i><h3>' + msg + '</h3><p>Crie ou gere jogos para começar seu portfólio</p>' +
+      (currentFilter === 'all' ? '<div style="display:flex;gap:12px;justify-content:center;margin-top:16px;"><a href="/apostas" class="btn btn-primary"><i class="fas fa-plus"></i> Criar Jogo</a><a href="/simulacao" class="btn btn-secondary"><i class="fas fa-brain"></i> Gerar com IA</a></div>' : '') +
+      '</div>';
+    return;
+  }
+
+  document.getElementById('gamesLoading').style.display = 'none';
+  document.getElementById('gamesEmpty').style.display = 'none';
+
+  container.innerHTML = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
+    '<button class="btn btn-primary btn-sm" id="compareBtn" onclick="openCompareModal()" disabled style="opacity:0.5;cursor:default;">' +
+    '<i class="fas fa-not-equal"></i> Comparar (<span id="compareCount">0</span>)</button>' +
+    '<button class="btn btn-success btn-sm" onclick="exportCSV()" title="Exportar para CSV"><i class="fas fa-download"></i> Exportar CSV</button>' +
+    '<button class="btn btn-secondary btn-sm" onclick="showPerformanceReport()" title="Relatório de desempenho"><i class="fas fa-chart-simple"></i> Desempenho</button>' +
+    '<button class="btn btn-secondary btn-sm" onclick="showShareStats()" title="Compartilhar estatísticas"><i class="fas fa-share-alt"></i> Compartilhar</button>' +
+    '<span style="font-size:12px;color:var(--text-muted);">Marque 2+ jogos para comparar</span></div>' +
+    '<div style="display:grid;gap:16px;">' +
+    filtered.map(game => renderGameCard(game)).join('') +
+    '</div>';
+}
+
+function renderGameCard(game) {
+  const statusLabels = { active: '✅ Ativo', used: '📌 Usado', won: '🏆 Premiado!', archived: '📦 Arquivado' };
+  const statusClasses = { active: 'completed', used: 'pending', won: 'active', archived: 'cancelled' };
+  const statusBadge = '<span class="status-badge ' + (statusClasses[game.status] || 'active') + '">' + (statusLabels[game.status] || game.status) + '</span>';
+
+  const sourceBadge = game.source === 'ai'
+    ? '<span class="ai-badge" style="margin-left:8px;"><i class="fas fa-robot"></i> IA ' + (game.seedVersion || '') + '</span>'
+    : '<span style="margin-left:8px;font-size:12px;color:var(--text-muted);"><i class="fas fa-user"></i> Manual</span>';
+
+  const hitRate = game.usageHistory.length > 0
+    ? Math.round(game.usageHistory.filter(u => u.matched).length / game.usageHistory.length * 100)
+    : 0;
+
+  const historyHtml = game.usageHistory.length > 0
+    ? '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">' +
+      '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">📋 Histórico de uso:</div>' +
+      game.usageHistory.slice(-5).reverse().map(u =>
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px;">' +
+        '<span style="color:var(--text-secondary);">' + (u.contestNumber ? 'Concurso #' + u.contestNumber : '—') + '</span>' +
+        '<span>' +
+        (u.hits !== null ? '<strong style="color:' + (u.hits >= 11 ? 'var(--secondary)' : 'var(--text-secondary)') + ';">' + u.hits + ' acertos</strong>' : '⏳ Aguardando') +
+        (u.prize > 0 ? ' <span style="color:var(--secondary);font-weight:600;">R$ ' + u.prize.toFixed(2).replace('.',',') + '</span>' : '') +
+        '</span></div>'
+      ).join('') +
+      '</div>'
+    : '';
+
+  // Selection checkbox for comparison
+  const isChecked = selectedCompareIds.has(game.id);
+  const selectHtml = '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 8px;border-radius:6px;background:' + (isChecked ? 'rgba(79,70,229,0.2)' : 'var(--bg-input)') + ';font-size:12px;">' +
+    '<input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="toggleCompare(\'' + game.id + '\')" style="accent-color:var(--primary);"> Comparar</label>';
+
+  // Actions based on status
+  let actions = selectHtml + ' ';
+  if (game.status === 'active' || game.status === 'used') {
+    actions +=
+      '<button class="btn btn-secondary btn-sm" onclick="openUseGame(\'' + game.id + '\')"><i class="fas fa-check"></i> Usar</button> ' +
+      '<button class="btn btn-primary btn-sm" onclick="openCheckResult(\'' + game.id + '\')"><i class="fas fa-search"></i> Verificar</button> ';
+  }
+  actions +=
+    '<button class="btn btn-secondary btn-sm" onclick="duplicateGame(\'' + game.id + '\')"><i class="fas fa-copy"></i></button> ' +
+    '<button class="btn btn-accent btn-sm" onclick="openPoolFromGame(\'' + game.id + '\')"><i class="fas fa-users"></i></button> ';
+  if (game.status !== 'archived') {
+    actions += '<button class="btn btn-danger btn-sm" onclick="deleteGame(\'' + game.id + '\')"><i class="fas fa-archive"></i></button>';
+  }
+
+  return '<div class="card" style="padding:20px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">' +
+    '<div>' +
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+    '<span style="font-size:16px;font-weight:600;">' + game.name + '</span>' +
+    statusBadge + sourceBadge +
+    '</div>' +
+    '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">' +
+    'Criado em ' + new Date(game.createdAt).toLocaleDateString('pt-BR') +
+    ' · ' + game.gameType +
+    (game.usageHistory.length > 0 ? ' · ' + game.usageHistory.length + ' uso(s)' : '') +
+    '</div></div>' +
+    '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:300px;">' +
+    actions +
+    '</div></div>' +
+
+    '<div class="balls" style="gap:6px;">' +
+    game.numbers.map(n => '<span class="ball primary" style="width:34px;height:34px;font-size:12px;">' + n + '</span>').join('') +
+    '</div>' +
+
+    (game.usageHistory.length > 0 && game.usageHistory.some(u => u.hits !== null)
+      ? '<div style="margin-top:8px;display:flex;gap:16px;font-size:13px;">' +
+        '<span style="color:var(--text-secondary);">🎯 Melhor: <strong>' + Math.max(...game.usageHistory.filter(u => u.hits !== null).map(u => u.hits)) + '</strong> acertos</span>' +
+        '<span style="color:var(--text-secondary);">📊 Taxa: <strong>' + hitRate + '%</strong> premiação</span>' +
+        (game.usageHistory.some(u => u.prize > 0) ? '<span style="color:var(--secondary);font-weight:600;">💰 Total: R$ ' + game.usageHistory.reduce((s, u) => s + (u.prize || 0), 0).toFixed(2).replace('.',',') + '</span>' : '') +
+        '</div>'
+      : '') +
+
+    historyHtml +
+    '</div>';
+}
+
+// ==================== COMPARAÇÃO DE JOGOS ====================
+let selectedCompareIds = new Set();
+
+function toggleCompare(gameId) {
+  if (selectedCompareIds.has(gameId)) {
+    selectedCompareIds.delete(gameId);
+  } else {
+    selectedCompareIds.add(gameId);
+  }
+  const count = selectedCompareIds.size;
+  document.getElementById('compareCount').textContent = count;
+  const btn = document.getElementById('compareBtn');
+  btn.disabled = count < 2;
+  btn.style.opacity = count < 2 ? '0.5' : '1';
+  btn.style.cursor = count < 2 ? 'default' : 'pointer';
+  renderGames(); // Re-render to update checkbox states
+}
+
+async function openCompareModal() {
+  if (selectedCompareIds.size < 2) {
+    showToast('Selecione pelo menos 2 jogos para comparar', 'info');
+    return;
+  }
+  try {
+    const result = await api.compareGames([...selectedCompareIds]);
+    if (!result || result.error) throw new Error(result?.error || 'Erro ao comparar');
+    
+    let html = '<div style="max-height:70vh;overflow-y:auto;">';
+    
+    // Games list
+    html += '<div style="display:grid;gap:12px;margin-bottom:20px;">' +
+      result.games.map(g => {
+        return '<div style="background:var(--bg-input);border-radius:12px;padding:12px 16px;">' +
+          '<div style="font-size:14px;font-weight:600;margin-bottom:8px;">' + g.name + '</div>' +
+          '<div class="balls" style="gap:4px;">' +
+          g.numbers.map(n => '<span class="ball primary" style="width:30px;height:30px;font-size:11px;">' + n + '</span>').join('') +
+          '</div></div>';
+      }).join('') + '</div>';
+
+    // Similarity pairs
+    html += '<div style="margin-bottom:20px;"><div style="font-size:15px;font-weight:600;margin-bottom:12px;">🔗 Similaridade</div>';
+    result.pairs.forEach(p => {
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-input);border-radius:10px;margin-bottom:8px;">' +
+        '<div style="font-size:13px;">' + p.gameA.name + ' ↔ ' + p.gameB.name + '</div>' +
+        '<div style="text-align:right;"><span style="font-weight:700;font-size:16px;">' + p.similarity + '%</span>' +
+        '<br><span style="font-size:11px;">' + p.label + ' · ' + p.intersection + ' nums em comum</span></div></div>';
+    });
+    html += '</div>';
+
+    // Combined coverage
+    html += '<div style="margin-bottom:20px;"><div style="font-size:15px;font-weight:600;margin-bottom:12px;">📊 Cobertura Combinada</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">' +
+      '<div style="background:var(--bg-input);border-radius:10px;padding:16px;text-align:center;">' +
+      '<div style="font-size:28px;font-weight:700;color:var(--primary-light);">' + result.combinedCoverage.totalDistinct + '</div>' +
+      '<div style="font-size:11px;color:var(--text-muted);">Números Distintos</div></div>' +
+      '<div style="background:var(--bg-input);border-radius:10px;padding:16px;text-align:center;">' +
+      '<div style="font-size:28px;font-weight:700;color:var(--secondary);">' + result.combinedCoverage.coveragePct + '%</div>' +
+      '<div style="font-size:11px;color:var(--text-muted);">Cobertura</div></div></div>' +
+      '<div class="balls" style="gap:4px;justify-content:center;">' +
+      result.combinedCoverage.numbers.map(n => '<span class="ball primary" style="width:30px;height:30px;font-size:11px;">' + n + '</span>').join('') +
+      '</div></div>';
+
+    // Unique numbers per game
+    html += '<div style="margin-bottom:20px;"><div style="font-size:15px;font-weight:600;margin-bottom:12px;">🔑 Números Únicos por Jogo</div>';
+    result.combinedCoverage.uniqueToEach.forEach(g => {
+      if (g.unique.length > 0) {
+        html += '<div style="padding:8px 14px;background:var(--bg-input);border-radius:10px;margin-bottom:8px;">' +
+          '<div style="font-size:13px;font-weight:600;margin-bottom:6px;">' + g.name + '</div>' +
+          '<div class="balls" style="gap:4px;">' +
+          g.unique.map(n => '<span class="ball success" style="width:28px;height:28px;font-size:10px;">' + n + '</span>').join('') +
+          '</div></div>';
+      }
+    });
+    html += '</div>';
+
+    // Complement suggestion
+    if (result.complement.uncovered.length > 0) {
+      html += '<div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;">' +
+        '<div style="font-size:14px;font-weight:600;color:var(--accent);margin-bottom:8px;">💡 Sugestão de Números Complementares</div>' +
+        '<p style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">' + result.complement.suggestion + '</p>' +
+        '<div class="balls" style="gap:4px;">' +
+        result.complement.uncovered.slice(0, 10).map(n => '<span class="ball accent" style="width:30px;height:30px;font-size:11px;">' + n + '</span>').join('') +
+        (result.complement.uncovered.length > 10 ? '<span style="font-size:12px;color:var(--text-muted);">+' + (result.complement.uncovered.length - 10) + ' mais</span>' : '') +
+        '</div></div>';
+    } else {
+      html += '<div style="background:rgba(16,185,129,0.1);border-radius:12px;padding:16px;text-align:center;color:var(--secondary);">' +
+        '🎯 Seus jogos cobrem TODOS os 25 números! Cobertura completa!</div>';
+    }
+
+    html += '</div>';
+    openModal('📊 Comparação de Jogos', selectedCompareIds.size + ' jogos selecionados', html);
+  } catch(e) {
+    showToast('Erro ao comparar jogos: ' + e.message, 'error');
+  }
+}
+
+// ==================== ACTIONS ====================
+
+function showImportModal() {
+  openModal('📥 Importar Jogo', 'Adicione números manualmente ao seu portfólio',
+    document.getElementById('importModal').innerHTML
+  );
+}
+
+async function importGame() {
+  const name = document.getElementById('importGameName').value || 'Jogo importado';
+  const input = document.getElementById('importNumbers').value;
+  const rawNums = input.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+  const outOfRange = rawNums.filter(n => n < 1 || n > 25);
+  const duplicates = rawNums.filter((n, i) => rawNums.indexOf(n) !== i);
+  const validNumbers = [...new Set(rawNums.filter(n => n >= 1 && n <= 25))];
+  
+  if (rawNums.length < 15) return showToast('Digite 15 números válidos separados por vírgula', 'error');
+  if (outOfRange.length > 0) return showToast('Números ' + outOfRange.join(', ') + ' estão fora do range 1-25', 'error');
+  if (duplicates.length > 0) return showToast('Números duplicados: ' + [...new Set(duplicates)].join(', '), 'error');
+  if (validNumbers.length !== 15) return showToast('Exatamente 15 números são necessários', 'error');
+  
+  const numbers = validNumbers.sort((a,b) => a-b);
+  
+  try {
+    const result = await api.saveGame(numbers, { name, source: 'manual' });
+    if (result.success) {
+      showToast('✅ Jogo "' + name + '" salvo no portfólio!', 'success');
+      closeModal();
+      await loadGames();
+      await loadStats();
+    }
+  } catch(e) {
+    showToast('Erro ao salvar jogo', 'error');
+  }
+}
+
+let gameToUse = null;
+function openUseGame(gameId) {
+  gameToUse = gameId;
+  openModal('📌 Usar Jogo em Concurso', 'Registre o concurso em que este jogo foi utilizado',
+    document.getElementById('useModal').innerHTML
+  );
+}
+
+async function confirmUseGame() {
+  const contest = document.getElementById('useContestNumber').value;
+  if (!contest) return showToast('Digite o número do concurso', 'error');
+  try {
+    const result = await api.useGame(gameToUse, parseInt(contest));
+    if (result.success) {
+      showToast('✅ Jogo registrado no concurso #' + contest + '!', 'success');
+      closeModal();
+      await loadGames();
+      await loadStats();
+    }
+  } catch(e) {
+    showToast('Erro ao registrar uso', 'error');
+  }
+}
+
+async function openCheckResult(gameId) {
+  try {
+    const result = await api.checkGameResult(gameId);
+    if (result.success) {
+      const r = result.result;
+      if (r.isWinner) {
+        showToast('🏆 PARABÉNS! ' + r.hits + ' acertos! Prêmio: R$ ' + r.prize.toFixed(2).replace('.',','), 'success');
+      } else {
+        showToast('📊 Concurso #' + r.contestNumber + ': ' + r.hits + ' acertos' + (r.hits >= 11 ? ' 🎉' : ''), 'info');
+      }
+      await loadGames();
+      await loadStats();
+    }
+  } catch(e) {
+    showToast('Erro ao verificar resultado', 'error');
+  }
+}
+
+async function duplicateGame(gameId) {
+  try {
+    const result = await api.duplicateGame(gameId);
+    if (result.success) {
+      showToast('🔄 Jogo duplicado!', 'success');
+      await loadGames();
+      await loadStats();
+    }
+  } catch(e) {
+    showToast('Erro ao duplicar jogo', 'error');
+  }
+}
+
+let gameForPool = null;
+function openPoolFromGame(gameId) {
+  gameForPool = gameId;
+  openModal('👥 Criar Bolão', 'Crie um bolão usando os números deste jogo',
+    document.getElementById('poolFromGameModal').innerHTML
+  );
+}
+
+async function confirmPoolFromGame() {
+  const name = document.getElementById('poolFromGameName').value || 'Bolão';
+  const totalShares = parseInt(document.getElementById('poolFromGameShares').value) || 50;
+  const sharePrice = parseFloat(document.getElementById('poolFromGamePrice').value) || 25;
+  const contestNumber = parseInt(document.getElementById('poolFromGameContest').value) || 3005;
+
+  try {
+    const result = await api.createPoolFromGame(gameForPool, {
+      name, totalShares, sharePrice, contestNumber
+    });
+    if (result.success) {
+      showToast('👥 Bolão "' + name + '" criado com sucesso!', 'success');
+      closeModal();
+      await loadGames();
+      await loadStats();
+    }
+  } catch(e) {
+    showToast('Erro ao criar bolão', 'error');
+  }
+}
+
+// ==================== EXPORTAÇÃO E RELATÓRIO ====================
+function exportCSV() {
+  api.exportGamesCSV();
+  showToast('📥 Download do CSV iniciado!', 'success');
+}
+
+async function showPerformanceReport() {
+  try {
+    const r = await api.getPerformanceReport();
+    let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">' +
+      '<div style="background:var(--bg-input);border-radius:12px;padding:20px;text-align:center;">' +
+      '<div style="font-size:28px;font-weight:700;color:var(--primary-light);">' + r.totalGames + '</div>' +
+      '<div style="font-size:12px;color:var(--text-muted);">Total de Jogos</div></div>' +
+      '<div style="background:var(--bg-input);border-radius:12px;padding:20px;text-align:center;">' +
+      '<div style="font-size:28px;font-weight:700;color:var(--secondary);">' + r.wonGames + '</div>' +
+      '<div style="font-size:12px;color:var(--text-muted);">Premiados</div></div>' +
+      '<div style="background:var(--bg-input);border-radius:12px;padding:20px;text-align:center;">' +
+      '<div style="font-size:28px;font-weight:700;color:var(--accent);">' + r.roi + '%</div>' +
+      '<div style="font-size:12px;color:var(--text-muted);">ROI (retorno)</div></div>' +
+      '<div style="background:var(--bg-input);border-radius:12px;padding:20px;text-align:center;">' +
+      '<div style="font-size:28px;font-weight:700;color:#60A5FA;">' + r.hitRate + '%</div>' +
+      '<div style="font-size:12px;color:var(--text-muted);">Taxa de Acerto</div></div></div>';
+
+    html += '<div style="background:var(--bg-input);border-radius:12px;padding:16px;">' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">' +
+      '<span style="font-size:13px;color:var(--text-muted);">Total Gasto</span>' +
+      '<span style="font-weight:600;">R$ ' + r.totalSpent.toFixed(2).replace('.',',') + '</span></div>' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">' +
+      '<span style="font-size:13px;color:var(--text-muted);">Total Prêmios</span>' +
+      '<span style="font-weight:600;color:var(--secondary);">R$ ' + r.totalPrize.toFixed(2).replace('.',',') + '</span></div>' +
+      (r.bestGame ? '<div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);">' +
+        '<span style="font-size:13px;color:var(--text-muted);">Melhor Jogo</span>' +
+        '<span style="font-weight:600;">' + r.bestGame.name + ' (' + r.bestGame.best + ' acertos)</span></div>' : '') +
+      '</div>';
+
+    openModal('📈 Relatório de Desempenho', 'Seu portfólio em números', html);
+  } catch(e) {
+    showToast('Erro ao carregar relatório', 'error');
+  }
+}
+
+// ==================== COMPARTILHAR ====================
+async function showShareStats() {
+  try {
+    const stats = await api.getShareStats();
+    const text = '🎲 Meu portfólio na Lotofácil Platform: ' + stats.totalGames + ' jogos, ' + stats.wonGames + ' premiados! ' +
+      'Nível ' + stats.level + ' (' + stats.title + ') 🏆 Vem jogar comigo! 🍀';
+    const url = window.location.origin;
+    const encoded = encodeURIComponent(text + ' ' + url);
+    openModal('📢 Compartilhar Estatísticas', 'Mostre seu progresso para os amigos!',
+      '<div style="display:flex;flex-direction:column;gap:12px;">' +
+      '<div style="background:var(--bg-input);border-radius:12px;padding:16px;text-align:center;margin-bottom:8px;">' +
+      '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">📊 Suas estatísticas</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">' +
+      '<div><div style="font-size:20px;font-weight:700;">' + stats.totalGames + '</div><div style="font-size:11px;color:var(--text-muted);">Jogos</div></div>' +
+      '<div><div style="font-size:20px;font-weight:700;color:var(--secondary);">' + stats.wonGames + '</div><div style="font-size:11px;color:var(--text-muted);">Premiados</div></div>' +
+      '<div><div style="font-size:20px;font-weight:700;color:var(--accent);">' + stats.level + '</div><div style="font-size:11px;color:var(--text-muted);">Nível</div></div></div></div>' +
+      '<a href="https://wa.me/?text=' + encoded + '" target="_blank" class="btn btn-success btn-full"><i class="fab fa-whatsapp"></i> WhatsApp</a>' +
+      '<a href="https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text) + '" target="_blank" class="btn btn-primary btn-full"><i class="fab fa-telegram"></i> Telegram</a>' +
+      '<a href="https://twitter.com/intent/tweet?text=' + encoded + '" target="_blank" class="btn btn-secondary btn-full"><i class="fab fa-twitter"></i> Twitter</a>' +
+      '<button class="btn btn-secondary btn-full" onclick="copyShareText(\'' + encodeURIComponent(text) + '\')"><i class="fas fa-link"></i> Copiar Texto</button></div>');
+  } catch(e) {
+    showToast('Erro ao carregar estatísticas', 'error');
+  }
+}
+
+function copyShareText(encodedText) {
+  try {
+    navigator.clipboard.writeText(decodeURIComponent(encodedText));
+    showToast('Texto copiado!', 'success');
+  } catch(e) {
+    showToast('Erro ao copiar', 'error');
+  }
+}
+
+async function deleteGame(gameId) {
+  if (!confirm('Arquivar este jogo? Ele não aparecerá mais na lista ativa.')) return;
+  try {
+    const result = await api.deleteGame(gameId);
+    if (result.success) {
+      showToast('📦 Jogo arquivado', 'info');
+      await loadGames();
+      await loadStats();
+    }
+  } catch(e) {
+    showToast('Erro ao arquivar', 'error');
+  }
+}
+</script>
+` %>
+<%- include('layout', { body: body, title: 'Meus Jogos', page: 'my-games', user: user, subtitle: 'Gerencie seu portfólio de jogos' }) %>

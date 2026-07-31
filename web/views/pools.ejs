@@ -1,0 +1,256 @@
+<% const _userName = JSON.stringify(user.name); %>
+<% let body = `
+<div class="tabs" style="display:flex;gap:4px;background:var(--bg-input);padding:4px;border-radius:12px;margin-bottom:24px;">
+  <button class="tab active" onclick="switchPoolTab(this, 'available')"><i class="fas fa-list"></i> Bolões Disponíveis</button>
+  <button class="tab" onclick="switchPoolTab(this, 'my')"><i class="fas fa-user-check"></i> Meus Bolões</button>
+  <button class="tab" onclick="switchPoolTab(this, 'create')"><i class="fas fa-plus"></i> Criar Bolão</button>
+</div>
+
+<div id="poolTabAvailable">
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:20px;" id="poolsList"></div>
+</div>
+
+<div id="poolTabMy" class="hidden">
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:20px;" id="myPoolsList"></div>
+</div>
+
+<div id="poolTabCreate" class="hidden">
+  <div class="card" style="max-width:600px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">➕ Criar Novo Bolão</div>
+        <div class="card-subtitle">Divida apostas com amigos e aumentem as chances juntos</div>
+      </div>
+    </div>
+    <form onsubmit="createPool(event)">
+      <div class="form-group">
+        <label>Nome do Bolão</label>
+        <div class="form-input"><input type="text" id="poolName" placeholder="Ex: Bolão da Sorte" required></div>
+      </div>
+      <div class="grid-2" style="grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="form-group">
+          <label>Tipo de Jogo</label>
+          <div class="form-input">
+            <select id="poolGameType">
+              <option value="LOTOFACIL">Lotofácil</option>
+              <option value="MEGASENA">Mega-Sena</option>
+              <option value="QUINA">Quina</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Concurso</label>
+          <div class="form-input"><input type="number" id="poolContest" placeholder="Ex: 3005" value="3005"></div>
+        </div>
+      </div>
+      <div class="grid-2" style="grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="form-group">
+          <label>Total de Cotas</label>
+          <div class="form-input"><input type="number" id="poolShares" placeholder="Ex: 100" value="50" min="2" max="500"></div>
+        </div>
+        <div class="form-group">
+          <label>Valor por Cota (R$)</label>
+          <div class="form-input"><input type="number" id="poolPrice" placeholder="Ex: 25,00" value="25" step="0.01" min="1"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Números do Bolão (15 números)</label>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Clique para selecionar os números do bolão</p>
+        <div class="numbers-grid" style="grid-template-columns:repeat(5,1fr);gap:6px;" id="poolNumbersGrid">
+          ${Array.from({length: 25}, (_, idx) => { const n = idx + 1; return '<button type="button" class="number-btn" style="font-size:14px;" data-pool-num="' + n + '" onclick="togglePoolNumber(this, ' + n + ')">' + n + '</button>'; }).join('')}
+        </div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-top:8px;">
+          Selecionados: <strong id="poolSelectedCount">0</strong>/15
+          <button type="button" class="btn btn-secondary btn-sm" style="margin-left:8px;" onclick="quickPoolPick()">Surpresinha</button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full btn-lg mt-2">
+        <i class="fas fa-users"></i> Criar Bolão
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+const currentUserName = ${_userName};
+let poolSelectedNumbers = new Set();
+
+document.addEventListener('DOMContentLoaded', () => { loadPools(); });
+
+function switchPoolTab(btn, tab) {
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('poolTabAvailable').classList.toggle('hidden', tab !== 'available');
+  document.getElementById('poolTabMy').classList.toggle('hidden', tab !== 'my');
+  document.getElementById('poolTabCreate').classList.toggle('hidden', tab !== 'create');
+  if (tab === 'my') loadMyPools();
+  if (tab === 'available') loadPools();
+}
+
+async function loadPools() {
+  try {
+    const pools = await api.getPools();
+    const container = document.getElementById('poolsList');
+    if (!pools || pools.length === 0) {
+      container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-users"></i><h3>Nenhum bolão disponível</h3><p>Crie o primeiro bolão!</p></div>';
+      return;
+    }
+    container.innerHTML = pools.map(p => {
+      const progress = ((p.totalShares - p.availableShares) / p.totalShares * 100).toFixed(0);
+      return '<div class="pool-card">' +
+        '<div class="pool-header"><div><div class="pool-name">' + p.name + '</div>' +
+        '<div style="font-size:13px;color:var(--text-muted);margin-top:4px;">📋 ' + p.gameType + ' · Concurso ' + p.contestNumber + '</div></div>' +
+        '<span class="status-badge ' + (p.status === 'open' ? 'active' : 'completed') + '">' + (p.status === 'open' ? 'Aberto' : 'Fechado') + '</span></div>' +
+        '<div class="pool-meta"><span class="pool-meta-item">👤 Criado por <strong>' + p.creatorName + '</strong></span>' +
+        '<span class="pool-meta-item">👥 <strong>' + p.participants.length + '</strong> participante(s)</span></div>' +
+        (p.numbers ? '<div class="pool-numbers">' + p.numbers.map(n => '<span class="ball primary" style="width:30px;height:30px;font-size:11px;">' + n + '</span>').join('') + '</div>' : '') +
+        '<div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%"></div></div>' +
+        '<div class="flex-between"><span style="font-size:13px;color:var(--text-muted)">' + (p.totalShares - p.availableShares) + '/' + p.totalShares + ' cotas vendidas</span>' +
+        '<span style="font-weight:600;color:var(--primary-light)">R$ ' + p.sharePrice.toFixed(2).replace('.',',') + '/cota</span></div>' +
+        (p.status === 'open' ? '<button class="btn btn-primary btn-full btn-sm mt-2" onclick="joinPool(\'' + p.id + '\')"><i class="fas fa-handshake"></i> Participar</button>' : '<button class="btn btn-secondary btn-full btn-sm mt-2" disabled><i class="fas fa-lock"></i> Fechado</button>') +
+        '</div>';
+    }).join('');
+  } catch(e) {}
+}
+async function loadMyPools() {
+  try {
+    const pools = await api.getPools();
+    const myPools = pools.filter(p => p.participants.some(pp => pp.name === currentUserName));
+    const container = document.getElementById('myPoolsList');
+    if (myPools.length === 0) {
+      container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-user-check"></i><h3>Você não participa de nenhum bolão</h3></div>';
+      return;
+    }
+    container.innerHTML = myPools.map(p => {
+      const myShare = p.participants.find(pp => pp.name === currentUserName);
+      return '<div class="pool-card"><div class="pool-header"><div><div class="pool-name">' + p.name + '</div>' +
+        '<div style="font-size:13px;color:var(--text-muted);margin-top:4px;">📋 ' + p.gameType + ' · Concurso ' + p.contestNumber + '</div></div>' +
+        '<span class="status-badge ' + (p.status === 'open' ? 'active' : 'completed') + '">' + (p.status === 'open' ? 'Aberto' : 'Fechado') + '</span></div>' +
+        '<div class="pool-meta"><span class="pool-meta-item">📦 <strong>' + (myShare ? myShare.shares : 0) + '</strong> cota(s) sua(s)</span>' +
+        '<span class="pool-meta-item">💰 <strong>R$ ' + ((myShare ? myShare.shares : 0) * p.sharePrice).toFixed(2).replace('.',',') + '</strong> investido</span></div>' +
+        (p.numbers ? '<div class="pool-numbers">' + p.numbers.map(n => '<span class="ball success" style="width:30px;height:30px;font-size:11px;">' + n + '</span>').join('') + '</div>' : '') +
+        // Market offers
+        (p.marketOffers && p.marketOffers.filter(function(o) { return o.status === 'active'; }).length > 0
+          ? '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">' +
+            '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">📊 Ofertas de cotas no mercado:</div>' +
+            p.marketOffers.filter(function(o) { return o.status === 'active'; }).map(function(o) {
+              return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(245,158,11,0.1);border-radius:8px;margin-bottom:4px;">' +
+              '<span style="font-size:13px;">' + o.shares + ' cotas de <strong>' + o.sellerName + '</strong></span>' +
+              '<div style="display:flex;align-items:center;gap:8px;">' +
+              '<span style="font-weight:600;color:var(--accent);">R$ ' + o.totalValue.toFixed(2).replace('.',',') + '</span>' +
+              (o.sellerName !== currentUserName ? '<button class="btn btn-accent btn-sm" onclick="buyOffer(\'' + p.id + '\',\'' + o.id + '\')"><i class="fas fa-shopping-cart"></i> Comprar</button>' : '<span class="status-badge completed" style="font-size:10px;">Sua oferta</span>') +
+              '</div></div>';
+            }).join('') + '</div>'
+          : '') +
+        (myShare && myShare.shares > 1
+          ? '<button class="btn btn-secondary btn-sm btn-full mt-1" onclick="openSellOffer(\'' + p.id + '\', ' + myShare.shares + ', ' + p.sharePrice + ')"><i class="fas fa-tag"></i> Vender Cotas</button>'
+          : '') +
+        '<button class="btn btn-secondary btn-sm btn-full mt-1" onclick="sharePool(\'' + p.id + '\')"><i class="fas fa-share-alt"></i> Compartilhar</button>' +
+        '</div>';
+    }).join('');
+  } catch(e) {}
+}
+
+// ==================== MERCADO DE COTAS ====================
+function openSellOffer(poolId, maxShares, currentPrice) {
+  openModal('💲 Vender Cotas', 'Ofereça suas cotas para venda no mercado',
+    '<div class="form-group"><label>Quantidade de Cotas (máx ' + maxShares + ')</label><div class="form-input"><input type="number" id="sellShares" value="' + Math.min(5, maxShares) + '" min="1" max="' + maxShares + '"></div></div>' +
+    '<div class="form-group"><label>Preço por Cota (R$)</label><div class="form-input"><input type="number" id="sellPrice" value="' + currentPrice.toFixed(2) + '" step="0.01" min="0.01"></div></div>' +
+    '<button class="btn btn-accent btn-full" onclick="confirmSellOffer(\'' + poolId + '\')"><i class="fas fa-tag"></i> Publicar Oferta</button>');
+}
+
+async function confirmSellOffer(poolId) {
+  const shares = parseInt(document.getElementById('sellShares').value) || 1;
+  const price = parseFloat(document.getElementById('sellPrice').value) || 0;
+  if (shares < 1 || price <= 0) return showToast('Valores inválidos', 'error');
+  try {
+    const result = await api.createOffer(poolId, shares, price);
+    if (result.success) {
+      showToast('✅ Oferta publicada no mercado!', 'success');
+      closeModal();
+      setTimeout(function() { location.reload(); }, 1500);
+    }
+  } catch(e) {
+    showToast('Erro ao criar oferta', 'error');
+  }
+}
+
+async function buyOffer(poolId, offerId) {
+  if (!confirm('Confirmar compra destas cotas?')) return;
+  try {
+    const result = await api.buyOffer(poolId, offerId);
+    if (result.success) {
+      showToast('✅ Cotas adquiridas com sucesso!', 'success');
+      setTimeout(function() { location.reload(); }, 1500);
+    }
+  } catch(e) {
+    showToast(e.message || 'Erro ao comprar', 'error');
+  }
+}
+
+// ==================== COMPARTILHAR ====================
+function sharePool(poolId) {
+  var text = '👥 Participe deste bolão comigo na Lotofácil Platform! 🍀';
+  var url = window.location.origin + '/boloes';
+  var encoded = encodeURIComponent(text + ' ' + url);
+  openModal('📢 Compartilhar Bolão', 'Convide amigos para participar!',
+    '<p style="color:var(--text-secondary);margin-bottom:16px;">Compartilhe o link com seus amigos:</p>' +
+    '<div style="display:flex;flex-direction:column;gap:12px;">' +
+    '<a href="https://wa.me/?text=' + encoded + '" target="_blank" class="btn btn-success btn-full"><i class="fab fa-whatsapp"></i> WhatsApp</a>' +
+    '<a href="https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text) + '" target="_blank" class="btn btn-primary btn-full"><i class="fab fa-telegram"></i> Telegram</a>' +
+    '<a href="https://twitter.com/intent/tweet?text=' + encoded + '" target="_blank" class="btn btn-secondary btn-full"><i class="fab fa-twitter"></i> Twitter</a>' +
+    '<button class="btn btn-secondary btn-full" onclick="copyToClipboard(\'' + url + '\')"><i class="fas fa-link"></i> Copiar Link</button></div>');
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(function() {
+    showToast('Link copiado!', 'success');
+  }).catch(function() {
+    showToast('Erro ao copiar', 'error');
+  });
+}
+function togglePoolNumber(btn, num) {
+  if (poolSelectedNumbers.has(num)) { poolSelectedNumbers.delete(num); btn.classList.remove('selected'); }
+  else if (poolSelectedNumbers.size < 15) { poolSelectedNumbers.add(num); btn.classList.add('selected'); }
+  document.getElementById('poolSelectedCount').textContent = poolSelectedNumbers.size;
+}
+function quickPoolPick() {
+  document.querySelectorAll('[data-pool-num]').forEach(b => b.classList.remove('selected'));
+  poolSelectedNumbers.clear();
+  const nums = new Set();
+  while (nums.size < 15) nums.add(Math.floor(Math.random() * 25) + 1);
+  nums.forEach(n => { poolSelectedNumbers.add(n); document.querySelector('[data-pool-num="' + n + '"]').classList.add('selected'); });
+  document.getElementById('poolSelectedCount').textContent = 15;
+}
+async function createPool(e) {
+  e.preventDefault();
+  const numbers = [...poolSelectedNumbers].sort((a,b) => a-b);
+  if (numbers.length !== 15) return showToast('Selecione exatamente 15 números', 'error');
+  const poolData = { name: document.getElementById('poolName').value, gameType: document.getElementById('poolGameType').value, contestNumber: document.getElementById('poolContest').value, totalShares: document.getElementById('poolShares').value, sharePrice: document.getElementById('poolPrice').value, numbers };
+  try {
+    const result = await api.createPool(poolData);
+    if (result.success) { showToast('Bolão "' + poolData.name + '" criado com sucesso!', 'success'); setTimeout(() => location.reload(), 1500); }
+  } catch(e) { showToast('Erro ao criar bolão', 'error'); }
+}
+async function joinPool(poolId) {
+  openModal('🤝 Participar do Bolão', 'Adquira cotas deste bolão',
+    '<div class="form-group"><label>Quantidade de Cotas</label><div class="form-input"><input type="number" id="joinShares" value="1" min="1" max="10"></div></div>' +
+    '<button class="btn btn-primary btn-full" onclick="doJoinPool(\'' + poolId + '\')"><i class="fas fa-check"></i> Confirmar</button>' +
+    '<hr style="margin:16px 0;border-color:var(--border);">' +
+    '<div style="text-align:center;">' +
+    '<a href="https://wa.me/?text=' + encodeURIComponent('👥 Participe deste bolão comigo na Lotofácil Platform! 🍀 ' + window.location.origin + '/boloes') + '" target="_blank" class="btn btn-success btn-sm"><i class="fab fa-whatsapp"></i> Convidar amigos</a>' +
+    '</div>');
+}
+async function doJoinPool(poolId) {
+  const shares = parseInt(document.getElementById('joinShares').value) || 1;
+  try { const result = await api.joinPool(poolId, shares); if (result.success) { showToast('Você entrou no bolão com ' + shares + ' cota(s)!', 'success'); closeModal(); setTimeout(() => location.reload(), 1500); } }
+  catch(e) { showToast(e.message || 'Erro ao participar', 'error'); }
+}
+</script>
+<style>
+@media (max-width: 768px) {
+  div[style*="grid-template-columns:repeat(auto-fill,minmax(350px,1fr))"] { grid-template-columns: 1fr !important; }
+}
+</style>
+` %>
+<%- include('layout', { body: body, title: 'Bolões', page: 'pools', user: user, subtitle: 'Crie ou participe de bolões' }) %>

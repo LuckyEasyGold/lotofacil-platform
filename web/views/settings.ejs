@@ -1,0 +1,193 @@
+<% let body = `
+<div class="card mb-3" style="max-width:600px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">⚙️ Preferências</div>
+      <div class="card-subtitle">Configure sua conta</div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:20px;">
+    <div class="flex-between" style="padding:16px 20px;background:var(--bg-input);border-radius:12px;">
+      <div><div style="font-weight:600;">Notificações por E-mail</div><div style="font-size:13px;color:var(--text-muted);">Receba resultados e promoções</div></div>
+      <label style="position:relative;display:inline-block;width:50px;height:26px;">
+        <input type="checkbox" checked onchange="toggleSwitch(this)" style="opacity:0;width:0;height:0;">
+        <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--primary);border-radius:26px;transition:0.3s;"><span style="position:absolute;content:'';height:22px;width:22px;right:2px;top:2px;background:white;border-radius:50%;transition:0.3s;"></span></span>
+      </label>
+    </div>
+    <div class="flex-between" style="padding:16px 20px;background:var(--bg-input);border-radius:12px;">
+      <div><div style="font-weight:600;">Notificações Push</div><div style="font-size:13px;color:var(--text-muted);">Alertas no navegador</div></div>
+      <label style="position:relative;display:inline-block;width:50px;height:26px;">
+        <input type="checkbox" onchange="toggleSwitch(this)" style="opacity:0;width:0;height:0;">
+        <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--bg-card);border:2px solid var(--border);border-radius:26px;transition:0.3s;"><span style="position:absolute;content:'';height:18px;width:18px;left:2px;top:2px;background:var(--text-muted);border-radius:50%;transition:0.3s;"></span></span>
+      </label>
+    </div>
+    <div class="flex-between" style="padding:16px 20px;background:var(--bg-input);border-radius:12px;">
+      <div><div style="font-weight:600;">Modo Escuro</div><div style="font-size:13px;color:var(--text-muted);">Tema escuro ativado</div></div>
+      <span class="status-badge active">Ativo</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ASSINATURAS / APOSTAS RECORRENTES ==================== -->
+<div class="card mt-3" id="subscriptionsSection" style="max-width:600px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">🔄 Assinaturas</div>
+      <div class="card-subtitle">Apostas automáticas recorrentes</div>
+    </div>
+    <a href="/meus-jogos" class="btn btn-primary btn-sm" onclick="event.preventDefault();showCreateSubscription()">
+      <i class="fas fa-plus"></i> Nova Assinatura
+    </a>
+  </div>
+  <div id="subscriptionsList">
+    <div style="text-align:center;padding:30px;color:var(--text-muted);">
+      <i class="fas fa-spinner fa-spin" style="font-size:20px;display:block;margin-bottom:12px;"></i>
+      <span>Carregando assinaturas...</span>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  loadSubscriptions();
+});
+
+async function loadSubscriptions() {
+  try {
+    const data = await api.getSubscriptions();
+    const list = document.getElementById('subscriptionsList');
+    const subs = data.subscriptions || [];
+    
+    if (subs.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">' +
+        '<i class="fas fa-repeat" style="font-size:28px;display:block;margin-bottom:12px;opacity:0.4;"></i>' +
+        'Nenhuma assinatura ativa. Crie uma para apostar automaticamente!' +
+        '<div style="margin-top:16px;"><button class="btn btn-primary" onclick="showCreateSubscription()"><i class="fas fa-plus"></i> Criar Assinatura</button></div></div>';
+      return;
+    }
+    
+    list.innerHTML = '<div style="display:flex;flex-direction:column;gap:12px;">' +
+      subs.filter(function(s) { return s.active; }).map(function(s) {
+        var cfg = { LOTOFACIL: { name: 'Lotofácil', price: 3.00 }, MEGASENA: { name: 'Mega-Sena', price: 5.00 }, QUINA: { name: 'Quina', price: 2.50 }, LOTOMANIA: { name: 'Lotomania', price: 3.00 } };
+        var c = cfg[s.gameType] || { name: 'Lotofácil', price: 3.00 };
+        return '<div style="background:var(--bg-input);border-radius:12px;padding:16px;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+          '<div><div style="font-weight:600;font-size:14px;">' + s.name + '</div>' +
+          '<div style="font-size:12px;color:var(--text-muted);">' + c.name + ' · ' + s.interval + ' · R$ ' + c.price.toFixed(2) + '/aposta</div></div>' +
+          '<span class="status-badge active">Ativo</span></div>' +
+          '<div style="display:flex;gap:16px;font-size:13px;color:var(--text-secondary);">' +
+          '<span>📋 Próximo: #' + s.nextContest + '</span>' +
+          '<span>🔄 Execuções: ' + s.totalExecutions + '</span>' +
+          '<span>💰 Gasto: R$ ' + s.totalSpent.toFixed(2).replace('.',',') + '</span></div>' +
+          '<div style="margin-top:12px;display:flex;gap:8px;">' +
+          '<span class="ball primary" style="width:26px;height:26px;font-size:10px;">' + s.numbers.slice(0, 5).join('</span><span class="ball primary" style="width:26px;height:26px;font-size:10px;">') + '</span>' +
+          (s.numbers.length > 5 ? '<span style="font-size:11px;color:var(--text-muted);align-self:center;">+' + (s.numbers.length - 5) + ' nums</span>' : '') +
+          '</div>' +
+          '<button class="btn btn-danger btn-sm btn-full mt-2" onclick="cancelSubscription(\'' + s.id + '\')"><i class="fas fa-times"></i> Cancelar Assinatura</button></div>';
+      }).join('') + '</div>';
+    
+    // Also show completed
+    var completed = subs.filter(function(s) { return !s.active; });
+    if (completed.length > 0) {
+      list.innerHTML += '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">' +
+        '<div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">📜 Histórico de assinaturas canceladas:</div>' +
+        completed.map(function(s) {
+          return '<div style="font-size:13px;color:var(--text-muted);padding:4px 0;">' + s.name + ' — ' + s.totalExecutions + ' execuções</div>';
+        }).join('') + '</div>';
+    }
+  } catch(e) {
+    document.getElementById('subscriptionsList').innerHTML = '<div style="text-align:center;color:var(--danger);">Erro ao carregar assinaturas</div>';
+  }
+}
+
+async function cancelSubscription(id) {
+  if (!confirm('Cancelar esta assinatura?')) return;
+  try {
+    const result = await api.deleteSubscription(id);
+    if (result.success) {
+      showToast('Assinatura cancelada', 'info');
+      loadSubscriptions();
+    }
+  } catch(e) {
+    showToast('Erro ao cancelar', 'error');
+  }
+}
+
+function showCreateSubscription() {
+  openModal('🔄 Nova Assinatura', 'Crie uma aposta automática recorrente',
+    '<div class="form-group"><label>Nome</label><div class="form-input"><input type="text" id="subName" placeholder="Ex: Meu jogo semanal" value="Jogo Semanal"></div></div>' +
+    '<div class="form-group"><label>Tipo de Jogo</label><div class="form-input"><select id="subGameType" onchange="updateSubNumbers()">' +
+    '<option value="LOTOFACIL">Lotofácil (15 números)</option>' +
+    '<option value="MEGASENA">Mega-Sena (6 números)</option>' +
+    '<option value="QUINA">Quina (5 números)</option>' +
+    '<option value="LOTOMANIA">Lotomania (20 números)</option></select></div></div>' +
+    '<div class="form-group"><label>Números (separados por vírgula)</label><div class="form-input"><input type="text" id="subNumbers" placeholder="Ex: 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15"></div></div>' +
+    '<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;"><i class="fas fa-info-circle"></i> Os números serão usados em todas as apostas automáticas.</div>' +
+    '<button class="btn btn-primary btn-full" onclick="createSubscription()"><i class="fas fa-check"></i> Ativar Assinatura</button>');
+}
+
+function updateSubNumbers() {
+  var type = document.getElementById('subGameType').value;
+  var picks = { LOTOFACIL: 15, MEGASENA: 6, QUINA: 5, LOTOMANIA: 20 };
+  var pick = picks[type] || 15;
+  document.getElementById('subNumbers').placeholder = 'Digite ' + pick + ' números entre 1-' + (type === 'LOTOFACIL' ? 25 : type === 'MEGASENA' ? 60 : type === 'QUINA' ? 80 : 100) + ', separados por vírgula';
+}
+
+async function createSubscription() {
+  var name = document.getElementById('subName').value || 'Assinatura';
+  var gameType = document.getElementById('subGameType').value;
+  var numbersInput = document.getElementById('subNumbers').value;
+  var nums = numbersInput.split(',').map(function(n) { return parseInt(n.trim()); }).filter(function(n) { return !isNaN(n); });
+  
+  if (nums.length === 0) return showToast('Digite números válidos', 'error');
+  
+  try {
+    var result = await api.createSubscription({
+      name: name,
+      gameType: gameType,
+      numbers: nums,
+      interval: 'weekly',
+      nextContest: 3001
+    });
+    if (result.success) {
+      showToast('✅ Assinatura criada com sucesso!', 'success');
+      closeModal();
+      loadSubscriptions();
+    }
+  } catch(e) {
+    showToast('Erro ao criar assinatura', 'error');
+  }
+}
+</script>
+
+<div class="card" style="max-width:600px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">🔒 Segurança</div>
+      <div class="card-subtitle">Proteja sua conta</div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <button class="btn btn-secondary btn-full" onclick="showNotification('Alterar Senha', 'Em breve você poderá alterar sua senha.', 'info')"><i class="fas fa-key"></i> Alterar Senha</button>
+    <button class="btn btn-secondary btn-full" onclick="showNotification('Autenticação', 'Em breve teremos 2FA.', 'info')"><i class="fas fa-shield-alt"></i> 2FA</button>
+    <button class="btn btn-danger btn-full" onclick="showNotification('Excluir Conta', 'Tem certeza?', 'error')"><i class="fas fa-trash"></i> Excluir Conta</button>
+  </div>
+</div>
+
+<script>
+function toggleSwitch(el) {
+  const span = el.nextElementSibling;
+  const knob = span.querySelector('span');
+  if (el.checked) {
+    span.style.background = 'var(--primary)'; span.style.borderColor = 'var(--primary)';
+    knob.style.left = 'calc(100% - 24px)'; knob.style.background = 'white';
+    showToast('Notificação ativada!', 'success');
+  } else {
+    span.style.background = 'var(--bg-card)'; span.style.borderColor = 'var(--border)';
+    knob.style.left = '2px'; knob.style.background = 'var(--text-muted)';
+    showToast('Notificação desativada', 'info');
+  }
+}
+</script>
+` %>
+<%- include('layout', { body: body, title: 'Configurações', page: 'settings', user: user, subtitle: 'Personalize sua experiência' }) %>

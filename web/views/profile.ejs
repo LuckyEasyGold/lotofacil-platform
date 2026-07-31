@@ -1,0 +1,137 @@
+<%
+  const _balance = (user?.balance || 0).toFixed(2).replace('.',',');
+  const _prizes = (user?.totalWinnings || 0).toFixed(2).replace('.',',');
+  const _bonus = (user?.bonusBalance || 0).toFixed(2).replace('.',',');
+  const _earnings = ((user?.totalWinnings || 0) + (user?.balance || 0)).toFixed(2).replace('.',',');
+  const _memberSince = user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'}) : 'Hoje';
+%>
+<% let body = `
+<div class="card" style="max-width:600px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">👤 Dados do Perfil</div>
+      <div class="card-subtitle">Gerencie suas informações</div>
+    </div>
+  </div>
+  <form onsubmit="updateProfile(event)">
+    <div style="display:flex;align-items:center;gap:24px;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border);">
+      <div class="avatar" style="width:80px;height:80px;font-size:32px;border-radius:20px;">${user.name.charAt(0)}</div>
+      <div>
+        <h3 style="font-size:20px;">${user.name}</h3>
+        <p style="color:var(--text-muted);font-size:14px;">${user.email}</p>
+        <span class="status-badge active" style="margin-top:8px;">Membro desde <span id="memberSince">${_memberSince}</span></span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Nome Completo</label>
+      <div class="form-input"><input type="text" id="profileName" value="${user.name}"></div>
+    </div>
+    <div class="form-group">
+      <label>E-mail</label>
+      <div class="form-input"><input type="email" id="profileEmail" value="${user.email}"></div>
+    </div>
+    <div class="form-group">
+      <label>Telefone</label>
+      <div class="form-input"><input type="tel" id="profilePhone" placeholder="(XX) XXXXX-XXXX" value="(11) 99999-9999"></div>
+    </div>
+    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Alterações</button>
+  </form>
+</div>
+
+<div class="card mt-3" style="max-width:600px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">📊 Resumo Financeiro</div>
+      <div class="card-subtitle">Suas estatísticas na plataforma</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div id="financeSummary" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div style="background:var(--bg-input);border-radius:12px;padding:20px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Saldo Atual</div><div id="profileBalance" style="font-size:22px;font-weight:700;background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">R$ ${_balance}</div></div>
+      <div style="background:var(--bg-input);border-radius:12px;padding:20px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Total em Prêmios</div><div id="profilePrizes" style="font-size:22px;font-weight:700;color:var(--accent);">R$ ${_prizes}</div></div>
+      <div style="background:var(--bg-input);border-radius:12px;padding:20px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Bônus</div><div id="profileBonus" style="font-size:22px;font-weight:700;color:var(--secondary);">R$ ${_bonus}</div></div>
+      <div style="background:var(--bg-input);border-radius:12px;padding:20px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Total Ganho</div><div id="profileEarnings" style="font-size:22px;font-weight:700;color:var(--primary-light);">R$ ${_earnings}</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 🏆 CONQUISTAS / GAMIFICAÇÃO ==================== -->
+<div class="card mt-3" style="max-width:600px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">🏆 Conquistas</div>
+      <div class="card-subtitle">Medalhas e marcos alcançados</div>
+    </div>
+  </div>
+  <div id="achievementsContent">
+    <div style="text-align:center;padding:30px;color:var(--text-muted);">
+      <i class="fas fa-spinner fa-spin" style="font-size:20px;display:block;margin-bottom:12px;"></i>
+      <span>Carregando conquistas...</span>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  loadLevel();
+  loadAchievements();
+});
+
+async function loadLevel() {
+  try {
+    const data = await api.getLevel();
+    const financeSummary = document.getElementById('financeSummary');
+    if (financeSummary && data) {
+      // Add level badge after finance summary
+      const levelHtml = '<div style="grid-column:1/-1;background:var(--bg-input);border-radius:12px;padding:20px;text-align:center;">' +
+        '<div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px;">' +
+        '<div style="width:56px;height:56px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:white;">' + data.level + '</div>' +
+        '<div style="text-align:left;">' +
+        '<div style="font-size:18px;font-weight:600;">Nível ' + data.level + ' — ' + data.title + '</div>' +
+        '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + data.xp + ' / ' + data.nextLevelXp + ' XP</div></div></div>' +
+        '<div class="progress-bar" style="height:10px;"><div class="progress-fill" style="width:' + data.progress + '%;height:10px;"></div></div>' +
+        '<div style="display:flex;justify-content:center;gap:12px;margin-top:12px;">' +
+        '<span style="font-size:12px;color:var(--text-muted);">🏅 ' + data.achievements.length + ' conquistas</span>' +
+        '<span style="font-size:12px;color:var(--text-muted);">📊 ' + data.xp + ' XP total</span></div></div>';
+      financeSummary.innerHTML += levelHtml;
+    }
+  } catch(e) {}
+}
+
+async function loadAchievements() {
+  try {
+    const data = await api.getAchievements();
+    const container = document.getElementById('achievementsContent');
+    if (!data || !data.achievements) {
+      container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">Erro ao carregar</div>';
+      return;
+    }
+    container.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">' +
+      '<span style="font-size:13px;color:var(--text-secondary);">' + data.totalUnlocked + '/' + data.total + ' conquistas desbloqueadas</span>' +
+      '<div class="progress-bar" style="flex:1;height:6px;"><div class="progress-fill" style="width:' + (data.totalUnlocked / data.total * 100) + '%;height:6px;"></div></div></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+      data.achievements.map(function(a) {
+        return '<div style="background:' + (a.unlocked ? 'rgba(16,185,129,0.1)' : 'var(--bg-input)') + ';border-radius:10px;padding:14px;text-align:center;' + (a.unlocked ? 'border:1px solid rgba(16,185,129,0.2)' : 'opacity:0.5') + ';">' +
+          '<div style="font-size:24px;margin-bottom:6px;">' + (a.unlocked ? '<i class="fas ' + a.icon + '" style="color:var(--secondary);"></i>' : '<i class="fas fa-lock" style="color:var(--text-muted);"></i>') + '</div>' +
+          '<div style="font-size:13px;font-weight:600;margin-bottom:2px;">' + a.name + '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted);">' + a.desc + '</div>' +
+          (a.unlocked ? '<div style="font-size:10px;color:var(--secondary);margin-top:4px;">✅ Desbloqueado</div>' : '') +
+          '</div>';
+      }).join('') + '</div>';
+  } catch(e) {
+    document.getElementById('achievementsContent').innerHTML = '<div style="text-align:center;color:var(--text-muted);">Erro ao carregar conquistas</div>';
+  }
+}
+
+async function updateProfile(e) {
+  e.preventDefault();
+  const name = document.getElementById('profileName').value;
+  const email = document.getElementById('profileEmail').value;
+  try {
+    const result = await api.updateProfile(name, email);
+    if (result.success) { showToast('Perfil atualizado com sucesso!', 'success'); setTimeout(() => location.reload(), 1500); }
+  } catch(e) { showToast('Erro ao atualizar perfil', 'error'); }
+}
+</script>
+` %>
+<%- include('layout', { body: body, title: 'Perfil', page: 'profile', user: user, subtitle: 'Suas informações pessoais' }) %>

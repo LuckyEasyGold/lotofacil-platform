@@ -1,0 +1,8 @@
+node_modules/
+.env
+.env.local
+.vercel/
+database/*.json
+!database/seed.js
+!database/migrate.js
+nul

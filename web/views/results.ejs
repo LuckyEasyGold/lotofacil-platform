@@ -1,0 +1,136 @@
+<% let body = `
+<div class="card mb-3">
+  <div class="card-header">
+    <div>
+      <div class="card-title">🎯 Último Resultado</div>
+      <div class="card-subtitle">Dados em tempo real · Cache: 3.739 concursos</div>
+    </div>
+    <span class="ai-badge"><i class="fas fa-sync-alt"></i> Tempo real</span>
+  </div>
+  <div id="latestResultFull">
+    <div class="empty-state">
+      <i class="fas fa-spinner fa-spin"></i>
+      <h3>Carregando...</h3>
+      <p>Buscando dados oficiais</p>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">
+    <div>
+      <div class="card-title">🔍 Buscar Concurso</div>
+      <div class="card-subtitle">Consulte resultados de concursos anteriores</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;max-width:400px;">
+    <div class="form-input" style="flex:1;">
+      <input type="number" id="searchContest" placeholder="Número do concurso (ex: 3000)" min="1">
+    </div>
+    <button class="btn btn-primary" onclick="searchContest()">
+      <i class="fas fa-search"></i> Buscar
+    </button>
+  </div>
+  <div id="searchResult" class="mt-2"></div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">📋 Últimos Concursos</div>
+      <div class="card-subtitle">Histórico dos resultados</div>
+    </div>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr><th>Concurso</th><th>Data</th><th>Números Sorteados</th><th style="text-align:right">Prêmio 15 pts</th><th>Ganhadores</th></tr>
+      </thead>
+      <tbody id="resultsHistory">
+        <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px;">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadLatestResult();
+  await loadResultsHistory();
+});
+
+async function loadLatestResult() {
+  try {
+    const result = await api.getLatestResult();
+    const container = document.getElementById('latestResultFull');
+    if (!result || !result.listaDezenas) {
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-clock"></i><h3>Resultado indisponível</h3></div>';
+      return;
+    }
+    const prizeHTML = (result.listaRateioPremio || []).map((p, i) =>
+      '<div class="flex-between" style="padding:' + (i === 0 ? '0 0 12px 0' : '12px 0') + ';border-bottom:1px solid var(--border);">' +
+      '<div><span style="font-weight:600;">' + p.descricaoFaixa + '</span></div>' +
+      '<div style="text-align:right;"><span style="font-size:18px;font-weight:700;color:var(--secondary);">R$ ' + p.valorPremio.toFixed(2).replace('.',',') + '</span>' +
+      '<br><span style="font-size:12px;color:var(--text-muted);">' + p.numeroDeGanhadores + ' ganhador(es)</span></div></div>'
+    ).join('');
+    container.innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">' +
+      '<div><div class="flex-between mb-2"><div><span style="font-size:14px;color:var(--text-muted);"><i class="fas fa-calendar"></i> ' + (result.dataApuracao || '') + '</span></div>' +
+      '<div style="text-align:right;"><span style="font-size:24px;font-weight:700;">Concurso ' + result.numero + '</span><br><span style="font-size:12px;color:var(--text-muted);">' + (result.localSorteio || '') + '</span></div></div>' +
+      '<div class="balls" style="justify-content:center;gap:10px;">' +
+      (result.listaDezenas || []).map((n, i) => '<span class="ball ' + ['primary','success','accent','primary','success','accent','primary','success','accent','primary','success','accent','primary','success','accent'][i] + '" style="width:48px;height:48px;font-size:16px;">' + n + '</span>').join('') + '</div>' +
+      '<div class="flex-between mt-2"><span style="color:var(--text-muted);">Próximo: ' + (result.dataProximoConcurso || 'N/A') + '</span>' +
+      '<span style="font-weight:600;">' + (result.acumulado ? '💰 Acumulou!' : '✅ Houve ganhador(es)') + '</span></div></div>' +
+      '<div style="background:var(--bg-input);border-radius:16px;padding:20px;"><h3 style="font-size:16px;margin-bottom:16px;">🏆 Rateio de Prêmios</h3>' + prizeHTML +
+      '<div style="padding-top:12px;margin-top:12px;border-top:1px solid var(--border);"><div class="flex-between"><span>Arrecadação Total</span><span style="font-weight:600;">R$ ' + (result.valorArrecadado || 0).toFixed(2).replace('.',',') + '</span></div></div></div></div>';
+  } catch(e) {
+    document.getElementById('latestResultFull').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle" style="color:var(--accent)"></i><h3>Erro ao carregar</h3><p>Não foi possível carregar os resultados</p></div>';
+  }
+}
+
+async function loadResultsHistory() {
+  const tbody = document.getElementById('resultsHistory');
+  try {
+    const resp = await fetch('/api/results/history/recent?limit=15');
+    const contests = await resp.json();
+    if (!contests || contests.length === 0) throw new Error('vazio');
+    tbody.innerHTML = contests.map(c => {
+      const topPrize = (c.listaRateioPremio || []).find(p => p.faixa === 1);
+      const prize = topPrize ? 'R$ ' + topPrize.valorPremio.toFixed(2).replace('.',',') : '-';
+      const winners = topPrize ? topPrize.numeroDeGanhadores : '-';
+      return '<tr style="cursor:pointer;" onclick="searchByContest(' + c.numero + ')">' +
+        '<td><strong>#' + c.numero + '</strong></td>' +
+        '<td>' + (c.dataApuracao || '') + '</td>' +
+        '<td><div class="balls" style="gap:3px;">' +
+        (c.listaDezenas || []).map(n => '<span class="ball primary" style="width:26px;height:26px;font-size:10px;">' + n + '</span>').join('') +
+        '</div></td>' +
+        '<td style="text-align:right;color:var(--secondary);font-weight:600;">' + prize + '</td>' +
+        '<td>' + winners + '</td></tr>';
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px;">' +
+      '<i class="fas fa-exclamation-triangle"></i> Erro ao carregar histórico</td></tr>';
+  }
+}
+
+async function searchContest() {
+  const contest = document.getElementById('searchContest').value;
+  if (!contest) return showToast('Digite o número do concurso', 'error');
+  searchByContest(contest);
+}
+async function searchByContest(contest) {
+  try {
+    const result = await api.getResultByContest(contest);
+    const container = document.getElementById('searchResult');
+    if (!result || !result.listaDezenas) { container.innerHTML = '<div style="background:rgba(239,68,68,0.1);border-radius:12px;padding:16px;color:var(--danger);">Concurso não encontrado</div>'; return; }
+    container.innerHTML = '<div style="background:var(--bg-input);border-radius:16px;padding:20px;margin-top:12px;">' +
+      '<div class="flex-between mb-2"><div><span style="font-size:14px;color:var(--text-muted);"><i class="fas fa-calendar"></i> ' + (result.dataApuracao || '') + '</span></div>' +
+      '<span style="font-size:20px;font-weight:700;">Concurso ' + result.numero + '</span></div>' +
+      '<div class="balls" style="justify-content:center;gap:8px;">' +
+      (result.listaDezenas || []).map((n, i) => '<span class="ball ' + ['primary','success','accent','primary','success','accent','primary','success','accent','primary','success','accent','primary','success','accent'][i] + '" style="width:40px;height:40px;font-size:14px;">' + n + '</span>').join('') + '</div></div>';
+    document.getElementById('searchContest').value = '';
+  } catch(e) { document.getElementById('searchResult').innerHTML = '<div style="background:rgba(239,68,68,0.1);border-radius:12px;padding:16px;color:var(--danger);">Erro ao buscar concurso</div>'; }
+}
+</script>
+` %>
+<%- include('layout', { body: body, title: 'Resultados', page: 'results', user: user, subtitle: 'Resultados oficiais da Lotofácil' }) %>

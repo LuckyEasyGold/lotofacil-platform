@@ -1,0 +1,288 @@
+<% let body = `
+<!-- ==================== HEADER ==================== -->
+<div class="stats-grid" id="statsSummary">
+  <div class="stat-card primary">
+    <div class="stat-icon"><i class="fas fa-fire"></i></div>
+    <div class="stat-label">Números Quentes</div>
+    <div class="stat-value" style="font-size:24px;color:#EF4444;" id="statHot">-</div>
+    <div class="stat-change up">Mais frequentes</div>
+  </div>
+  <div class="stat-card info">
+    <div class="stat-icon"><i class="fas fa-snowflake"></i></div>
+    <div class="stat-label">Números Frios</div>
+    <div class="stat-value" style="font-size:24px;color:#60A5FA;" id="statCold">-</div>
+    <div class="stat-change down">Menos frequentes</div>
+  </div>
+  <div class="stat-card accent">
+    <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
+    <div class="stat-label">Concursos Analisados</div>
+    <div class="stat-value gradient" id="statContests">-</div>
+  </div>
+  <div class="stat-card success">
+    <div class="stat-icon"><i class="fas fa-calculator"></i></div>
+    <div class="stat-label">Soma Média</div>
+    <div class="stat-value" style="font-size:24px;color:var(--secondary);" id="statAvgSum">-</div>
+  </div>
+</div>
+
+<!-- ==================== GRID: HEATMAP + QUENTES/FRIOS ==================== -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;">
+  <!-- HEATMAP -->
+  <div class="card">
+    <div class="card-header" style="margin-bottom:16px;">
+      <div>
+        <div class="card-title">🔥 Heatmap de Frequência</div>
+        <div class="card-subtitle">Últimos <span id="heatmapRange">100</span> concursos · Visualização 5×5</div>
+      </div>
+    </div>
+    <div id="heatmapContainer" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:8px;">
+      ${Array.from({length: 25}, (_, i) => {
+        const n = i + 1;
+        return '<div id="heat-' + n + '" class="heat-cell" style="aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg-input);border:1px solid var(--border);transition:all 0.3s;cursor:pointer;" title="Carregando...">' +
+          '<span style="font-size:16px;font-weight:700;color:var(--text);">' + (n < 10 ? '0' : '') + n + '</span>' +
+          '<span style="font-size:10px;color:var(--text-muted);margin-top:2px;" id="heat-pct-' + n + '">-</span>' +
+          '</div>';
+      }).join('')}
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;margin-top:16px;padding:12px;background:var(--bg-input);border-radius:10px;">
+      <span style="font-size:11px;color:var(--text-muted);">Menos</span>
+      <div style="flex:1;height:12px;border-radius:6px;background:linear-gradient(to right, #1E3A5F, #2563EB, #4F46E5, #7C3AED, #BE123C, #EF4444);"></div>
+      <span style="font-size:11px;color:var(--text-muted);">Mais</span>
+    </div>
+  </div>
+
+  <!-- QUENTES & FRIOS -->
+  <div style="display:flex;flex-direction:column;gap:24px;">
+    <div class="card" style="flex:1;">
+      <div class="card-header" style="margin-bottom:12px;">
+        <div class="card-title" style="font-size:16px;">🔥 Números Quentes</div>
+      </div>
+      <div id="hotNumbers" style="display:flex;flex-wrap:wrap;gap:8px;">
+        <span style="color:var(--text-muted);font-size:13px;">Carregando...</span>
+      </div>
+    </div>
+    <div class="card" style="flex:1;">
+      <div class="card-header" style="margin-bottom:12px;">
+        <div class="card-title" style="font-size:16px;">❄️ Números Frios</div>
+      </div>
+      <div id="coldNumbers" style="display:flex;flex-wrap:wrap;gap:8px;">
+        <span style="color:var(--text-muted);font-size:13px;">Carregando...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== GRID: ATRASO + PADRÕES ==================== -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;">
+  <!-- ATRASO -->
+  <div class="card">
+    <div class="card-header" style="margin-bottom:12px;">
+      <div>
+        <div class="card-title">⏳ Análise de Atraso</div>
+        <div class="card-subtitle">Números há mais tempo sem aparecer</div>
+      </div>
+    </div>
+    <div id="gapsList">
+      <div style="text-align:center;padding:20px;color:var(--text-muted);">Carregando...</div>
+    </div>
+  </div>
+
+  <!-- PADRÕES -->
+  <div class="card">
+    <div class="card-header" style="margin-bottom:16px;">
+      <div>
+        <div class="card-title">📐 Padrões Estatísticos</div>
+        <div class="card-subtitle">Médias dos últimos concursos</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="patternsGrid">
+      <div style="background:var(--bg-input);border-radius:12px;padding:20px;text-align:center;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Soma Média</div>
+        <div style="font-size:28px;font-weight:700;color:var(--primary-light);" id="patternSum">-</div>
+        <div style="font-size:11px;color:var(--text-muted);">Intervalo ideal: 180-220</div>
+      </div>
+      <div style="background:var(--bg-input);border-radius:12px;padding:20px;text-align:center;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Pares / Ímpares</div>
+        <div style="font-size:28px;font-weight:700;color:var(--secondary);" id="patternParity">-</div>
+        <div style="font-size:11px;color:var(--text-muted);">Média por concurso</div>
+      </div>
+      <div style="background:var(--bg-input);border-radius:12px;padding:20px;text-align:center;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Números Primos</div>
+        <div style="font-size:28px;font-weight:700;color:var(--accent);" id="patternPrimes">-</div>
+        <div style="font-size:11px;color:var(--text-muted);">Média por concurso</div>
+      </div>
+      <div style="background:var(--bg-input);border-radius:12px;padding:20px;text-align:center;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Taxa de Acerto</div>
+        <div style="font-size:28px;font-weight:700;color:#60A5FA;" id="patternHitRate">-</div>
+        <div style="font-size:11px;color:var(--text-muted);">Baseado no portfólio</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TABELA DE TODOS OS NÚMEROS ==================== -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">📋 Tabela Completa de Frequências</div>
+      <div class="card-subtitle">Todos os 25 números ordenados por frequência</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <select id="sortBy" onchange="renderFullTable()" style="padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;">
+        <option value="freq">Frequência</option>
+        <option value="number">Número</option>
+        <option value="gap">Atraso</option>
+      </select>
+    </div>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Número</th>
+          <th>Frequência</th>
+          <th>%</th>
+          <th>Status</th>
+          <th>Atraso (concursos)</th>
+          <th>Último Concurso</th>
+        </tr>
+      </thead>
+      <tbody id="fullTableBody">
+        <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px;">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let statsData = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadStats();
+});
+
+async function loadStats() {
+  try {
+    const resp = await fetch('/api/stats/advanced?limit=100');
+    statsData = await resp.json();
+    if (statsData.error) throw new Error(statsData.error);
+
+    // Summary cards
+    document.getElementById('statHot').textContent = statsData.hot.map(n => n.number).join(', ');
+    document.getElementById('statCold').textContent = statsData.cold.map(n => n.number).join(', ');
+    document.getElementById('statContests').textContent = statsData.totalContests + ' concursos';
+    document.getElementById('heatmapRange').textContent = statsData.totalContests;
+    document.getElementById('statAvgSum').textContent = statsData.patterns.avgSum;
+
+    // Heatmap
+    statsData.heatmap.forEach(row => {
+      row.forEach(cell => {
+        const el = document.getElementById('heat-' + cell.number);
+        if (!el) return;
+        const intensity = cell.frequency / statsData.maxFrequency;
+        const r = Math.round(30 + 200 * intensity);
+        const g = Math.round(58 + (1 - intensity) * 120);
+        const b = Math.round(180 - 150 * intensity);
+        el.style.background = 'rgba(' + r + ',' + g + ',' + b + ',0.85)';
+        el.style.borderColor = 'rgba(255,255,255,0.1)';
+        el.title = 'Número ' + cell.number + ': ' + cell.frequency + ' vezes (' + cell.percentage + '%)';
+        document.getElementById('heat-pct-' + cell.number).textContent = cell.percentage + '%';
+      });
+    });
+
+    // Hot numbers
+    const hotContainer = document.getElementById('hotNumbers');
+    hotContainer.innerHTML = statsData.hot.map(n => {
+      const pct = (n.percentage / 100);
+      const size = Math.round(34 + 20 * pct);
+      return '<div class="ball primary" style="width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(10 + 6 * pct) + 'px;animation:pulse 2s ease-in-out infinite;box-shadow:0 0 15px rgba(239,68,68,0.3);background:linear-gradient(135deg,#EF4444,#DC2626);" title="' + n.frequency + 'x (' + n.percentage + '%)">' + n.number + '</div>';
+    }).join('');
+
+    // Cold numbers
+    const coldContainer = document.getElementById('coldNumbers');
+    coldContainer.innerHTML = statsData.cold.map(n => {
+      return '<div class="ball primary" style="width:34px;height:34px;font-size:12px;background:linear-gradient(135deg,#60A5FA,#3B82F6);opacity:0.7;" title="' + n.frequency + 'x (' + n.percentage + '%)">' + n.number + '</div>';
+    }).join('');
+
+    // Gaps
+    const gapsContainer = document.getElementById('gapsList');
+    gapsContainer.innerHTML = statsData.gaps.length > 0
+      ? '<div style="display:grid;gap:8px;">' +
+        statsData.gaps.map((n, idx) => {
+          const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🔴';
+          return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-input);border-radius:10px;">' +
+            '<span style="font-size:18px;">' + medal + '</span>' +
+            '<span class="ball primary" style="width:34px;height:34px;font-size:12px;background:linear-gradient(135deg,#F59E0B,#D97706);">' + n.number + '</span>' +
+            '<div style="flex:1;"><div style="font-size:14px;font-weight:600;">' + n.gap + ' concursos</div><div style="font-size:11px;color:var(--text-muted);">Último: #' + n.lastSeen + '</div></div>' +
+            '<div style="font-size:13px;font-weight:600;color:var(--accent);">' + n.percentage + '%</div>' +
+            '</div>';
+        }).join('') + '</div>'
+      : '<div style="text-align:center;padding:20px;color:var(--text-muted);">Sem dados de atraso</div>';
+
+    // Patterns
+    document.getElementById('patternSum').textContent = statsData.patterns.avgSum;
+    document.getElementById('patternParity').textContent = statsData.patterns.avgEvens + 'P / ' + statsData.patterns.avgOdds + 'I';
+    document.getElementById('patternPrimes').textContent = statsData.patterns.avgPrimes + ' / ' + statsData.patterns.avgNonPrimes;
+
+    // Hit rate from portfolio
+    try {
+      const gameStats = await api.getGameStats();
+      const hitRate = gameStats.totalUsed > 0 ? Math.round(gameStats.totalHits / gameStats.totalUsed * 100 / 15 * 100) : 0;
+      document.getElementById('patternHitRate').textContent = hitRate + '%';
+    } catch(e) {
+      document.getElementById('patternHitRate').textContent = '-';
+    }
+
+    // Full table
+    renderFullTable();
+  } catch(e) {
+    console.error('Erro ao carregar estatísticas:', e);
+    document.querySelectorAll('#statsSummary .stat-value').forEach(el => el.textContent = 'Erro');
+    document.getElementById('heatmapContainer').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);"><i class="fas fa-exclamation-triangle" style="font-size:32px;display:block;margin-bottom:12px;"></i>Erro ao carregar dados</div>';
+  }
+}
+
+function renderFullTable() {
+  if (!statsData || !statsData.numbers) return;
+  const sortBy = document.getElementById('sortBy').value;
+  let numbers = [...statsData.numbers];
+  if (sortBy === 'freq') numbers.sort((a, b) => b.frequency - a.frequency);
+  else if (sortBy === 'number') numbers.sort((a, b) => a.number - b.number);
+  else if (sortBy === 'gap') numbers.sort((a, b) => b.gap - a.gap);
+
+  const tbody = document.getElementById('fullTableBody');
+  tbody.innerHTML = numbers.map((n, idx) => {
+    const rank = idx + 1;
+    const isHot = rank <= 8;
+    const isCold = rank > statsData.numbers.length - 8;
+    const status = isHot ? '<span class="status-badge active" style="background:rgba(239,68,68,0.15);color:#EF4444;">🔥 Quente</span>'
+      : isCold ? '<span class="status-badge pending" style="background:rgba(96,165,250,0.15);color:#60A5FA;">❄️ Frio</span>'
+      : '<span class="status-badge completed" style="background:rgba(148,163,184,0.1);color:#94A3B8;">—</span>';
+    return '<tr>' +
+      '<td>' + rank + '°</td>' +
+      '<td><strong>' + n.number + '</strong></td>' +
+      '<td>' + n.frequency + 'x</td>' +
+      '<td>' + n.percentage + '%</td>' +
+      '<td>' + status + '</td>' +
+      '<td>' + n.gap + ' concursos</td>' +
+      '<td>#' + (n.lastSeen || '—') + '</td>' +
+      '</tr>';
+  }).join('');
+}
+</script>
+
+<style>
+.heat-cell:hover {
+  transform: scale(1.08) !important;
+  z-index: 2;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
+}
+@media (max-width: 1024px) {
+  div[style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+</style>
+` %>
+<%- include('layout', { body: body, title: 'Estatísticas Avançadas', page: 'stats', user: user, subtitle: '📊 Análise detalhada dos resultados históricos' }) %>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Criar Conta | Lotofácil Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body {
+      background: var(--bg-dark);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .auth-container {
+      width: 100%;
+      max-width: 440px;
+    }
+    .auth-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px 36px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+    .auth-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .auth-logo-icon {
+      width: 52px;
+      height: 52px;
+      background: var(--gradient-primary);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+    }
+    .auth-logo-text {
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .auth-logo-text small {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: block;
+      font-weight: 400;
+    }
+    .auth-title {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .auth-title h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .auth-title p {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 24px 0;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .auth-divider::before,
+    .auth-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .auth-footer {
+      text-align: center;
+      margin-top: 24px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .auth-footer a {
+      color: var(--primary-light);
+      font-weight: 600;
+    }
+    .auth-footer a:hover {
+      text-decoration: underline;
+    }
+    .auth-error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: var(--danger);
+      font-size: 14px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .auth-error.show {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .password-toggle {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      font-size: 16px;
+    }
+    .password-toggle:hover {
+      color: var(--text);
+    }
+    .terms-check {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .terms-check input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      accent-color: var(--primary);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .terms-check label {
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+      line-height: 1.5;
+    }
+    .terms-check label a {
+      color: var(--primary-light);
+    }
+    .name-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 480px) {
+      .name-grid { grid-template-columns: 1fr; }
+      .auth-card { padding: 28px 20px; }
+      .auth-title h1 { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <!-- Logo -->
+      <div class="auth-logo">
+        <div class="auth-logo-icon"><i class="fas fa-dice-d6"></i></div>
+        <div class="auth-logo-text">
+          Lotofácil
+          <small>Plataforma de Jogos</small>
+        </div>
+      </div>
+
+      <!-- Title -->
+      <div class="auth-title">
+        <h1>Criar sua Conta</h1>
+        <p>Comece a jogar e usar a inteligência artificial</p>
+      </div>
+
+      <!-- Error -->
+      <div class="auth-error" id="authError">
+        <i class="fas fa-exclamation-circle"></i>
+        <span id="authErrorMsg">Erro ao criar conta</span>
+      </div>
+
+      <!-- Form -->
+      <form onsubmit="handleRegister(event)">
+        <div class="name-grid">
+          <div class="form-group">
+            <label>Nome</label>
+            <div class="form-input">
+              <input type="text" id="regFirstName" placeholder="Seu nome" required autocomplete="given-name">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Sobrenome</label>
+            <div class="form-input">
+              <input type="text" id="regLastName" placeholder="Seu sobrenome" required autocomplete="family-name">
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <div class="form-input">
+            <input type="email" id="regEmail" placeholder="seu@email.com" required autocomplete="email">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <div class="form-input">
+            <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres" minlength="6" required autocomplete="new-password">
+            <button type="button" class="password-toggle" onclick="togglePassword('regPassword', this)" tabindex="-1">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Confirmar Senha</label>
+          <div class="form-input">
+            <input type="password" id="regConfirmPassword" placeholder="Digite a senha novamente" minlength="6" required>
+          </div>
+        </div>
+        <div class="terms-check">
+          <input type="checkbox" id="regTerms" required>
+          <label for="regTerms">Eu aceito os <a href="#" onclick="showNotification('Termos de Uso', 'Termos e condições do serviço.', 'info'); return false;">Termos de Uso</a> e a <a href="#" onclick="showNotification('Política de Privacidade', 'Política de privacidade da plataforma.', 'info'); return false;">Política de Privacidade</a></label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="registerBtn" style="padding:16px;">
+          <i class="fas fa-user-plus"></i> Criar Conta Grátis
+        </button>
+      </form>
+
+      <div class="auth-divider">já tem conta?</div>
+
+      <a href="/login" class="btn btn-secondary btn-full" style="padding:14px;justify-content:center;text-decoration:none;">
+        <i class="fas fa-sign-in-alt"></i> Fazer Login
+      </a>
+    </div>
+  </div>
+
+  <!-- Toast Container (reuse from main app) -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Modal Overlay (reuse from main app) -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modalContent">
+      <div class="modal-header">
+        <div>
+          <h2 id="modalTitle">Título</h2>
+          <p id="modalDesc">Descrição</p>
+        </div>
+        <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    function togglePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const icon = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+      } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+      }
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      const icons = { success: 'fa-check-circle', error: 'fa-times-circle', info: 'fa-info-circle' };
+      toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${message}`;
+      container.appendChild(toast);
+      setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(100px)'; toast.style.transition = 'all 0.3s'; setTimeout(() => toast.remove(), 300); }, 3500);
+    }
+
+    function showNotification(title, message, type) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalDesc').textContent = '';
+      document.getElementById('modalBody').innerHTML = `<p style="color:var(--text-secondary);line-height:1.6">${message}</p><div class="mt-3 flex gap-2"><button class="btn btn-primary" onclick="closeModal()">OK</button></div>`;
+      document.getElementById('modalOverlay').classList.add('visible');
+    }
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('visible');
+    }
+    document.getElementById('modalOverlay').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById('registerBtn');
+      const errorDiv = document.getElementById('authError');
+      const errorMsg = document.getElementById('authErrorMsg');
+      
+      const password = document.getElementById('regPassword').value;
+      const confirm = document.getElementById('regConfirmPassword').value;
+      
+      if (password !== confirm) {
+        errorMsg.textContent = 'As senhas não conferem';
+        errorDiv.classList.add('show');
+        return;
+      }
+      
+      if (password.length < 6) {
+        errorMsg.textContent = 'A senha deve ter no mínimo 6 caracteres';
+        errorDiv.classList.add('show');
+        return;
+      }
+
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando conta...';
+      btn.disabled = true;
+      errorDiv.classList.remove('show');
+
+      try {
+        const firstName = document.getElementById('regFirstName').value;
+        const lastName = document.getElementById('regLastName').value;
+        const email = document.getElementById('regEmail').value;
+
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: firstName + ' ' + lastName,
+            email,
+            password
+          })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          window.location.href = data.redirect || '/';
+        } else {
+          errorMsg.textContent = data.error || 'Erro ao criar conta';
+          errorDiv.classList.add('show');
+        }
+      } catch (err) {
+        errorMsg.textContent = 'Erro de conexão. Tente novamente.';
+        errorDiv.classList.add('show');
+      }
+
+      btn.innerHTML = '<i class="fas fa-user-plus"></i> Criar Conta Grátis';
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>

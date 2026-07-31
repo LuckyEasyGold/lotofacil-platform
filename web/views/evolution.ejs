@@ -1,0 +1,387 @@
+<% let body = `
+<div class="stats-grid" id="evoStats">
+  <div class="stat-card primary">
+    <div class="stat-icon"><i class="fas fa-dna"></i></div>
+    <div class="stat-label">Geração Atual</div>
+    <div class="stat-value gradient" id="evoGen">${evolution.currentGeneration}</div>
+  </div>
+  <div class="stat-card success">
+    <div class="stat-icon"><i class="fas fa-trophy"></i></div>
+    <div class="stat-label">Melhor Fitness</div>
+    <div class="stat-value" style="color:var(--secondary);font-size:24px;" id="evoFit">${evolution.bestFitness.toFixed(2)}</div>
+  </div>
+  <div class="stat-card info">
+    <div class="stat-icon"><i class="fas fa-history"></i></div>
+    <div class="stat-label">Históricos Analisados</div>
+    <div class="stat-value" style="color:#60A5FA;" id="evoContests">${evolution.stats.contestsAnalyzed}</div>
+  </div>
+  <div class="stat-card accent">
+    <div class="stat-icon"><i class="fas fa-clock"></i></div>
+    <div class="stat-label">Status</div>
+    <div class="stat-value" id="evoStatus" style="font-size:18px;color:var(--secondary);">⏸ Parado</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">📈 Curva de Aprendizado</div>
+      <div class="card-subtitle">Evolução do fitness ao longo das gerações — quanto maior, melhor a semente</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-secondary btn-sm" onclick="refreshChart()" title="Atualizar gráfico">
+        <i class="fas fa-sync"></i>
+      </button>
+      <button class="btn btn-primary" id="trainBtn" onclick="toggleTraining()" style="font-size:14px;padding:10px 24px;">
+        <i class="fas fa-play"></i> Treinar IA
+      </button>
+    </div>
+  </div>
+  <div style="position:relative;">
+    <canvas id="evoChart" width="800" height="350" style="width:100%;height:350px;border-radius:12px;background:var(--bg-card);"></canvas>
+    <div id="chartPlaceholder" class="empty-state" style="display:none;">
+      <i class="fas fa-chart-line"></i>
+      <h3>Sem dados ainda</h3>
+      <p>Clique em "Treinar IA" para iniciar a evolução</p>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2 mt-3">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🧬 Semente Atual</div>
+      <div class="card-subtitle">Pesos atribuídos a cada número (quanto maior, mais provável)</div>
+    </div>
+    <div id="weightsDisplay">
+      <div class="empty-state" style="padding:20px;">
+        <i class="fas fa-weight"></i>
+        <p style="font-size:13px;">Carregando pesos...</p>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">📋 Últimas Gerações</div>
+        <div class="card-subtitle">Evolução do fitness nas últimas execuções</div>
+      </div>
+    </div>
+    <div id="historyTable" style="max-height:350px;overflow-y:auto;">
+      <div class="empty-state" style="padding:20px;">
+        <i class="fas fa-table"></i>
+        <p style="font-size:13px;">Carregando histórico...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-3" style="background:linear-gradient(135deg,rgba(79,70,229,0.05),rgba(16,185,129,0.05));border:1px solid rgba(79,70,229,0.1);">
+  <div class="card-header">
+    <div>
+      <div class="card-title">⚙️ Configurações do Algoritmo Genético</div>
+      <div class="card-subtitle">Parâmetros atuais do motor de evolução</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+    <div style="background:var(--bg-input);border-radius:10px;padding:16px;">
+      <div style="font-size:12px;color:var(--text-muted);">População</div>
+      <div style="font-size:18px;font-weight:600;">100</div>
+      <div style="font-size:11px;color:var(--text-muted);">indivíduos por geração</div>
+    </div>
+    <div style="background:var(--bg-input);border-radius:10px;padding:16px;">
+      <div style="font-size:12px;color:var(--text-muted);">Crossover</div>
+      <div style="font-size:18px;font-weight:600;color:var(--accent);">Blend α=0.5</div>
+      <div style="font-size:11px;color:var(--text-muted);">70% de chance</div>
+    </div>
+    <div style="background:var(--bg-input);border-radius:10px;padding:16px;">
+      <div style="font-size:12px;color:var(--text-muted);">Mutação</div>
+      <div style="font-size:18px;font-weight:600;color:var(--accent);">Gaussiana σ=0.1</div>
+      <div style="font-size:11px;color:var(--text-muted);">20% de chance</div>
+    </div>
+    <div style="background:var(--bg-input);border-radius:10px;padding:16px;">
+      <div style="font-size:12px;color:var(--text-muted);">Seleção</div>
+      <div style="font-size:18px;font-weight:600;color:var(--primary-light);">Torneio</div>
+      <div style="font-size:11px;color:var(--text-muted);">3 indivíduos</div>
+    </div>
+    <div style="background:var(--bg-input);border-radius:10px;padding:16px;">
+      <div style="font-size:12px;color:var(--text-muted);">Jogos simulados</div>
+      <div style="font-size:18px;font-weight:600;color:var(--secondary);">500</div>
+      <div style="font-size:11px;color:var(--text-muted);">por avaliação</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let evolHistory = ${JSON.stringify(evolution.history || [])};
+let evolutionRunning = false;
+let evoTarget = 0;
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (evolHistory.length > 0) {
+    drawChart();
+    renderWeights();
+    renderHistoryTable();
+  } else {
+    document.getElementById('chartPlaceholder').style.display = 'flex';
+  }
+});
+
+// ======================================================================
+//  CHART — Canvas line chart
+// ======================================================================
+function drawChart() {
+  const canvas = document.getElementById('evoChart');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  const pad = { top: 30, right: 30, bottom: 40, left: 60 };
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, W, H);
+
+  if (!evolHistory.length) {
+    document.getElementById('chartPlaceholder').style.display = 'flex';
+    return;
+  }
+  document.getElementById('chartPlaceholder').style.display = 'none';
+
+  const data = evolHistory;
+  const maxFit = Math.max(...data.map(d => d.bestFitness)) * 1.1 || 1;
+  const genRange = data.length;
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.top + (chartH / 5) * i;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(W - pad.right, y);
+    ctx.stroke();
+    // Y label
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '11px Inter, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(maxFit * (1 - i / 5)).toLocaleString(), pad.left - 10, y + 4);
+  }
+
+  // X labels
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '11px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  for (let i = 0; i < Math.min(10, genRange); i++) {
+    const idx = Math.round((genRange - 1) * (i / 9));
+    const x = pad.left + (chartW / Math.max(genRange - 1, 1)) * idx;
+    ctx.fillText('Gen ' + data[idx].generation, x, H - pad.bottom + 18);
+  }
+
+  // Draw best fitness line
+  ctx.beginPath();
+  ctx.strokeStyle = '#10B981';
+  ctx.lineWidth = 2.5;
+  data.forEach((d, i) => {
+    const x = pad.left + (chartW / Math.max(genRange - 1, 1)) * i;
+    const y = pad.top + chartH * (1 - d.bestFitness / maxFit);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Gradient fill under best fitness
+  ctx.lineTo(pad.left + chartW, pad.top + chartH);
+  ctx.lineTo(pad.left, pad.top + chartH);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + chartH);
+  grad.addColorStop(0, 'rgba(16,185,129,0.2)');
+  grad.addColorStop(1, 'rgba(16,185,129,0.02)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Draw average fitness line (dashed)
+  ctx.beginPath();
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = 'rgba(96,165,250,0.5)';
+  ctx.lineWidth = 1.5;
+  data.forEach((d, i) => {
+    if (d.avgFitness === undefined || d.avgFitness === null) return;
+    const x = pad.left + (chartW / Math.max(genRange - 1, 1)) * i;
+    const y = pad.top + chartH * (1 - d.avgFitness / maxFit);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Legend
+  ctx.font = '12px Inter, sans-serif';
+  ctx.fillStyle = '#10B981';
+  ctx.textAlign = 'left';
+  ctx.fillRect(W - 170, 10, 12, 3);
+  ctx.fillText('Melhor Fitness', W - 152, 15);
+  ctx.fillStyle = 'rgba(96,165,250,0.7)';
+  ctx.setLineDash([4, 4]);
+  ctx.fillRect(W - 170, 28, 12, 2);
+  ctx.setLineDash([]);
+  ctx.fillText('Média', W - 152, 32);
+}
+
+// ======================================================================
+//  WEIGHTS — bar visualization
+// ======================================================================
+function renderWeights() {
+  const container = document.getElementById('weightsDisplay');
+  const seed = ${JSON.stringify(evolution.seedInfo)};
+  if (!seed.weights) {
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-weight"></i><h3>Sem semente</h3></div>';
+    return;
+  }
+  const maxW = Math.max(...seed.weights);
+  container.innerHTML = '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:8px;">' +
+    seed.weights.map((w, i) => {
+      const pct = (w / maxW * 100);
+      return '<div style="text-align:center;">' +
+        '<div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">' + String(i + 1).padStart(2, '0') + '</div>' +
+        '<div style="height:50px;background:var(--bg-card);border-radius:4px;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,0.05);">' +
+        '<div style="position:absolute;bottom:0;width:100%;height:' + pct + '%;background:linear-gradient(to top, rgba(16,185,129,0.6), rgba(16,185,129,0.2));border-radius:4px;transition:height 0.5s;"></div></div>' +
+        '<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">' + (w * 100).toFixed(1) + '%</div></div>';
+    }).join('') + '</div>';
+}
+
+// ======================================================================
+//  HISTORY TABLE
+// ======================================================================
+function renderHistoryTable() {
+  const container = document.getElementById('historyTable');
+  if (!evolHistory.length) {
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-table"></i><h3>Nenhuma geração</h3></div>';
+    return;
+  }
+  const rows = evolHistory.slice(-50).reverse();
+  container.innerHTML =
+    '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
+    '<thead><tr style="border-bottom:1px solid rgba(255,255,255,0.08);">' +
+    '<th style="text-align:left;padding:8px 12px;color:var(--text-muted);font-weight:500;">Geração</th>' +
+    '<th style="text-align:right;padding:8px 12px;color:var(--text-muted);font-weight:500;">Melhor Fitness</th>' +
+    '<th style="text-align:right;padding:8px 12px;color:var(--text-muted);font-weight:500;">Média</th>' +
+    '<th style="text-align:right;padding:8px 12px;color:var(--text-muted);font-weight:500;">Evolução</th></tr></thead><tbody>' +
+    rows.map((r, idx) => {
+      const prev = rows[idx + 1];
+      const delta = prev ? ((r.bestFitness - prev.bestFitness) / prev.bestFitness * 100).toFixed(1) : '—';
+      const deltaClass = delta !== '—' ? (parseFloat(delta) > 0 ? 'color:var(--secondary);' : 'color:var(--danger);') : 'color:var(--text-muted);';
+      return '<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">' +
+        '<td style="padding:8px 12px;">#' + r.generation + '</td>' +
+        '<td style="padding:8px 12px;text-align:right;font-weight:600;">' + r.bestFitness.toFixed(2) + '</td>' +
+        '<td style="padding:8px 12px;text-align:right;">' + (r.avgFitness ? r.avgFitness.toFixed(2) : '—') + '</td>' +
+        '<td style="padding:8px 12px;text-align:right;' + deltaClass + '">' + (delta !== '—' ? (delta > 0 ? '▲ +' : '▼ ') + delta + '%' : '—') + '</td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+// ======================================================================
+//  TRAINING CONTROLS
+// ======================================================================
+async function toggleTraining() {
+  const btn = document.getElementById('trainBtn');
+  if (evolutionRunning) {
+    // Não há como parar a evolução atual (é síncrona em lotes)
+    showToast('⏳ A evolução atual vai terminar em alguns segundos', 'info');
+    return;
+  }
+  startTraining();
+}
+
+async function startTraining() {
+  const btn = document.getElementById('trainBtn');
+  evoTarget = 50; // treina 50 gerações
+
+  evolutionRunning = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Treinando...';
+  btn.disabled = true;
+  document.getElementById('evoStatus').innerHTML = '🟢 Treinando <span id="evoProgress" style="font-size:13px;">(0/' + evoTarget + ')</span>';
+
+  try {
+    // Executa em lotes de 10 para dar feedback visual
+    for (let i = 0; i < evoTarget / 10; i++) {
+      const res = await fetch('/api/ai/evolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ generations: 10 })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        if (err.evolving) {
+          showToast('⏳ Outro treinamento já está rodando', 'info');
+          break;
+        }
+        throw new Error(err.error || 'Erro na evolução');
+      }
+
+      const data = await res.json();
+      if (data.success && data.evolution) {
+        evolHistory = data.evolution.history || evolHistory;
+        drawChart();
+        renderWeights();
+        renderHistoryTable();
+
+        // Atualiza stats
+        document.getElementById('evoGen').textContent = data.evolution.currentGeneration;
+        document.getElementById('evoFit').textContent = data.evolution.bestFitness.toFixed(2);
+        document.getElementById('evoProgress').textContent = '(' + ((i + 1) * 10) + '/' + evoTarget + ')';
+      }
+    }
+
+    showToast('✅ Treinamento concluído! ' + evoTarget + ' gerações executadas.', 'success');
+  } catch (e) {
+    showToast('❌ Erro: ' + e.message, 'error');
+  }
+
+  evolutionRunning = false;
+  btn.innerHTML = '<i class="fas fa-play"></i> Treinar IA (+50 gens)';
+  btn.disabled = false;
+  document.getElementById('evoStatus').innerHTML = '⏸ Parado';
+  refreshChart();
+}
+
+async function refreshChart() {
+  try {
+    const res = await fetch('/api/ai/evolution-history');
+    const data = await res.json();
+    if (data.history) {
+      evolHistory = data.history;
+      drawChart();
+      renderWeights();
+      renderHistoryTable();
+      document.getElementById('evoGen').textContent = data.currentGeneration;
+      document.getElementById('evoFit').textContent = data.bestFitness.toFixed(2);
+    }
+  } catch(e) {
+    showToast('Erro ao atualizar gráfico', 'error');
+  }
+}
+
+// Auto-refresh a cada 10s se estiver treinando
+setInterval(async () => {
+  if (!evolutionRunning) return;
+  try {
+    const res = await fetch('/api/ai/evolve/status');
+    const data = await res.json();
+    if (!data.evolving) {
+      evolutionRunning = false;
+      const btn = document.getElementById('trainBtn');
+      btn.innerHTML = '<i class="fas fa-play"></i> Treinar IA (+50 gens)';
+      btn.disabled = false;
+      document.getElementById('evoStatus').innerHTML = '⏸ Parado';
+      refreshChart();
+      showToast('✅ Treinamento concluído!', 'success');
+    }
+  } catch(e) {}
+}, 10000);
+</script>
+<style>
+#evoChart { display: block; }
+@media (max-width: 768px) {
+  #evoChart { height: 220px !important; }
+}
+</style>
+` %>
+<%- include('layout', { body: body, title: 'Evolução da IA', page: 'evolution', user: user, subtitle: subtitle }) %>

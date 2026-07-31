@@ -1,0 +1,298 @@
+<% let body = `
+<!-- Lottery Selector -->
+<div class="lottery-selector">
+  <div class="lottery-option lotofacil active" onclick="selectLottery(this, 'LOTOFACIL')">
+    <div class="lottery-icon"><i class="fas fa-dice-d6"></i></div>
+    <div class="lottery-info"><h4>Lotofácil</h4><p>25 números · 15 pontos</p></div>
+  </div>
+  <div class="lottery-option megasena" onclick="selectLottery(this, 'MEGASENA')">
+    <div class="lottery-icon"><i class="fas fa-star"></i></div>
+    <div class="lottery-info"><h4>Mega-Sena</h4><p>60 números · 6 pontos</p></div>
+  </div>
+  <div class="lottery-option quina" onclick="selectLottery(this, 'QUINA')">
+    <div class="lottery-icon"><i class="fas fa-gem"></i></div>
+    <div class="lottery-info"><h4>Quina</h4><p>80 números · 5 pontos</p></div>
+  </div>
+  <div class="lottery-option lotomania" onclick="selectLottery(this, 'LOTOMANIA')">
+    <div class="lottery-icon"><i class="fas fa-fire"></i></div>
+    <div class="lottery-info"><h4>Lotomania</h4><p>100 números · 20 pontos</p></div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 380px;gap:24px;">
+  <!-- Number Grid -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">🎱 Selecione seus números</div>
+        <div class="card-subtitle">Clique nos números para selecionar</div>
+      </div>
+      <div class="selection-info" id="selectionInfo" style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:rgba(79,70,229,0.1);border-radius:10px;">
+        <span class="count" id="selectedCount" style="font-size:24px;font-weight:700;color:var(--primary-light)">0</span>
+        <span class="text" style="font-size:14px;color:var(--text-secondary)">de <strong>15</strong> selecionados</span>
+      </div>
+    </div>
+    <div class="numbers-grid" id="numbersGrid">
+      ${Array.from({length: 25}, (_, idx) => { const n = idx + 1; return '<button class="number-btn" data-number="' + n + '" onclick="toggleNumber(this, ' + n + ')">' + n + '</button>'; }).join('')}
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
+      <button class="quick-btn" onclick="quickPick()" style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;color:var(--text-secondary);font-size:13px;cursor:pointer;transition:all 0.2s;">
+        <i class="fas fa-random"></i> Surpresinha
+      </button>
+      <button class="quick-btn" onclick="useAIGenerate()" style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(79,70,229,0.15);border:1px solid var(--primary);border-radius:10px;color:var(--primary-light);font-size:13px;cursor:pointer;transition:all 0.2s;">
+        <i class="fas fa-brain"></i> Gerar com IA
+      </button>
+      <button class="quick-btn" onclick="loadFromPortfolio()" style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(16,185,129,0.15);border:1px solid var(--secondary);border-radius:10px;color:var(--secondary);font-size:13px;cursor:pointer;transition:all 0.2s;">
+        <i class="fas fa-dice-d6"></i> Meus Jogos
+      </button>
+      <button class="quick-btn" onclick="clearAll()" style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;color:var(--text-secondary);font-size:13px;cursor:pointer;transition:all 0.2s;">
+        <i class="fas fa-eraser"></i> Limpar
+      </button>
+    </div>
+  </div>
+
+  <!-- Bet Summary -->
+  <div>
+    <div class="card" style="position:sticky;top:90px;">
+      <div class="card-header" style="border-bottom:1px solid var(--border);padding-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:48px;height:48px;background:var(--gradient-primary);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;color:white;">
+            <i class="fas fa-shopping-cart"></i>
+          </div>
+          <div>
+            <div style="font-size:18px;font-weight:600;">Resumo da Aposta</div>
+            <div style="font-size:12px;color:var(--text-muted);">Confira antes de confirmar</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:20px 0;">
+        <div class="flex-between mb-1">
+          <span style="color:var(--text-secondary);font-size:14px;">Modalidade</span>
+          <span style="font-weight:600;font-size:14px;" id="betModalidade">Lotofácil</span>
+        </div>
+        <div class="flex-between mb-1">
+          <span style="color:var(--text-secondary);font-size:14px;">Números</span>
+          <span style="font-weight:600;font-size:14px;" id="betNumbers">-</span>
+        </div>
+        <div class="flex-between mb-1">
+          <span style="color:var(--text-secondary);font-size:14px;">Quantidade</span>
+          <span style="font-weight:600;font-size:14px;" id="betQuantity">0</span>
+        </div>
+        <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px;">
+          <div class="flex-between">
+            <span style="font-size:16px;font-weight:600;">Valor da Aposta</span>
+            <span style="font-size:24px;font-weight:700;color:var(--secondary);" id="betAmount">R$ 3,00</span>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full btn-lg" onclick="confirmBet()">
+        <i class="fas fa-check"></i> Confirmar Aposta
+      </button>
+      <div class="ai-insight mt-2">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <i class="fas fa-robot" style="color:var(--primary-light)"></i>
+          <span style="font-size:13px;font-weight:600;color:var(--primary-light)">Dica da IA</span>
+        </div>
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;" id="aiTip">
+          Selecione 15 números para receber uma análise inteligente.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let selectedNumbers = new Set();
+const GAME_CONFIGS = {
+  LOTOFACIL: { total: 25, pick: 15, price: 3.00 },
+  MEGASENA: { total: 60, pick: 6, price: 5.00 },
+  QUINA: { total: 80, pick: 5, price: 2.50 },
+  LOTOMANIA: { total: 100, pick: 20, price: 3.00 }
+};
+let currentGame = 'LOTOFACIL';
+
+function getConfig() { return GAME_CONFIGS[currentGame]; }
+
+function toggleNumber(btn, num) {
+  const cfg = getConfig();
+  if (selectedNumbers.has(num)) {
+    selectedNumbers.delete(num);
+    btn.classList.remove('selected');
+  } else {
+    if (selectedNumbers.size >= cfg.pick) {
+      showToast('Você já selecionou ' + cfg.pick + ' números! Use "Limpar" para recomeçar.', 'info');
+      return;
+    }
+    selectedNumbers.add(num);
+    btn.classList.add('selected');
+  }
+  updateSummary();
+}
+
+function updateSummary() {
+  const cfg = getConfig();
+  const count = selectedNumbers.size;
+  document.getElementById('selectedCount').textContent = count;
+  document.getElementById('betNumbers').textContent = count === 0 ? '-' : [...selectedNumbers].sort((a,b) => a-b).join(', ');
+  document.getElementById('betQuantity').textContent = count;
+  document.getElementById('betAmount').textContent = count === cfg.pick ? 'R$ ' + cfg.price.toFixed(2).replace('.',',') : 'R$ 0,00';
+  
+  if (count === cfg.pick && currentGame === 'LOTOFACIL') {
+    const nums = [...selectedNumbers].sort((a,b) => a-b);
+    const evens = nums.filter(n => n % 2 === 0).length;
+    const odds = cfg.pick - evens;
+    const sum = nums.reduce((a,b) => a+b, 0);
+    document.getElementById('aiTip').innerHTML =
+      '📊 <strong>Análise:</strong> ' + evens + ' pares · ' + odds + ' ímpares · Soma ' + sum +
+      '<br>💡 <strong>Dica:</strong> ' + (evens >= 6 && evens <= 9 ? '✅ Boa distribuição par/ímpar!' : '⚠️ Tente equilibrar entre 7-9 pares');
+  } else if (count === cfg.pick) {
+    document.getElementById('aiTip').textContent = '✅ ' + cfg.pick + ' números selecionados! Confirme sua aposta.';
+  } else {
+    document.getElementById('aiTip').textContent = count < cfg.pick ? 
+      'Selecione ' + (cfg.pick - count) + ' números para completar sua aposta.' :
+      'Selecione ' + cfg.pick + ' números para fazer sua aposta.';
+  }
+}
+
+function quickPick() {
+  clearAll();
+  const cfg = getConfig();
+  const numbers = new Set();
+  while (numbers.size < cfg.pick) {
+    numbers.add(Math.floor(Math.random() * cfg.total) + 1);
+  }
+  numbers.forEach(n => {
+    selectedNumbers.add(n);
+    document.querySelector('[data-number="' + n + '"]').classList.add('selected');
+  });
+  updateSummary();
+  showToast('🎲 Números gerados com sucesso!', 'success');
+}
+
+async function loadFromPortfolio() {
+  try {
+    const data = await api.getGames('active', '', currentGame);
+    const games = data.games || [];
+    if (games.length === 0) {
+      showToast('Nenhum jogo ativo no portfólio. Crie um em "Meus Jogos"', 'info');
+      return;
+    }
+    // Show a simple selection list
+    let html = '<div style="max-height:400px;overflow-y:auto;">';
+    games.slice(0, 20).forEach((game, idx) => {
+      const nums = game.numbers.join(', ');
+      html += '<div style="padding:12px 16px;background:var(--bg-input);border-radius:10px;margin-bottom:8px;cursor:pointer;" onclick="selectGameFromPortfolio(' + JSON.stringify(game.numbers) + '); closeModal();">' +
+        '<div style="font-size:14px;font-weight:600;color:var(--text);">' + game.name + '</div>' +
+        '<div style="font-size:12px;color:var(--text-muted);">' + nums + '</div>' +
+        '<div style="display:flex;gap:6px;margin-top:8px;">' +
+        game.numbers.map(n => '<span class="ball primary" style="width:24px;height:24px;font-size:9px;">' + n + '</span>').join('') +
+        '</div></div>';
+    });
+    html += '</div>';
+    openModal('📋 Carregar do Portfólio', 'Selecione um jogo para usar nesta aposta', html);
+  } catch(e) {
+    showToast('Erro ao carregar portfólio', 'error');
+  }
+}
+
+function selectGameFromPortfolio(numbers) {
+  clearAll();
+  numbers.forEach(n => {
+    selectedNumbers.add(n);
+    const btn = document.querySelector('[data-number="' + n + '"]');
+    if (btn) btn.classList.add('selected');
+  });
+  updateSummary();
+  showToast('✅ Jogo carregado do portfólio!', 'success');
+}
+
+async function useAIGenerate() {
+  const btn = event?.target?.closest('button') || document.querySelector('.quick-btn:nth-child(2)');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
+  btn.disabled = true;
+  
+  try {
+    const result = await api.generateAIGames(currentGame, 1);
+    if (result && result.games && result.games[0]) {
+      clearAll();
+      result.games[0].forEach(n => {
+        selectedNumbers.add(n);
+        document.querySelector('[data-number="' + n + '"]').classList.add('selected');
+      });
+      updateSummary();
+      showToast('🧠 Jogo gerado pela Inteligência Artificial!', 'success');
+    }
+  } catch(e) {
+    showToast('Usando geração local...', 'info');
+    quickPick();
+  }
+  
+  btn.innerHTML = '<i class="fas fa-brain"></i> Gerar com IA';
+  btn.disabled = false;
+}
+
+function clearAll() {
+  selectedNumbers.clear();
+  document.querySelectorAll('.number-btn.selected').forEach(b => b.classList.remove('selected'));
+  updateSummary();
+}
+
+function selectLottery(el, type) {
+  currentGame = type;
+  document.querySelectorAll('.lottery-option').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  const cfg = GAME_CONFIGS[type];
+  document.getElementById('betModalidade').textContent = cfg.name || type;
+  clearAll();
+  // Rebuild number grid
+  const grid = document.getElementById('numbersGrid');
+  let html = '';
+  const cols = type === 'LOTOMANIA' ? 10 : type === 'MEGASENA' ? 10 : type === 'QUINA' ? 10 : 5;
+  for (let i = 0; i < cfg.total; i++) {
+    const n = i + 1;
+    html += '<button class="number-btn" data-number="' + n + '" onclick="toggleNumber(this, ' + n + ')">' + n + '</button>';
+  }
+  grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+  grid.innerHTML = html;
+}
+
+async function confirmBet() {
+  const cfg = getConfig();
+  if (selectedNumbers.size !== cfg.pick) {
+    showToast('Selecione exatamente ' + cfg.pick + ' números para continuar', 'error');
+    return;
+  }
+  
+  const numbers = [...selectedNumbers].sort((a,b) => a-b);
+  
+  try {
+    const result = await api.saveBet(currentGame, numbers, cfg.price);
+    if (result.success) {
+      showToast('🎉 Aposta realizada com sucesso! Boa sorte!', 'success');
+      // Salvar automaticamente no portfólio
+      try {
+        await api.saveGame(numbers, { 
+          gameType: currentGame,
+          name: cfg.name + ' ' + new Date().toLocaleDateString('pt-BR'), 
+          source: 'manual' 
+        });
+      } catch(e) { 
+        console.warn('⚠️ Erro ao salvar jogo no portfólio:', e); 
+        showToast('Aposta confirmada, mas não foi possível salvar no portfólio', 'info');
+      }
+      clearAll();
+      setTimeout(() => location.reload(), 2000);
+    }
+  } catch(e) {
+    showToast('Erro ao realizar aposta. Tente novamente.', 'error');
+  }
+}
+</script>
+<style>
+.quick-btn:hover { background: var(--bg-dark) !important; color: var(--text) !important; border-color: var(--primary) !important; }
+@media (max-width: 1024px) {
+  div[style*="grid-template-columns: 1fr 380px"] { grid-template-columns: 1fr !important; }
+}
+</style>
+` %>
+<%- include('layout', { body: body, title: 'Apostas', page: 'bets', user: user, subtitle: 'Escolha seus números da sorte' }) %>

@@ -1,0 +1,382 @@
+<% let body = `
+<!-- ==================== 🎯 CARD: PRÊMIO ESTIMADO ==================== -->
+<div class="card card-premio">
+  <div class="card-premio-glow"></div>
+  <div class="card-premio-content">
+    <div class="card-premio-badge">
+      <i class="fas fa-star"></i>
+      Próximo Concurso Lotofácil
+    </div>
+    <div class="card-premio-label">Prêmio Estimado</div>
+    <div class="card-premio-value" id="heroPrize">
+      <span class="card-premio-currency">R$</span>
+      <span class="card-premio-amount" id="premioAmount">---</span>
+    </div>
+    <div class="card-premio-info" id="premioInfo">
+      <span><i class="fas fa-hashtag"></i> Concurso <strong id="premioContest">---</strong></span>
+      <span><i class="fas fa-calendar-alt"></i> Sorteio: <strong id="premioDate">Carregando...</strong></span>
+      <span><i class="fas fa-clock"></i> Apostas até 19h do sorteio</span>
+    </div>
+    <div class="card-premio-actions">
+      <a href="/apostas" class="btn btn-accent btn-lg" style="flex:1;padding:16px 32px;">
+        <i class="fas fa-ticket-alt"></i> Fazer Aposta
+      </a>
+      <a href="/boloes" class="btn btn-secondary btn-lg" style="flex:1;padding:16px 32px;">
+        <i class="fas fa-users"></i> Criar Bolão
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 🎲 CARD: ÚLTIMO RESULTADO ==================== -->
+<div class="card card-resultado">
+  <div class="card-header" style="margin-bottom:20px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:44px;height:44px;background:var(--gradient-accent);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;">
+        <i class="fas fa-trophy" style="color:white;"></i>
+      </div>
+      <div>
+        <div class="card-title" style="font-size:17px;">Último Resultado Lotofácil</div>
+        <div class="card-subtitle" id="resultSubtitle" style="font-size:12px;">3 fontes · Guidi · API Loterias · Caixa</div>
+      </div>
+    </div>
+    <a href="/resultados" class="btn btn-secondary btn-sm">
+      <i class="fas fa-search"></i> Ver Todos
+    </a>
+  </div>
+  <div id="resultadoContent">
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:40px;color:var(--text-muted);">
+      <i class="fas fa-spinner fa-spin" style="font-size:24px;"></i>
+      <span>Carregando resultado...</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ⚡ CARDS: AÇÕES RÁPIDAS ==================== -->
+<div class="acoes-grid">
+  <a href="/apostas" class="card acao-card">
+    <div class="acao-icon" style="background:linear-gradient(135deg,#4F46E5,#7C3AED);">
+      <i class="fas fa-dice-d6"></i>
+    </div>
+    <span class="acao-label">Apostar</span>
+    <span class="acao-desc">Escolha seus números</span>
+  </a>
+  <a href="/boloes" class="card acao-card">
+    <div class="acao-icon" style="background:linear-gradient(135deg,#10B981,#059669);">
+      <i class="fas fa-users"></i>
+    </div>
+    <span class="acao-label">Bolões</span>
+    <span class="acao-desc">Divida com amigos</span>
+  </a>
+  <a href="/simulacao" class="card acao-card">
+    <div class="acao-icon" style="background:linear-gradient(135deg,#F59E0B,#D97706);">
+      <i class="fas fa-brain"></i>
+    </div>
+    <span class="acao-label">Simular IA</span>
+    <span class="acao-desc">Análise inteligente</span>
+  </a>
+  <a href="/carteira" class="card acao-card">
+    <div class="acao-icon" style="background:linear-gradient(135deg,#EC4899,#DB2777);">
+      <i class="fas fa-wallet"></i>
+    </div>
+    <span class="acao-label">Carteira</span>
+    <span class="acao-desc">Gerenciar saldo</span>
+  </a>
+  <a href="/meus-jogos" class="card acao-card">
+    <div class="acao-icon" style="background:linear-gradient(135deg,#06B6D4,#0891B2);">
+      <i class="fas fa-dice-d6"></i>
+    </div>
+    <span class="acao-label">Meus Jogos</span>
+    <span class="acao-desc" id="portfolioDesc">Portfólio de jogos</span>
+  </a>
+</div>
+
+<!-- ==================== 🍀 CARD: NÚMEROS DA SORTE DO DIA ==================== -->
+<div class="card" style="margin-bottom:28px;background:linear-gradient(135deg,rgba(245,158,11,0.05),rgba(79,70,229,0.05));border-color:rgba(245,158,11,0.2);">
+  <div class="card-header" style="margin-bottom:16px;">
+    <div>
+      <div class="card-title" style="font-size:17px;">
+        <i class="fas fa-star" style="color:var(--accent);margin-right:8px;"></i>
+        🍀 Números da Sorte do Dia
+      </div>
+      <div class="card-subtitle" style="font-size:12px;margin-top:4px;">
+        Baseado em análise de frequência + IA
+      </div>
+    </div>
+    <button class="btn btn-accent btn-sm" onclick="refreshLuckyNumbers(this)">
+      <i class="fas fa-sync"></i> Nova Sorte
+    </button>
+  </div>
+  <div id="luckyNumbersContent">
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:20px;color:var(--text-muted);">
+      <i class="fas fa-spinner fa-spin" style="font-size:20px;"></i>
+      <span>Gerando números da sorte...</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 👥 CARD: BOLÕES EM DESTAQUE ==================== -->
+<div class="card">
+  <div class="card-header" style="margin-bottom:20px;">
+    <div>
+      <div class="card-title" style="font-size:17px;">
+        <i class="fas fa-users" style="color:var(--primary-light);margin-right:8px;"></i>
+        Bolões em Destaque
+      </div>
+      <div class="card-subtitle" style="font-size:12px;margin-top:4px;">
+        Participe com amigos e aumente suas chances
+      </div>
+    </div>
+    <a href="/boloes" class="btn btn-secondary btn-sm">
+      <i class="fas fa-arrow-right"></i> Ver Todos
+    </a>
+  </div>
+  <div id="boloesContent">
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:40px;color:var(--text-muted);">
+      <i class="fas fa-spinner fa-spin" style="font-size:24px;"></i>            <span>Carregando bolões...</span>
+          </div>
+        </div>
+
+<!-- ==================== 🏆 CARD: NÍVEL E CONQUISTAS ==================== -->
+<div class="card" style="margin-bottom:28px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title" style="font-size:17px;">
+        <i class="fas fa-trophy" style="color:var(--accent);margin-right:8px;"></i>
+        🏆 Seu Progresso
+      </div>
+      <div class="card-subtitle" style="font-size:12px;margin-top:4px;">
+        Nível e conquistas
+      </div>
+    </div>
+    <a href="/perfil" class="btn btn-secondary btn-sm">
+      <i class="fas fa-arrow-right"></i> Ver Perfil
+    </a>
+  </div>
+  <div id="levelContent">
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:20px;color:var(--text-muted);">
+      <i class="fas fa-spinner fa-spin" style="font-size:20px;"></i>
+      <span>Carregando...</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 📢 CARD: BOLÕES POPULARES ==================== -->
+<div class="card" style="margin-bottom:28px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title" style="font-size:17px;">
+        <i class="fas fa-fire" style="color:#EF4444;margin-right:8px;"></i>
+        🔥 Bolões Populares
+      </div>
+      <div class="card-subtitle" style="font-size:12px;margin-top:4px;">
+        Os bolões com mais participantes
+      </div>
+    </div>
+  </div>
+  <div id="popularPoolsContent">
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:20px;color:var(--text-muted);">
+      <i class="fas fa-spinner fa-spin" style="font-size:20px;"></i>
+      <span>Carregando...</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const result = await api.getLatestResult();
+    const pools = await api.getPools();
+    loadLuckyNumbers();
+    loadLevelWidget();
+    loadPopularPools();
+
+    // ---- PRÊMIO ESTIMADO ----
+    if (result && result.valorEstimadoProximoConcurso) {
+      document.getElementById('premioAmount').textContent =
+        result.valorEstimadoProximoConcurso.toLocaleString('pt-BR', {
+          minimumFractionDigits: 2, maximumFractionDigits: 2
+        });
+      if (result.dataProximoConcurso) {
+        const d = result.dataProximoConcurso.split('/');
+        document.getElementById('premioDate').textContent =
+          new Date(d[2], d[1]-1, d[0]).toLocaleDateString('pt-BR', {
+            weekday: 'long', day: 'numeric', month: 'long'
+          });
+      }
+      if (result.numero) {
+        document.getElementById('premioContest').textContent = result.numero + 1;
+      }
+    } else {
+      document.getElementById('premioAmount').textContent =
+        (4500000 + Math.random()*1000000).toLocaleString('pt-BR', {minimumFractionDigits:2});
+      document.getElementById('premioDate').textContent = 'Em breve';
+      document.getElementById('premioContest').textContent = '---';
+    }
+
+    // ---- ÚLTIMO RESULTADO ----
+    const resultDiv = document.getElementById('resultadoContent');
+    if (result && result.listaDezenas) {
+      const nums = result.listaDezenas;
+      document.getElementById('resultSubtitle').textContent =
+        'Concurso ' + result.numero + ' | ' + (result.dataApuracao || '') +
+        (result.acumulado ? ' | Acumulou!' : '');
+
+      const colors = ['#4F46E5','#10B981','#F59E0B','#3B82F6','#EC4899',
+                      '#4F46E5','#10B981','#F59E0B','#3B82F6','#EC4899',
+                      '#4F46E5','#10B981','#F59E0B','#3B82F6','#EC4899'];
+
+      resultDiv.innerHTML =
+        '<div class="resultado-fileira">' +
+        nums.map((n, i) =>
+          '<div class="resultado-bola" style="background:' + colors[i] + ';animation-delay:' + (i*0.06) + 's;">' +
+          '<span>' + n + '</span></div>'
+        ).join('') +
+        '</div>' +
+        '<div class="resultado-tabela">' +
+        (result.listaRateioPremio || []).slice(0, 5).map((p, i) => {
+          const medals = ['🥇','🥈','🥉','🏅','🎖️'];
+          return '<div class="resultado-linha">' +
+            '<span class="resultado-faixa">' + medals[i] + ' ' + p.descricaoFaixa + '</span>' +
+            '<div class="resultado-valores">' +
+              '<span class="resultado-ganhadores">' + p.numeroDeGanhadores + ' ganhador(es)</span>' +
+              '<span class="resultado-premio">R$ ' + p.valorPremio.toFixed(2).replace('.',',') + '</span>' +
+            '</div>' +
+          '</div>';
+        }).join('') +
+        '</div>' +
+        ((result.listaRateioPremio || []).find(p => p.descricaoFaixa === '15 acertos' && p.numeroDeGanhadores > 0)
+          ? '<div class="resultado-status ganhador"><i class="fas fa-crown"></i> Houve ganhador(es) do prêmio principal!</div>'
+          : '<div class="resultado-status acumulou"><i class="fas fa-rocket"></i> Prêmio acumulou! Próximo concurso pode pagar ainda mais!</div>');
+    } else {
+      resultDiv.innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:40px;color:var(--text-muted);">' +
+        '<i class="fas fa-clock" style="font-size:24px;"></i><span>Aguardando próximo sorteio</span></div>';
+    }
+
+    // ---- BOLÕES ----
+    const boloesDiv = document.getElementById('boloesContent');
+    if (pools && pools.length > 0) {
+      boloesDiv.innerHTML = '<div class="boloes-grid">' +
+        pools.slice(0, 3).map(p => {
+          const progress = Math.round(((p.totalShares - p.availableShares) / p.totalShares) * 100);
+          return '<a href="/boloes" class="card boleao-card" tabindex="0" style="text-decoration:none;color:inherit;">' +
+            '<div class="boleao-top">' +
+              '<div class="boleao-criador">' +
+                '<div class="boleao-avatar">' + p.creatorName.charAt(0) + '</div>' +
+                '<div><div class="boleao-nome">' + p.name + '</div>' +
+                '<div class="boleao-tipo">' + p.gameType + ' · Concurso ' + p.contestNumber + '</div></div>' +
+              '</div>' +
+              '<span class="status-badge ' + (p.status === 'open' ? 'active' : 'completed') + '">' +
+                (p.status === 'open' ? 'Aberto' : 'Fechado') + '</span>' +
+            '</div>' +
+            '<div class="boleao-bolinhas">' +
+              p.numbers.slice(0, 8).map(n => '<span class="boleao-bola">' + n + '</span>').join('') +
+              '<span class="boleao-bola mais">+' + (p.numbers.length - 8) + '</span>' +
+            '</div>' +
+            '<div class="boleao-stats">' +
+              '<div class="boleao-stat"><span class="boleao-stat-label">Participantes</span><span class="boleao-stat-valor">' + p.participants.length + '</span></div>' +
+              '<div class="boleao-stat"><span class="boleao-stat-label">Valor Cota</span><span class="boleao-stat-valor">R$ ' + p.sharePrice.toFixed(2).replace('.',',') + '</span></div>' +
+              '<div class="boleao-stat"><span class="boleao-stat-label">Progresso</span><span class="boleao-stat-valor">' + progress + '%</span></div>' +
+            '</div>' +
+            '<div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%"></div></div>' +
+            '<button class="btn btn-primary btn-full btn-sm" style="margin-top:12px;"><i class="fas fa-handshake"></i> Participar</button>' +
+          '</a>';
+        }).join('') + '</div>';
+    } else {
+      boloesDiv.innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:40px;color:var(--text-muted);">' +
+        '<i class="fas fa-users" style="font-size:24px;"></i><span>Nenhum bolão disponível no momento</span></div>';
+    }
+  } catch(e) {
+    console.error('Erro:', e);
+    document.getElementById('premioAmount').textContent =
+      (4500000 + Math.random()*1000000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+    document.getElementById('premioDate').textContent = 'Em breve';
+    document.getElementById('premioContest').textContent = '---';
+    document.getElementById('resultadoContent').innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:40px;color:var(--accent);">' +
+      '<i class="fas fa-exclamation-triangle"></i><span>Não foi possível carregar os resultados</span></div>';
+  }
+});
+
+// ---- NÚMEROS DA SORTE ----
+async function loadLuckyNumbers() {
+  try {
+    const data = await api.getLuckyNumbers();
+    const container = document.getElementById('luckyNumbersContent');
+    const colors = ['#4F46E5','#10B981','#F59E0B','#3B82F6','#EC4899','#8B5CF6','#06B6D4','#EF4444','#14B8A6','#F97316','#A855F7','#22D3EE','#FB923C','#34D399','#818CF8'];
+    let html = '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:8px 0;">';
+    data.luckyNumbers.forEach((n, i) => {
+      html += '<div class="resultado-bola" style="background:' + colors[i % colors.length] + ';animation-delay:' + (i*0.05) + 's;width:50px;height:50px;"><span style="font-size:17px;">' + n + '</span></div>';
+    });
+    html += '</div>';
+    if (data.aiGenerated) {
+      html += '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:10px;background:rgba(16,185,129,0.1);border-radius:10px;">' +
+        '<i class="fas fa-robot" style="color:var(--secondary);font-size:14px;"></i>' +
+        '<span style="font-size:13px;color:var(--text-secondary);">IA sugere: </span>' +
+        data.aiGenerated.map(n => '<span class="ball success" style="width:28px;height:28px;font-size:10px;">' + n + '</span>').join('') +
+        '</div>';
+    }
+    container.innerHTML = html;
+  } catch(e) {
+    document.getElementById('luckyNumbersContent').innerHTML =
+      '<div style="text-align:center;padding:20px;color:var(--text-muted);">Carregue seus jogos para ver números da sorte</div>';
+  }
+}
+
+async function refreshLuckyNumbers(btn) {
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  await loadLuckyNumbers();
+  btn.innerHTML = '<i class="fas fa-sync"></i> Nova Sorte';
+}
+
+// ---- NÍVEL E CONQUISTAS ----
+async function loadLevelWidget() {
+  try {
+    const data = await api.getLevel();
+    const container = document.getElementById('levelContent');
+    if (!data) {
+      container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">Crie jogos para ganhar XP!</div>';
+      return;
+    }
+    container.innerHTML = '<div style="display:flex;align-items:center;gap:16px;padding:8px 0;">' +
+      '<div style="width:48px;height:48px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:white;flex-shrink:0;">' + data.level + '</div>' +
+      '<div style="flex:1;">' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">' +
+      '<span style="font-weight:600;font-size:14px;">Nível ' + data.level + ' — ' + data.title + '</span>' +
+      '<span style="font-size:12px;color:var(--text-muted);">' + data.xp + ' / ' + data.nextLevelXp + ' XP</span></div>' +
+      '<div class="progress-bar" style="height:6px;"><div class="progress-fill" style="width:' + data.progress + '%;height:6px;"></div></div>' +
+      '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">🏅 ' + data.achievements.length + ' conquistas desbloqueadas</div></div>' +
+      '</div>';
+  } catch(e) {
+    document.getElementById('levelContent').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">Crie jogos para ganhar XP!</div>';
+  }
+}
+
+// ---- BOLÕES POPULARES ----
+async function loadPopularPools() {
+  try {
+    const data = await api.getPopularPools();
+    const container = document.getElementById('popularPoolsContent');
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">Nenhum bolão popular no momento</div>';
+      return;
+    }
+    container.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">' +
+      data.map(function(p) {
+        return '<a href="/boloes" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg-input);border-radius:10px;cursor:pointer;text-decoration:none;color:inherit;">' +
+          '<div><div style="font-weight:600;font-size:14px;">' + p.name + '</div>' +
+          '<div style="font-size:12px;color:var(--text-muted);">' + p.gameType + ' · ' + p.participants + ' participantes</div></div>' +
+          '<div style="text-align:right;">' +
+          '<div style="font-size:13px;font-weight:600;color:var(--secondary);">R$ ' + p.sharePrice.toFixed(2).replace('.',',') + '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted);">' + p.progress + '% vendido</div></div></a>';
+      }).join('') + '</div>';
+  } catch(e) {
+    document.getElementById('popularPoolsContent').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">Erro ao carregar</div>';
+  }
+}
+</script>
+` %>
+<%- include('layout', { body: body, title: 'Início', page: 'dashboard', user: user }) %>

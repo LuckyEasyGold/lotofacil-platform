@@ -1,0 +1,124 @@
+version: '3.8'
+
+# ================================================================
+#  🎲 LOTOFÁCIL PLATFORM - DOCKER COMPOSE UNIFICADO
+#  Deploy completo: Web + IA Engine + PostgreSQL + Redis + Nginx
+# ================================================================
+
+services:
+  # ==================== WEB (Node.js) ====================
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: lotofacil-web
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      AI_ENGINE_URL: http://ai-engine:8000
+      NODE_ENV: production
+    volumes:
+      - lotofacil_data:/app/database
+    # Web funciona independente de outros serviços (tem fallback próprio)
+    networks:
+      - lotofacil-network
+    # Sem expor porta diretamente - vai pelo Nginx
+    expose:
+      - "3000"
+
+  # ==================== AI ENGINE (FastAPI Python) ====================
+  ai-engine:
+    build:
+      context: ./api_jogos_ia/loteria_ai_engine
+      dockerfile: Dockerfile
+    container_name: lotofacil-ai-engine
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/loteria_ai
+      REDIS_URL: redis://redis:6379/0
+      APP_NAME: Loteria AI Engine
+      DEBUG: "False"
+      HOST: 0.0.0.0
+      PORT: 8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "8000"
+    networks:
+      - lotofacil-network
+    # Loop evolutivo contínuo? Descomente a linha abaixo para IA aprender 24/7:
+    # command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 & python -c \"from app.core.genetic_engine import LotteryGeneticEngine; import time; while True: print('🔄 Loop evolutivo 24/7 ativo...'); time.sleep(3600)\""
+
+  # ==================== POSTGRESQL ====================
+  postgres:
+    image: postgres:15-alpine
+    container_name: lotofacil-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: loteria_ai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lotofacil-network
+
+  # ==================== REDIS (Cache para IA) ====================
+  redis:
+    image: redis:7-alpine
+    container_name: lotofacil-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lotofacil-network
+
+  # ==================== NGINX (Reverse Proxy) ====================
+  nginx:
+    image: nginx:alpine
+    container_name: lotofacil-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"  # SSL (opcional - pode configurar depois com Certbot)
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - web
+      - ai-engine
+    networks:
+      - lotofacil-network
+
+# ==================== NETWORKS ====================
+networks:
+  lotofacil-network:
+    driver: bridge
+
+# ==================== VOLUMES ====================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  lotofacil_data:
+    driver: local
+  nginx_logs:
+    driver: local

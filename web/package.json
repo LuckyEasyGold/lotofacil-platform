@@ -1,0 +1,24 @@
+{
+  "name": "lotofacil-platform",
+  "version": "2.0.0",
+  "description": "Plataforma Lotofácil - Jogos, Bolões e IA (deploy Vercel + Neon)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "migrate": "node database/migrate.js",
+    "vercel-build": "node -e \"console.log('build ok')\""
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "bcryptjs": "^3.0.3",
+    "connect-pg-simple": "^10.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "ejs": "^3.1.10",
+    "express": "^4.21.0",
+    "express-session": "^1.19.0",
+    "pg": "^8.22.0",
+    "uuid": "^10.0.0"
+  }
+}

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | Lotofácil Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .user-dropdown-menu {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(10px);
+      transition: all var(--transition);
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.3);
+      z-index: 10;
+    }
+    .user-profile.open .user-dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .dropdown-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 12px 16px;
+      border: none;
+      background: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all var(--transition);
+      text-align: left;
+      text-decoration: none;
+    }
+    .dropdown-menu-item:hover {
+      background: var(--bg-input);
+      color: var(--text);
+    }
+    .dropdown-menu-item.danger {
+      color: var(--danger);
+    }
+    .dropdown-menu-item.danger:hover {
+      background: rgba(239,68,68,0.1);
+    }
+    .dropdown-menu-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="logo-icon">
+            <i class="fas fa-dice-d6"></i>
+          </div>
+          <div>
+            <span>Lotofácil</span>
+            <small>Plataforma de Jogos</small>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Principal</div>
+          <a href="/" class="nav-item <%= page === 'dashboard' ? 'active' : '' %>">
+            <i class="fas fa-th-large"></i> Dashboard
+          </a>
+          <a href="/apostas" class="nav-item <%= page === 'bets' ? 'active' : '' %>">
+            <i class="fas fa-ticket-alt"></i> Apostas
+          </a>
+          <a href="/resultados" class="nav-item <%= page === 'results' ? 'active' : '' %>">
+            <i class="fas fa-chart-bar"></i> Resultados
+          </a>
+          <a href="/estatisticas" class="nav-item <%= page === 'stats' ? 'active' : '' %>">
+            <i class="fas fa-fire"></i> Estatísticas
+            <span class="badge" style="background:var(--accent);font-size:9px;">NOVO</span>
+          </a>
+          <a href="/meus-jogos" class="nav-item <%= page === 'my-games' ? 'active' : '' %>">
+            <i class="fas fa-dice-d6"></i> Meus Jogos
+            <span class="badge" id="myGamesBadge" style="display:none;">0</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Financeiro</div>
+          <a href="/carteira" class="nav-item <%= page === 'wallet' ? 'active' : '' %>">
+            <i class="fas fa-wallet"></i> Carteira
+          </a>
+          <a href="/boloes" class="nav-item <%= page === 'pools' ? 'active' : '' %>">
+            <i class="fas fa-users"></i> Bolões
+            <span class="badge" id="poolBadge">2</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Inteligência Artificial</div>
+          <a href="/simulacao" class="nav-item <%= page === 'simulation' ? 'active' : '' %>">
+            <i class="fas fa-brain"></i> Simulação IA
+          </a>
+          <% if (user && user.role === 'admin') { %>
+          <a href="/evolucao" class="nav-item <%= page === 'evolution' ? 'active' : '' %>">
+            <i class="fas fa-chart-line"></i> Evolução IA
+            <span class="badge" style="background:var(--accent);font-size:9px;">ADM</span>
+          </a>
+          <% } %>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Conta</div>
+          <a href="/perfil" class="nav-item <%= page === 'profile' ? 'active' : '' %>">
+            <i class="fas fa-user"></i> Perfil
+          </a>
+          <a href="/configuracoes" class="nav-item <%= page === 'settings' ? 'active' : '' %>">
+            <i class="fas fa-cog"></i> Configurações
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-profile" onclick="toggleDropdown()">
+          <div class="avatar"><%= user ? user.name.charAt(0) : 'U' %><%= user ? (user.name.split(' ')[1]?.charAt(0) || '') : '' %></div>
+          <div class="user-details">
+            <div class="user-name"><%= user ? user.name : 'Usuário' %></div>
+            <div class="user-email"><%= user ? user.email : 'usuario@email.com' %></div>
+          </div>
+          <i class="fas fa-chevron-up dropdown-icon" style="font-size:12px;color:var(--text-muted)"></i>
+          <!-- Dropdown Menu -->
+          <div class="user-dropdown-menu">
+            <a href="/perfil" class="dropdown-menu-item">
+              <i class="fas fa-user"></i> Meu Perfil
+            </a>
+            <a href="/carteira" class="dropdown-menu-item">
+              <i class="fas fa-wallet"></i> Carteira
+            </a>
+            <a href="/configuracoes" class="dropdown-menu-item">
+              <i class="fas fa-cog"></i> Configurações
+            </a>
+            <% if (user && user.role === 'admin') { %>
+            <div class="dropdown-menu-divider"></div>
+            <a href="/evolucao" class="dropdown-menu-item">
+              <i class="fas fa-chart-line" style="color:var(--accent)"></i> Evolução IA
+              <span style="margin-left:auto;font-size:10px;background:var(--accent);color:#1E293B;padding:2px 8px;border-radius:6px;font-weight:700;">ADM</span>
+            </a>
+            <% } %>
+            <div class="dropdown-menu-divider"></div>
+            <button class="dropdown-menu-item danger" onclick="handleLogout()">
+              <i class="fas fa-sign-out-alt"></i> Sair
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <div class="main-content">
+      <header class="top-bar">
+        <div class="flex" style="align-items:center;gap:16px;">
+          <button class="menu-toggle" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+          </button>
+          <div class="page-title-section">
+            <h1><%= title %></h1>
+            <p id="pageSubtitle"><%= typeof subtitle !== 'undefined' ? subtitle : '' %></p>
+          </div>
+        </div>
+        <div class="top-bar-actions">
+          <div class="action-btn" style="position:relative;" onclick="toggleNotifPanel(event)">
+            <i class="fas fa-bell"></i>
+            <span class="badge" id="notifBadge">0</span>
+            <div class="notif-dropdown" id="notifDropdown" onclick="event.stopPropagation()" style="display:none;">
+              <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-weight:600;font-size:14px;">🔔 Notificações</span>
+                <button onclick="readAllNotifs()" style="background:none;border:none;color:var(--primary-light);font-size:12px;cursor:pointer;">Limpar tudo</button>
+              </div>
+              <div id="notifList" style="max-height:300px;overflow-y:auto;"></div>
+            </div>
+          </div>
+          <button class="action-btn" onclick="location.href='/carteira'">
+            <i class="fas fa-wallet"></i>
+          </button>
+          <div class="flex gap-1" style="align-items:center;">
+            <i class="fas fa-circle" style="color:var(--secondary);font-size:8px;"></i>
+            <span style="font-size:14px;font-weight:600;color:var(--secondary);" id="headerBalance">R$ 0,00</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content fade-in">
+        <%- body %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Overlay -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modalContent">
+      <div class="modal-header">
+        <div>
+          <h2 id="modalTitle">Título</h2>
+          <p id="modalDesc">Descrição</p>
+        </div>
+        <button class="modal-close" onclick="closeModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Notification Dropdown Styles -->
+  <style>
+    .notif-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 360px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+      z-index: 200;
+    }
+    .notif-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      transition: background var(--transition);
+      cursor: pointer;
+    }
+    .notif-item:hover { background: var(--bg-input); }
+    .notif-item.unread { background: rgba(79,70,229,0.08); border-left: 3px solid var(--primary); }
+    .notif-item .notif-title { font-size: 13px; font-weight: 600; }
+    .notif-item .notif-msg { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .notif-item .notif-time { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+  </style>
+
+  <!-- Bottom Navigation (Mobile) -->
+  <nav class="bottom-nav">
+    <a href="/" class="bottom-nav-item <%= page === 'dashboard' ? 'active' : '' %>">
+      <i class="fas fa-home"></i>
+      <span>Início</span>
+    </a>
+    <a href="/apostas" class="bottom-nav-item <%= page === 'bets' ? 'active' : '' %>">
+      <i class="fas fa-ticket-alt"></i>
+      <span>Apostas</span>
+    </a>
+    <a href="/meus-jogos" class="bottom-nav-item <%= page === 'my-games' ? 'active' : '' %>">
+      <i class="fas fa-dice-d6"></i>
+      <span>Jogos</span>
+    </a>
+    <a href="/simulacao" class="bottom-nav-item <%= page === 'simulation' ? 'active' : '' %>">
+      <i class="fas fa-brain"></i>
+      <span>IA</span>
+    </a>
+    <a href="/carteira" class="bottom-nav-item <%= page === 'wallet' ? 'active' : '' %>">
+      <i class="fas fa-wallet"></i>
+      <span>Carteira</span>
+    </a>
+  </nav>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    // Load games badge count
+    async function updateGamesBadge() {
+      try {
+        const stats = await api.getGameStats();
+        const badge = document.getElementById('myGamesBadge');
+        if (badge && stats.total > 0) {
+          badge.textContent = stats.active;
+          badge.style.display = stats.active > 0 ? 'inline' : 'none';
+        }
+      } catch(e) {}
+    }
+    setTimeout(updateGamesBadge, 500);
+
+    // Update header balance
+    async function updateHeaderBalance() {
+      try {
+        const data = await api.getWallet();
+        document.getElementById('headerBalance').textContent = 
+          'R$ ' + data.balance.toFixed(2).replace('.', ',');
+      } catch(e) {}
+    }
+    updateHeaderBalance();
+
+    // Sidebar toggle
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    // Dropdown
+    function toggleDropdown() {
+      document.querySelector('.user-profile').classList.toggle('open');
+    }
+
+    // Modal
+    function openModal(title, desc, bodyHTML) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalDesc').textContent = desc;
+      document.getElementById('modalBody').innerHTML = bodyHTML;
+      document.getElementById('modalOverlay').classList.add('visible');
+    }
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('visible');
+    }
+    document.getElementById('modalOverlay').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    // Toast
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      const icons = { success: 'fa-check-circle', error: 'fa-times-circle', info: 'fa-info-circle' };
+      toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${message}`;
+      container.appendChild(toast);
+      setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(100px)'; toast.style.transition = 'all 0.3s'; setTimeout(() => toast.remove(), 300); }, 3500);
+    }
+
+    // Notification helper
+    function showNotification(title, message, type = 'info') {
+      openModal(title, '', `<p style="color:var(--text-secondary);line-height:1.6">${message}</p><div class="mt-3 flex gap-2"><button class="btn btn-primary" onclick="closeModal()">OK</button></div>`);
+    }
+
+    // Format currency
+    function formatCurrency(value) {
+      return 'R$ ' + value.toFixed(2).replace('.', ',');
+    }
+
+    // ==================== NOTIFICAÇÕES ====================
+    async function loadNotifs() {
+      try {
+        const data = await api.getNotifications();
+        const badge = document.getElementById('notifBadge');
+        if (badge) {
+          badge.textContent = data.unread;
+          badge.style.display = data.unread > 0 ? 'inline' : 'none';
+        }
+        return data;
+      } catch(e) { return { notifications: [], unread: 0 }; }
+    }
+    setTimeout(loadNotifs, 1000);
+
+    async function toggleNotifPanel(event) {
+      event.stopPropagation();
+      const dropdown = document.getElementById('notifDropdown');
+      if (dropdown.style.display === 'block') {
+        dropdown.style.display = 'none';
+        return;
+      }
+      dropdown.style.display = 'block';
+      const data = await loadNotifs();
+      const list = document.getElementById('notifList');
+      if (!data.notifications || data.notifications.length === 0) {
+        list.innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhuma notificação</div>';
+        return;
+      }
+      list.innerHTML = data.notifications.slice(0, 15).map(n => {
+        const icons = { prize: '🏆', result: '📊', info: '💡', warning: '⚠️' };
+        return '<div class="notif-item ' + (n.read ? '' : 'unread') + '" data-nid="' + n.id + '" data-nlink="' + (n.link || '') + '">' +
+          '<div class="notif-title">' + (icons[n.type] || '💡') + ' ' + n.title + '</div>' +
+          '<div class="notif-msg">' + n.message + '</div>' +
+          '<div class="notif-time">' + new Date(n.createdAt).toLocaleDateString('pt-BR', {hour:'2-digit',minute:'2-digit'}) + '</div></div>';
+      }).join('') + '<div style="padding:8px;text-align:center;"><button onclick="readAllNotifs()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;">Marcar todas como lidas</button></div>'
+      + '<div id="notifListMsg" style="display:none;padding:30px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhuma notificação</div>';
+    }
+
+    async function readNotif(id) {
+      try { await api.readNotification(id); } catch(e) {}
+      loadNotifs();
+    }
+
+    // Event delegation for notification items (avoids inline onclick escaping issues)
+    document.addEventListener('click', function(e) {
+      const item = e.target.closest('#notifList .notif-item');
+      if (!item) return;
+      const id = item.dataset.nid;
+      const link = item.dataset.nlink;
+      readNotif(id);
+      if (link) window.location.href = link;
+    });
+
+    async function readAllNotifs() {
+      try {
+        await api.readAllNotifications();
+        document.getElementById('notifDropdown').style.display = 'none';
+        loadNotifs();
+      } catch(e) {}
+    }
+
+    // Close notif dropdown on outside click
+    document.addEventListener('click', function(e) {
+      const dropdown = document.getElementById('notifDropdown');
+      if (dropdown && dropdown.style.display === 'block' && !e.target.closest('.action-btn')) {
+        dropdown.style.display = 'none';
+      }
+    });
+
+    // Logout
+    async function handleLogout() {
+      try {
+        const res = await fetch('/api/auth/logout', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          window.location.href = '/login';
+        }
+      } catch(e) {
+        window.location.href = '/login';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entrar | Lotofácil Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body {
+      background: var(--bg-dark);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .auth-container {
+      width: 100%;
+      max-width: 440px;
+    }
+    .auth-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px 36px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+    .auth-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .auth-logo-icon {
+      width: 52px;
+      height: 52px;
+      background: var(--gradient-primary);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+    }
+    .auth-logo-text {
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .auth-logo-text small {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: block;
+      font-weight: 400;
+    }
+    .auth-title {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .auth-title h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .auth-title p {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 24px 0;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .auth-divider::before,
+    .auth-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .auth-footer {
+      text-align: center;
+      margin-top: 24px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .auth-footer a {
+      color: var(--primary-light);
+      font-weight: 600;
+    }
+    .auth-footer a:hover {
+      text-decoration: underline;
+    }
+    .auth-error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: var(--danger);
+      font-size: 14px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .auth-error.show {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .password-toggle {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      font-size: 16px;
+    }
+    .password-toggle:hover {
+      color: var(--text);
+    }
+    .auth-demo {
+      background: rgba(79,70,229,0.08);
+      border: 1px solid rgba(79,70,229,0.15);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .auth-demo strong {
+      color: var(--primary-light);
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <!-- Logo -->
+      <div class="auth-logo">
+        <div class="auth-logo-icon"><i class="fas fa-dice-d6"></i></div>
+        <div class="auth-logo-text">
+          Lotofácil
+          <small>Plataforma de Jogos</small>
+        </div>
+      </div>
+
+      <!-- Title -->
+      <div class="auth-title">
+        <h1>Bem-vindo de volta!</h1>
+        <p>Entre com sua conta para continuar</p>
+      </div>
+
+      <!-- Error -->
+      <div class="auth-error" id="authError">
+        <i class="fas fa-exclamation-circle"></i>
+        <span id="authErrorMsg">Erro ao fazer login</span>
+      </div>
+
+      <!-- Demo credentials -->
+      <div class="auth-demo">
+        <i class="fas fa-info-circle" style="margin-right:6px;"></i>
+        <strong>Conta Admin:</strong> admin@lotofacil.com / 123456<br>
+        <strong>Conta Usuário:</strong> maria@email.com / 123456
+      </div>
+
+      <!-- Form -->
+      <form onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label>E-mail</label>
+          <div class="form-input">
+            <input type="email" id="loginEmail" placeholder="seu@email.com" value="admin@lotofacil.com" required autocomplete="email">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <div class="form-input">
+            <input type="password" id="loginPassword" placeholder="Sua senha" value="123456" required autocomplete="current-password">
+            <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)" tabindex="-1">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="loginBtn" style="padding:16px;">
+          <i class="fas fa-arrow-right"></i> Entrar na Plataforma
+        </button>
+      </form>
+
+      <div class="auth-divider">ou</div>
+
+      <a href="/register" class="btn btn-secondary btn-full" style="padding:14px;justify-content:center;text-decoration:none;">
+        <i class="fas fa-user-plus"></i> Criar Nova Conta
+      </a>
+
+      <div class="auth-footer">
+        <a href="/">← Voltar para a plataforma</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function togglePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const icon = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+      } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('loginBtn');
+      const errorDiv = document.getElementById('authError');
+      const errorMsg = document.getElementById('authErrorMsg');
+      
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
+      btn.disabled = true;
+      errorDiv.classList.remove('show');
+
+      try {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          window.location.href = data.redirect || '/';
+        } else {
+          errorMsg.textContent = data.error || 'E-mail ou senha incorretos';
+          errorDiv.classList.add('show');
+        }
+      } catch (err) {
+        errorMsg.textContent = 'Erro de conexão. Tente novamente.';
+        errorDiv.classList.add('show');
+      }
+
+      btn.innerHTML = '<i class="fas fa-arrow-right"></i> Entrar na Plataforma';
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>
