@@ -39,6 +39,7 @@ cp .env.example .env   # preencha DATABASE_URL, SESSION_SECRET, CRON_SECRET, SIT
 ```bash
 npm run migrate
 ```
+> ⚠️ Os arquivos `web/database/*.json` (fonte da migração) **não estão versionados** no repositório. Se você clonou o projeto e não tem os JSONs, faça um backup/restore do banco ou peça os dados ao time. Se tiver os JSONs localmente, a migração importa tudo automaticamente.
 ### Passo 4: Rode o servidor
 ```bash
 npm run dev    # ou npm start → http://localhost:3000
