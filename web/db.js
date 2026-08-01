@@ -626,6 +626,18 @@ async function getResults() {
   return rows.map(r => r.payload);
 }
 
+/**
+ * Carrega apenas os últimos N resultados (para o cache do serverless).
+ * Carregar os 3740 concursos inteiros leva ~13s — estoura o limite de duração
+ * das funções do Vercel (Hobby ~10s) e o bootstrap nunca completa.
+ */
+async function getRecentResults(limit = 500) {
+  const { rows } = await pool.query(
+    'SELECT payload FROM results ORDER BY numero DESC LIMIT $1', [limit]
+  );
+  return rows.map(r => r.payload).reverse();
+}
+
 async function getResultByNumero(numero) {
   const { rows } = await pool.query('SELECT payload FROM results WHERE numero = $1', [numero]);
   return rows[0] ? rows[0].payload : null;
@@ -686,7 +698,7 @@ module.exports = {
   // achievements
   getUserAchievementIds, addUserAchievement,
   // results
-  getResults, getResultByNumero, getLatestResult, saveResult,
+  getResults, getRecentResults, getResultByNumero, getLatestResult, saveResult,
   // seeds
   getSeed, saveSeed,
   isNeon

@@ -106,9 +106,10 @@ async function bootstrap() {
     console.log('👥 Bolões iniciais criados');
   }
 
-  // Cache de resultados (fonte: Postgres)
-  resultsCache = await db.getResults();
-  console.log(`📦 Cache: ${resultsCache.length} concursos carregados do Postgres`);
+  // Cache de resultados (fonte: Postgres) — carrega só os últimos 500:
+  // os 3740 inteiros levam ~13s e estouram o limite de duração do serverless.
+  resultsCache = await db.getRecentResults(500);
+  console.log(`📦 Cache: ${resultsCache.length} concursos carregados do Postgres (últimos)`);
 
   // Semente da IA
   currentSeed = await db.getSeed('LOTOFACIL');
@@ -291,12 +292,21 @@ async function saveToDatabase(contest) {
   if (!exists) {
     resultsCache.push(contest);
     resultsCache.sort((a, b) => a.numero - b.numero);
+    if (resultsCache.length > 1000) resultsCache = resultsCache.slice(-1000);
   }
 }
 
 async function findInDatabase(contestNumber) {
   await ensureReady();
-  return resultsCache.find(c => c.numero === contestNumber) || null;
+  const cached = resultsCache.find(c => c.numero === contestNumber);
+  if (cached) return cached;
+  // Concurso fora da janela do cache: busca sob demanda no Postgres
+  const fromDb = await db.getResultByNumero(contestNumber);
+  if (fromDb && !resultsCache.find(c => c.numero === fromDb.numero)) {
+    resultsCache.push(fromDb);
+    resultsCache.sort((a, b) => a.numero - b.numero);
+  }
+  return fromDb;
 }
 
 async function getLatestFromDatabase() {
@@ -312,12 +322,17 @@ async function getRecentContests(limit = 10) {
 
 async function getDatabaseStats() {
   await ensureReady();
-  return {
-    total: resultsCache.length,
-    first: resultsCache.length > 0 ? resultsCache[0].numero : null,
-    last: resultsCache.length > 0 ? resultsCache[resultsCache.length - 1].numero : null,
-    lastDate: resultsCache.length > 0 ? resultsCache[resultsCache.length - 1].dataApuracao : null
-  };
+  // Total/primeiro/último consultados no Postgres (o cache agora tem só os últimos 500)
+  const { rows } = await db.pool.query(
+    'SELECT COUNT(*)::int AS total, MIN(numero)::int AS first, MAX(numero)::int AS last FROM results'
+  );
+  const s = rows[0] || { total: 0, first: null, last: null };
+  let lastDate = null;
+  if (s.last) {
+    const latest = resultsCache.find(c => c.numero === s.last) || (await db.getResultByNumero(s.last));
+    if (latest) lastDate = latest.dataApuracao;
+  }
+  return { total: s.total || 0, first: s.first, last: s.last, lastDate };
 }
 
 // ==================== API LOTERIAS (3 FONTES EM CASCATA) ====================
