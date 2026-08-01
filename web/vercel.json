@@ -6,7 +6,8 @@
       "src": "server.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["views/**", "public/**", "lib/**"]
+        "includeFiles": ["views/**", "public/**", "lib/**"],
+        "maxDuration": 60
       }
     }
   ],

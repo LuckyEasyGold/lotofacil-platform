@@ -122,14 +122,29 @@ async function bootstrap() {
   // 1) o boot traz só os mais recentes (primeira tela rápida);
   // 2) a hidratação em background preenche o resto em lotes;
   // 3) a sincronização incremental busca nas APIs os concursos que faltam.
-  // No Vercel (serverless), timers de background congelam após a resposta HTTP —
-  // então carrega o histórico completo de forma SÍNCRONA (medido: ~711ms, bem
-  // abaixo do limite de duração) para a IA aprender com TODOS os concursos.
-  // Em dev local, carrega só os mais recentes (boot rápido) e hidrata em
-  // background — por isso o load inicial de 100 fica só nesse caminho.
+  // No Vercel (serverless), timers de background congelam após a resposta HTTP.
+  // Estratégia à prova de cold start:
+  //  1) carrega os 100 mais recentes SEMPRE (boot rápido e garantido);
+  //  2) tenta o histórico completo para a IA aprender com tudo, com timeout
+  //     de 8s — se o cold start for lento, cai para os últimos 500;
+  //  3) o load da IA abaixo (loadHistoricalResults) roda em QUALQUER caso,
+  //     pois o cache sempre tem pelo menos os 100 iniciais.
   if (process.env.VERCEL === '1') {
-    resultsCache = await db.getResults();
-    console.log(`✅ Vercel: histórico completo carregado (${resultsCache.length} concursos)`);
+    resultsCache = await db.getRecentResults(INITIAL_CACHE_SIZE);
+    console.log(`📦 Vercel boot: ${resultsCache.length} concursos (mais recentes)`);
+    let timer;
+    const timeoutPromise = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('timeout 8s no histórico completo')), 8000);
+    });
+    try {
+      resultsCache = await Promise.race([db.getResults(), timeoutPromise]);
+      console.log(`✅ Vercel: histórico completo carregado (${resultsCache.length} concursos)`);
+    } catch (e) {
+      console.error(`⚠️ Vercel: ${e.message} — usando os últimos 500`);
+      try { resultsCache = await db.getRecentResults(500); } catch (e2) { /* mantém os 100 do boot */ }
+    } finally {
+      clearTimeout(timer);
+    }
   } else {
     resultsCache = await db.getRecentResults(INITIAL_CACHE_SIZE);
     console.log(`📦 Cache inicial: ${resultsCache.length} concursos (mais recentes)`);
