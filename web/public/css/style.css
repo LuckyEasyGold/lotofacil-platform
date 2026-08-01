@@ -27,7 +27,13 @@
 
 /* ==================== RESET ==================== */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  /* Evita a inflação automática de fonte do mobile Safari/Chrome que
+     força o usuário a dar zoom out para a tela caber */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg-dark);
@@ -1496,7 +1502,7 @@ tr:hover td { background: rgba(79,70,229,0.03); }
 /* ==================== AÇÕES RÁPIDAS ==================== */
 .acoes-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   margin-bottom: 28px;
 }
@@ -1703,20 +1709,65 @@ tr:hover td { background: rgba(79,70,229,0.03); }
     display: flex;
   }
   .page-content {
-    padding-bottom: 84px;
+    padding: 14px 12px 84px;
+    display: flex;
+    flex-direction: column;
   }
   .card-premio-amount { font-size: 36px; letter-spacing: -1px; }
   .card-premio-currency { font-size: 18px; }
   .card-premio-info { gap: 12px; flex-direction: column; align-items: center; font-size: 13px; }
   .card-premio-actions { flex-direction: column; }
   .card-premio { padding: 28px 16px; }
-  .acoes-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .acao-card { padding: 20px 12px; }
+
+  /* 🎠 Ações rápidas: carrossel horizontal logo abaixo do navbar */
+  .acoes-grid {
+    order: -1;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    gap: 12px;
+    margin: 0 -12px 24px;
+    padding: 2px 12px 10px;
+    scrollbar-width: none;
+  }
+  .acoes-grid::-webkit-scrollbar { display: none; }
+  .acao-card {
+    flex: 0 0 auto;
+    width: 148px;
+    min-width: 148px;
+    padding: 16px 12px;
+    scroll-snap-align: start;
+  }
   .acao-icon { width: 44px; height: 44px; font-size: 16px; }
+
   .boloes-grid { grid-template-columns: 1fr; }
-  .resultado-fileira { gap: 6px; }
-  .resultado-bola { width: 36px; height: 36px; }
+
+  /* 🎱 Último resultado: bolas em grade 5 colunas (não estica a tela) */
+  .resultado-fileira {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    justify-items: center;
+    padding: 16px 0;
+  }
+  .resultado-bola { width: 38px; height: 38px; }
   .resultado-bola span { font-size: 12px; }
   .resultado-linha { flex-direction: column; align-items: flex-start; gap: 4px; }
   .resultado-valores { text-align: left; width: 100%; }
+
+  /* 📱 Compacto global: tudo cabe sem precisar de zoom */
+  .card { padding: 20px 16px; border-radius: 16px; }
+  .card-header { gap: 12px; flex-wrap: wrap; }
+  .page-title-section { min-width: 0; overflow: hidden; }
+  .top-bar > .flex { min-width: 0; flex: 1; }
+  .page-title-section h1 { font-size: 17px; }
+  .page-title-section p { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .top-bar-actions { gap: 10px; }
+  .action-btn { width: 38px; height: 38px; }
+  .notif-dropdown { width: calc(100vw - 24px); }
+  .toast-container { left: 16px; right: 16px; }
+  .toast { width: 100%; min-width: 0; box-sizing: border-box; }
+  .form-input input, .form-input select, .form-input textarea { font-size: 16px; }
 }
