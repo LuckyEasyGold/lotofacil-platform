@@ -153,6 +153,31 @@ async function ensureSchema() {
 
 // ==================== HELPERS ====================
 
+/**
+ * JSON.stringify seguro para colunas JSONB.
+ *
+ * Dados vindos de APIs externas (ex.: Caixa) podem conter caracteres que o
+ * Postgres rejeita em colunas JSONB com "unsupported Unicode escape sequence":
+ *  - NUL (U+0000): texto do Postgres não pode conter NUL ("\\u0000 cannot be
+ *    converted to text");
+ *  - Lone surrogates UTF-16 (pares \\uD800-\\uDFFF quebrados).
+ *
+ * Substitui esses caracteres por U+FFFD (replacement character) mantendo o
+ * JSON válido. A limpeza é feita no replacer (ANTES do stringify) para que o
+ * JSON.stringify nunca emita escapes \\u0000/\\udXXX no output.
+ */
+function safeStringify(value) {
+  return JSON.stringify(value, (key, val) => {
+    if (typeof val === 'string') {
+      return val
+        .replace(/\u0000/g, '\uFFFD')
+        .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, '\uFFFD')
+        .replace(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '\uFFFD');
+    }
+    return val;
+  });
+}
+
 function mapUser(row) {
   if (!row) return null;
   return {
@@ -357,9 +382,9 @@ async function createGame(game) {
   await pool.query(
     `INSERT INTO games (id, user_id, numbers, game_type, name, source, seed_version, created_at, status, usage_history, pool_id)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-    [game.id, game.userId, JSON.stringify(game.numbers), game.gameType, game.name,
+    [game.id, game.userId, safeStringify(game.numbers), game.gameType, game.name,
      game.source, game.seedVersion, game.createdAt, game.status,
-     JSON.stringify(game.usageHistory || []), game.poolId]
+     safeStringify(game.usageHistory || []), game.poolId]
   );
   return getGameById(game.id, game.userId);
 }
@@ -377,7 +402,7 @@ async function updateGame(id, fields) {
   }
   if (fields.usageHistory !== undefined) {
     sets.push(`usage_history = $${i++}`);
-    params.push(JSON.stringify(fields.usageHistory));
+    params.push(safeStringify(fields.usageHistory));
   }
   if (sets.length === 0) return null;
   const { rows } = await pool.query(
@@ -402,16 +427,16 @@ async function getPoolById(id) {
   return mapPool(rows[0]);
 }
 
-async function createPool(pool) {
+async function createPool(poolData) {
   await pool.query(
     `INSERT INTO pools (id, name, game_type, contest_number, total_shares, available_shares, share_price, min_shares, max_shares, numbers, creator_name, status, created_at, participants, market_offers)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
-    [pool.id, pool.name, pool.gameType, pool.contestNumber, pool.totalShares,
-     pool.availableShares, pool.sharePrice, pool.minShares, pool.maxShares,
-     JSON.stringify(pool.numbers || []), pool.creatorName, pool.status,
-     pool.createdAt, JSON.stringify(pool.participants || []), JSON.stringify(pool.marketOffers || [])]
+    [poolData.id, poolData.name, poolData.gameType, poolData.contestNumber, poolData.totalShares,
+     poolData.availableShares, poolData.sharePrice, poolData.minShares, poolData.maxShares,
+     safeStringify(poolData.numbers || []), poolData.creatorName, poolData.status,
+     poolData.createdAt, safeStringify(poolData.participants || []), safeStringify(poolData.marketOffers || [])]
   );
-  return getPoolById(pool.id);
+  return getPoolById(poolData.id);
 }
 
 async function updatePool(id, fields) {
@@ -431,11 +456,11 @@ async function updatePool(id, fields) {
   }
   if (fields.participants !== undefined) {
     sets.push(`participants = $${i++}`);
-    params.push(JSON.stringify(fields.participants));
+    params.push(safeStringify(fields.participants));
   }
   if (fields.marketOffers !== undefined) {
     sets.push(`market_offers = $${i++}`);
-    params.push(JSON.stringify(fields.marketOffers));
+    params.push(safeStringify(fields.marketOffers));
   }
   if (sets.length === 0) return getPoolById(id);
   const { rows } = await pool.query(
@@ -479,7 +504,7 @@ async function addBet(bet) {
   await pool.query(
     `INSERT INTO bets (id, user_id, game_type, numbers, amount, date, status)
      VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-    [bet.id, bet.userId, bet.gameType, JSON.stringify(bet.numbers), bet.amount, bet.date, bet.status]
+    [bet.id, bet.userId, bet.gameType, safeStringify(bet.numbers), bet.amount, bet.date, bet.status]
   );
   return bet;
 }
@@ -542,7 +567,7 @@ async function createSubscription(sub) {
        total_executions = EXCLUDED.total_executions,
        total_spent = EXCLUDED.total_spent,
        next_contest = EXCLUDED.next_contest`,
-    [sub.id, sub.userId, sub.userName, sub.gameType, JSON.stringify(sub.numbers), sub.name,
+    [sub.id, sub.userId, sub.userName, sub.gameType, safeStringify(sub.numbers), sub.name,
      sub.gameId, sub.interval, sub.active, sub.nextContest, sub.lastExecuted,
      sub.totalExecutions, sub.totalSpent, sub.createdAt]
   );
@@ -608,7 +633,7 @@ async function saveResult(payload) {
   await pool.query(
     `INSERT INTO results (numero, payload) VALUES ($1,$2)
      ON CONFLICT (numero) DO UPDATE SET payload = EXCLUDED.payload`,
-    [payload.numero, JSON.stringify(payload)]
+    [payload.numero, safeStringify(payload)]
   );
 }
 
@@ -623,7 +648,7 @@ async function saveSeed(gameType, payload) {
   await pool.query(
     `INSERT INTO seeds (game_type, payload, updated_at) VALUES ($1,$2,NOW())
      ON CONFLICT (game_type) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`,
-    [gameType, JSON.stringify(payload)]
+    [gameType, safeStringify(payload)]
   );
 }
 
