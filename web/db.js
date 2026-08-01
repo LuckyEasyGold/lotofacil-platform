@@ -144,6 +144,16 @@ CREATE TABLE IF NOT EXISTS seeds (
   payload JSONB NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Tabela de sessões usada pelo connect-pg-simple (express-session).
+-- Criada explicitamente aqui porque o auto-create do store é fire-and-forget
+-- e não é confiável no ambiente serverless (causava 500 nas rotas autenticadas).
+CREATE TABLE IF NOT EXISTS "session" (
+  sid varchar NOT NULL,
+  sess json NOT NULL,
+  expire timestamp(6) NOT NULL,
+  PRIMARY KEY ("sid")
+);
 `;
 
 /** Cria as tabelas (idempotente). Chamado na inicialização. */
