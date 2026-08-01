@@ -4,7 +4,7 @@ Content-Type: application/json
 
 {
   "email": "teste@lotofacil.com",
-  "password": "123456",
+  "password": "SUA_SENHA_FORTE",
   "publicName": "Testador Primeiro"
 }
 
@@ -14,7 +14,7 @@ Content-Type: application/json
 
 {
   "email": "teste@lotofacil.com",
-  "password": "123456"
+  "password": "SUA_SENHA_FORTE"
 }
 
 ### 3. Login com chave pública (Nostr-style) - OPICIONAL

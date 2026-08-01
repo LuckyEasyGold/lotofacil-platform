@@ -127,18 +127,6 @@
     .password-toggle:hover {
       color: var(--text);
     }
-    .auth-demo {
-      background: rgba(79,70,229,0.08);
-      border: 1px solid rgba(79,70,229,0.15);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 24px;
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-    .auth-demo strong {
-      color: var(--primary-light);
-    }
   </style>
 </head>
 <body>
@@ -165,25 +153,18 @@
         <span id="authErrorMsg">Erro ao fazer login</span>
       </div>
 
-      <!-- Demo credentials -->
-      <div class="auth-demo">
-        <i class="fas fa-info-circle" style="margin-right:6px;"></i>
-        <strong>Conta Admin:</strong> admin@lotofacil.com / 123456<br>
-        <strong>Conta Usuário:</strong> maria@email.com / 123456
-      </div>
-
       <!-- Form -->
       <form onsubmit="handleLogin(event)">
         <div class="form-group">
           <label>E-mail</label>
           <div class="form-input">
-            <input type="email" id="loginEmail" placeholder="seu@email.com" value="admin@lotofacil.com" required autocomplete="email">
+            <input type="email" id="loginEmail" placeholder="Digite seu e-mail" required autocomplete="email">
           </div>
         </div>
         <div class="form-group">
           <label>Senha</label>
           <div class="form-input">
-            <input type="password" id="loginPassword" placeholder="Sua senha" value="123456" required autocomplete="current-password">
+            <input type="password" id="loginPassword" placeholder="Digite sua senha" required autocomplete="current-password">
             <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)" tabindex="-1">
               <i class="fas fa-eye"></i>
             </button>
@@ -199,10 +180,7 @@
       <a href="/register" class="btn btn-secondary btn-full" style="padding:14px;justify-content:center;text-decoration:none;">
         <i class="fas fa-user-plus"></i> Criar Nova Conta
       </a>
-
-      <div class="auth-footer">
-        <a href="/">← Voltar para a plataforma</a>
-      </div>
+    
     </div>
   </div>
 

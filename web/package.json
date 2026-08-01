@@ -7,7 +7,14 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "migrate": "node database/migrate.js",
-    "vercel-build": "node -e \"console.log('build ok')\""
+    "vercel-build": "node -e \"console.log('build ok')\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "node --check server.js && node --check db.js && echo 'sintaxe OK'",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"server.js lib/**/*.js routes/**/*.js tests/**/*.js\"",
+    "format:check": "prettier --check \"server.js lib/**/*.js routes/**/*.js tests/**/*.js\""
   },
   "dependencies": {
     "axios": "^1.7.0",
@@ -19,6 +26,16 @@
     "express": "^4.21.0",
     "express-session": "^1.19.0",
     "pg": "^8.22.0",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.8.0",
+    "prettier": "^3.9.6",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.10"
   }
 }

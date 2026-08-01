@@ -722,6 +722,27 @@ tr:hover td { background: rgba(79,70,229,0.03); }
   .result-ball { width: 44px; height: 44px; }
   .ball-inner { font-size: 14px; }
 }
+/* ==================== MOBILE HARDENING ====================
+   Garante que nenhuma tela estoure a largura do viewport (sem precisar
+   de pinch-to-zoom). A causa clássica: .page-content vira flex no mobile e
+   os cards (flex items) têm min-width:auto por padrão — se um filho tem
+   largura mínima grande (tabela, grade, texto longo), o card NÃO encolhe
+   e empurra a página para o lado. */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+.page-content > * {
+  min-width: 0;
+  max-width: 100%;
+}
+img, svg, canvas, table, video {
+  max-width: 100%;
+}
+.balls {
+  flex-wrap: wrap;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
@@ -1421,6 +1442,20 @@ tr:hover td { background: rgba(79,70,229,0.03); }
 .card-resultado {
   margin-bottom: 28px;
 }
+/* Layout do card "Último Resultado" (igual ao de /resultados):
+   bolas + concurso à esquerda, rateio à direita (empilha no mobile) */
+.resultado-detalhe {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+.resultado-rateio {
+  background: var(--bg-input);
+  border-radius: 16px;
+  padding: 20px;
+}
 .resultado-fileira {
   display: flex;
   justify-content: center;
@@ -1645,6 +1680,7 @@ tr:hover td { background: rgba(79,70,229,0.03); }
   .boloes-grid { grid-template-columns: repeat(2, 1fr); }
   .card-premio-amount { font-size: 48px; }
   .card-premio { padding: 32px 24px; }
+  .resultado-detalhe { grid-template-columns: 1fr; }
 }
 /* ==================== BOTTOM NAV (MOBILE) ==================== */
 .bottom-nav {
@@ -1756,6 +1792,13 @@ tr:hover td { background: rgba(79,70,229,0.03); }
   .resultado-bola span { font-size: 12px; }
   .resultado-linha { flex-direction: column; align-items: flex-start; gap: 4px; }
   .resultado-valores { text-align: left; width: 100%; }
+
+  /* Grades inline de 2 colunas geradas via JS (results, my-games,
+     profile etc.) empilham no mobile em vez de apertar */
+  div[style*="grid-template-columns:1fr 1fr"],
+  div[style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
 
   /* 📱 Compacto global: tudo cabe sem precisar de zoom */
   .card { padding: 20px 16px; border-radius: 16px; }

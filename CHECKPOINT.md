@@ -10,8 +10,7 @@
 | Item | Status |
 |------|--------|
 | Servidor rodando na porta 3000 | ✅ OK |
-| Login admin@lotofacil.com / 123456 | ✅ OK |
-| Login maria@email.com / 123456 | ✅ OK |
+| Login com credenciais de acesso (ver responsável do projeto) | ✅ OK |
 | Todas as páginas retornam HTTP 200 | ✅ OK |
 | Motor genético carregado (gen 45, fitness 145.23) | ✅ OK |
 | Cache de 3.750 concursos (até #3750, 31/07/2026) | ✅ OK |
@@ -53,6 +52,73 @@
 - **Não há login social no app.** A tela de "logar com Google" ao abrir os links de preview
   (`*-git-main-*.vercel.app`) é a **Vercel Authentication (Deployment Protection)**, não o app.
   A URL correta para usuários é a de produção: `https://lotofacil-platform.vercel.app`.
+
+### 10. Migração completa para UUID
+- **Problema:** IDs sequenciais (`'1'`, `'2'`) em users/games/pools/conquistas — segurança
+  (enumeração de recursos) e sem padronização.
+- **Correção:** migração completa (seed + produção) executada em transação com cascata:
+  `users`, `games` (user_id + pool_id), `transactions`, `bets`, `notifications`,
+  `subscriptions`, `user_achievements`, `pools` — todos agora com UUID.
+- **UUIDs fixos:** admin `9d961bea-5ffe-460a-9f31-a4738f97794b`, maria
+  `5a571785-7d12-4c05-8a06-fd66fa50265c`, bolão 1 `974eb2c7-002b-41dc-902b-880d0cc362e3`,
+  bolão 2 `3f1daf61-8a33-498f-be64-cbd92fdb530e`.
+- **Sessões antigas:** quem estava logado antes da migração é redirecionado ao `/login`
+  (as sessões guardavam id `'1'/'2'`). Basta logar de novo.
+- **Arquivos:** `web/database/users.json`, `games.json`, `achievements.json`,
+  `web/server.js`, `web/database/migrate.js`, `web/test_*.js`
+
+### 11. Suíte de testes (Vitest + Supertest)
+- **Problema:** zero testes no projeto inteiro; regressões silenciosas só eram
+  pegas testando manualmente (ex.: `contestsAnalyzed: 0` no Vercel).
+- **Correção:** criada infraestrutura completa de testes de API em `web/tests/`:
+  34 testes em 5 arquivos (auth 8, games 9, wallet 6, pools 5, results 6).
+- **Infra:** `vitest.config.js` (sequencial, singleFork), `tests/setup.js`
+  (define `VERCEL=1`/`NODE_ENV=test` antes do import do server.js — exporta o app
+  sem abrir porta), `tests/helpers.js` (`registerUser` + `cleanupTestData` +
+  cliente `api`).
+- **Detalhe:** cookie de sessão agora respeita `NODE_ENV=test` (Secure desligado
+  para o supertest); bootstrap em modo teste carrega 100 resultados + semente da
+  IA (pula o histórico completo de 3750 — suíte fica rápida/estável).
+- **Comandos:** `npm test`, `npm run test:watch`, `npm run check`.
+- **Docs:** guia completo em `web/DOCS.md` §6.
+
+### 12. Documentação oficial (web/DOCS.md)
+- Criado `web/DOCS.md` — guia técnico completo: arquitetura, modelo de dados,
+  referência de API (todas as rotas), testes, convenções de código, segurança,
+  decisões de arquitetura (incl. por que NÃO usar htmx) e onboarding.
+- README.md atualizado (seções de testes e documentação).
+
+### 13. Refatoração do server.js em routers (lib/ + routes/)
+- **Problema:** `server.js` monolítico com ~1939 linhas (69 rotas + estado + bootstrap) —
+  difícil de navegar e manter para novos devs.
+- **Correção:** estado/lógica compartilhada extraída para `lib/` (context, auth,
+  lottery, gamification, subscriptions, notifications, http, validation) e as
+  rotas divididas em 16 routers por domínio em `routes/` (auth, pages, admin,
+  ai, dashboard, bets, games, wallet, pools, results, notifications,
+  subscriptions, gamification, share, stats, profile). `server.js` virou
+  composição (config + sessão + mount + erro).
+- **Detalhe crítico:** `resultsCache`/`currentSeed` são `let` reatribuídos no
+  boot — expostos como **getters** `getResultsCache()`/`getCurrentSeed()` para
+  não congelar a referência; guards `ensureReady()` preservados nas funções de
+  cache. Ordem de rotas preservada (`/api/games/:id` por último).
+- **Arquivos:** `web/lib/*.js` (novos), `web/routes/*.js` (novos), `web/server.js`
+
+### 14. Testes de IA (tests/ai.test.js)
+- 8 testes novos cobrindo geração IA, simulação, seed, lucky-numbers, 401 e
+  admin 403. Suíte total: **42 testes em 6 arquivos**.
+
+### 15. Validação Zod (lib/validation.js)
+- Schemas Zod (v4.4.3) para auth, games, wallet, pools, bets, simulate, evolve,
+  subscriptions e profile — mensagens em pt-BR e 400 automático via middleware
+  `validate()`. Validações de negócio (saldo/cotas/permissão) continuam nos
+  handlers.
+- **Mudança de comportamento (intencional):** `/api/bets` agora exige `amount`
+  positivo; `evolve` rejeita `generations` não numérico (antes usava default 10).
+
+### 16. ESLint + Prettier
+- ESLint flat config (`eslint.config.js`, CommonJS + testes ESM) + Prettier
+  (`.prettierrc.json`). Scripts: `npm run lint`, `npm run lint:fix`,
+  `npm run format`, `npm run format:check`. Lint limpo (0 erros).
 
 
 ### 1. simulation.ejs - Bug saveGameToPortfolio
@@ -190,20 +256,25 @@ npm start        # node server.js
 
 ## 🔐 Contas de Teste
 
-| Papel | Email | Senha | Nome |
-|---|---|---|---|
-| Admin | admin@lotofacil.com | 123456 | João Silva |
-| Usuário | maria@email.com | 123456 | Maria Santos |
+> ⚠️ As credenciais de acesso não ficam mais registradas neste documento nem no
+> código-fonte (medida de segurança). As senhas das contas demo foram rotacionadas
+> e são repassadas apenas diretamente ao responsável pelo projeto.
 
 ## 📁 Arquivos Modificados Recentemente
 
-- `web/server.js` — cache progressivo de resultados, sessão 30 dias, carrega `.env.local`
-- `web/db.js` — novos `getResultsCount`/`getResultsWindow` (hidratação paginada)
+- `web/routes/` — **novo**: 16 routers por domínio (refatoração do server.js)
+- `web/lib/` — **novo**: context, auth, lottery, gamification, subscriptions, notifications, http, validation
+- `web/tests/ai.test.js` — **novo**: 8 testes de IA (suíte total: 42)
+- `web/lib/validation.js` — **novo**: schemas Zod + middleware validate()
+- `web/eslint.config.js`, `web/.prettierrc.json` — **novos**: ESLint flat + Prettier
+- `web/DOCS.md` — **novo**: guia técnico oficial (arquitetura, API, testes, onboarding, ADRs)
+- `web/tests/` — suíte Vitest + Supertest (42 testes em 6 arquivos)
+- `web/vitest.config.js` — config do Vitest (sequencial, singleFork)
+- `web/package.json` — scripts `test`, `test:watch`, `check`, `lint`, `format` + devDeps
+- `web/server.js` — reescrito como composição (routers); cookie Secure respeita NODE_ENV=test; UUIDs
+- `web/db.js` — suporte a `TEST_DATABASE_URL`; `getResultsCount`/`getResultsWindow`
+- `web/database/*.json` — UUIDs nos seeds (users, games, achievements)
 - `web/lib/genetic_engine.js` — `FITNESS_WINDOW_SIZE` configurável (default 300)
 - `web/README-VERCEL.md` — documenta cache progressivo, env vars e sessão
-- `README.md` — env vars, motor de IA, cache progressivo e URL de produção
-- `web/views/simulation.ejs` — corrigido saveGameToPortfolio
-- `web/views/bets.ejs` — adicionado tratamento de erro no catch
-- `web/views/pools.ejs` — nome dinâmico + EJS fix
-- `web/views/profile.ejs` — EJS dentro de backtick corrigido
-- `web/views/my-games.ejs` — backtick aninhado corrigido
+- `README.md` — seções de testes, lint e documentação; env vars, URL de produção
+- `web/views/*.ejs` — correções de EJS/backtick das rodadas anteriores

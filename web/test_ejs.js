@@ -13,7 +13,7 @@ const evolution = {
   seedInfo: {version: '1.0.15', weights: Array(25).fill(0.04), fitnessScore: 4520.156},
   stats: {totalGenerations: 15, totalHistoryPoints: 1, contestsAnalyzed: 3739, evolutionTime: 37.5, lastUpdate: new Date().toISOString()}
 };
-const user = {id: '1', name: 'Admin', email: 'admin@test.com', avatar: 'AD', balance: 5000, role: 'admin'};
+const user = {id: '9d961bea-5ffe-460a-9f31-a4738f97794b', name: 'Admin', email: 'admin@test.com', avatar: 'AD', balance: 5000, role: 'admin'};
 
 // First just try to compile it (no render)
 try {

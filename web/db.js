@@ -11,6 +11,13 @@ require('dotenv').config();
 // arquivo não existe; `quiet` evita warning. override dá prioridade ao .env.local.
 require('dotenv').config({ path: '.env.local', override: true, quiet: true });
 
+// Suíte de testes: TEST_DATABASE_URL aponta para um banco ISOLADO (não o de
+// produção). Tem prioridade máxima sobre qualquer config. Em produção e em
+// dev normal a variável não existe e nada muda.
+if (process.env.TEST_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+}
+
 const { Pool } = require('pg');
 
 const DATABASE_URL = process.env.DATABASE_URL;

@@ -36,8 +36,8 @@
         <i class="fas fa-trophy" style="color:white;"></i>
       </div>
       <div>
-        <div class="card-title" style="font-size:17px;">Último Resultado Lotofácil</div>
-        <div class="card-subtitle" id="resultSubtitle" style="font-size:12px;">3 fontes · Guidi · API Loterias · Caixa</div>
+        <div class="card-title" style="font-size:17px;">🎯 Último Resultado</div>
+        <div class="card-subtitle" id="resultSubtitle" style="font-size:12px;">Dados em tempo real</div>
       </div>
     </div>
     <a href="/resultados" class="btn btn-secondary btn-sm">
@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('premioContest').textContent = '---';
     }
 
-    // ---- ÚLTIMO RESULTADO ----
+    // ---- ÚLTIMO RESULTADO (mesmo card da página /resultados) ----
     const resultDiv = document.getElementById('resultadoContent');
     if (result && result.listaDezenas) {
       const nums = result.listaDezenas;
@@ -227,24 +227,33 @@ document.addEventListener('DOMContentLoaded', async () => {
                       '#4F46E5','#10B981','#F59E0B','#3B82F6','#EC4899',
                       '#4F46E5','#10B981','#F59E0B','#3B82F6','#EC4899'];
 
+      const prizeHTML = (result.listaRateioPremio || []).map(function(p, i) {
+        return '<div class="flex-between" style="padding:' + (i === 0 ? '0 0 12px 0' : '12px 0') + ';border-bottom:1px solid var(--border);">' +
+          '<div><span style="font-weight:600;">' + p.descricaoFaixa + '</span></div>' +
+          '<div style="text-align:right;"><span style="font-size:16px;font-weight:700;color:var(--secondary);">R$ ' + p.valorPremio.toFixed(2).replace('.',',') + '</span>' +
+          '<br><span style="font-size:12px;color:var(--text-muted);">' + p.numeroDeGanhadores + ' ganhador(es)</span></div></div>';
+      }).join('');
+
       resultDiv.innerHTML =
+        '<div class="resultado-detalhe">' +
+        '<div>' +
+        '<div class="flex-between mb-2">' +
+        '<div><span style="font-size:14px;color:var(--text-muted);"><i class="fas fa-calendar"></i> ' + (result.dataApuracao || '') + '</span></div>' +
+        '<div style="text-align:right;"><span style="font-size:22px;font-weight:700;">Concurso ' + result.numero + '</span><br><span style="font-size:12px;color:var(--text-muted);">' + (result.localSorteio || '') + '</span></div></div>' +
         '<div class="resultado-fileira">' +
         nums.map((n, i) =>
           '<div class="resultado-bola" style="background:' + colors[i] + ';animation-delay:' + (i*0.06) + 's;">' +
           '<span>' + n + '</span></div>'
         ).join('') +
         '</div>' +
-        '<div class="resultado-tabela">' +
-        (result.listaRateioPremio || []).slice(0, 5).map((p, i) => {
-          const medals = ['🥇','🥈','🥉','🏅','🎖️'];
-          return '<div class="resultado-linha">' +
-            '<span class="resultado-faixa">' + medals[i] + ' ' + p.descricaoFaixa + '</span>' +
-            '<div class="resultado-valores">' +
-              '<span class="resultado-ganhadores">' + p.numeroDeGanhadores + ' ganhador(es)</span>' +
-              '<span class="resultado-premio">R$ ' + p.valorPremio.toFixed(2).replace('.',',') + '</span>' +
-            '</div>' +
-          '</div>';
-        }).join('') +
+        '<div class="flex-between mt-2"><span style="color:var(--text-muted);">Próximo: ' + (result.dataProximoConcurso || 'N/A') + '</span>' +
+        '<span style="font-weight:600;">' + (result.acumulado ? '💰 Acumulou!' : '✅ Houve ganhador(es)') + '</span></div>' +
+        '</div>' +
+        '<div class="resultado-rateio">' +
+        '<h3 style="font-size:16px;margin-bottom:16px;">🏆 Rateio de Prêmios</h3>' + prizeHTML +
+        '<div style="padding-top:12px;margin-top:12px;border-top:1px solid var(--border);">' +
+        '<div class="flex-between"><span>Arrecadação Total</span><span style="font-weight:600;">' + (result.valorArrecadado ? 'R$ ' + result.valorArrecadado.toFixed(2).replace('.',',') : '—') + '</span></div></div>' +
+        '</div>' +
         '</div>' +
         ((result.listaRateioPremio || []).find(p => p.descricaoFaixa === '15 acertos' && p.numeroDeGanhadores > 0)
           ? '<div class="resultado-status ganhador"><i class="fas fa-crown"></i> Houve ganhador(es) do prêmio principal!</div>'

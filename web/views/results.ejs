@@ -82,7 +82,7 @@ async function loadLatestResult() {
       '<div class="flex-between mt-2"><span style="color:var(--text-muted);">Próximo: ' + (result.dataProximoConcurso || 'N/A') + '</span>' +
       '<span style="font-weight:600;">' + (result.acumulado ? '💰 Acumulou!' : '✅ Houve ganhador(es)') + '</span></div></div>' +
       '<div style="background:var(--bg-input);border-radius:16px;padding:20px;"><h3 style="font-size:16px;margin-bottom:16px;">🏆 Rateio de Prêmios</h3>' + prizeHTML +
-      '<div style="padding-top:12px;margin-top:12px;border-top:1px solid var(--border);"><div class="flex-between"><span>Arrecadação Total</span><span style="font-weight:600;">R$ ' + (result.valorArrecadado || 0).toFixed(2).replace('.',',') + '</span></div></div></div></div>';
+      '<div style="padding-top:12px;margin-top:12px;border-top:1px solid var(--border);"><div class="flex-between"><span>Arrecadação Total</span><span style="font-weight:600;">' + (result.valorArrecadado ? 'R$ ' + result.valorArrecadado.toFixed(2).replace('.',',') : '—') + '</span></div></div></div></div>';
   } catch(e) {
     document.getElementById('latestResultFull').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle" style="color:var(--accent)"></i><h3>Erro ao carregar</h3><p>Não foi possível carregar os resultados</p></div>';
   }

@@ -25,7 +25,7 @@ Antes de começar, certifique-se de ter instalado:
 ### Passo 1: Suba o Postgres (Docker)
 ```bash
 docker run -d --name lotofacil-pg \
-  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_PASSWORD=<sua-senha> \
   -e POSTGRES_DB=lotofacil \
   -p 5432:5432 postgres:15-alpine
 ```
@@ -71,9 +71,12 @@ Escaneie o QR code com o **Expo Go** ou pressione `w` para abrir no navegador. A
 ## 📁 Estrutura do Projeto (Monorepo)
 ```
 ├── web/                        # Plataforma web (Node.js + Express + EJS + Postgres)
-│   ├── server.js               # Servidor principal (Express serverless para Vercel)
+│   ├── server.js               # Composição: config + sessão + mount dos routers
+│   ├── lib/                    # Estado/lógica compartilhada (context, auth, validation...)
+│   ├── routes/                 # Routers por domínio (auth, games, wallet, pools...)
 │   ├── db.js                   # Camada de persistência PostgreSQL (Neon)
 │   ├── lib/genetic_engine.js   # Motor genético (IA)
+│   ├── tests/                  # Suíte Vitest + Supertest (42 testes)
 │   ├── views/                  # Telas em EJS
 │   ├── public/                 # Estáticos (CSS, JS)
 │   ├── database/               # Migrações e seed
@@ -100,6 +103,33 @@ Escaneie o QR code com o **Expo Go** ou pressione `w` para abrir no navegador. A
 - **connect-pg-simple** — Sessões persistentes no Postgres
 - **Docker + Nginx** — Deploy tradicional / orquestração
 - **Vercel** — Deploy serverless da plataforma web
+- **Vitest + Supertest** — Testes de API (web)
+
+## 🧪 Testes (Web)
+A plataforma web tem uma suíte de testes de API com **Vitest + Supertest**
+(42 testes cobrindo autenticação, jogos, carteira, bolões, resultados e IA):
+
+```bash
+cd web
+npm test          # roda a suíte completa
+npm run test:watch  # modo watch (desenvolvimento)
+npm run check     # checagem de sintaxe de server.js/db.js
+npm run lint      # ESLint (flat config)
+npm run format    # Prettier (formata lib/, routes/, tests/, server.js)
+```
+
+Os testes criam usuários únicos com timestamp e os apagam no final — não
+poluem dados reais. Para isolar dos dados de produção, defina `TEST_DATABASE_URL`
+no `.env.local`. Guia completo (como rodar, cobrir e adicionar testes):
+[`web/DOCS.md`](web/DOCS.md) §6.
+
+## 📚 Documentação
+- [`web/DOCS.md`](web/DOCS.md) — **guia técnico oficial**: arquitetura, modelo de
+  dados, referência completa da API (todas as rotas), testes, convenções de
+  código, segurança, decisões de arquitetura (ADRs) e onboarding
+- [`web/README-VERCEL.md`](web/README-VERCEL.md) — deploy Vercel + Neon
+- [`HANDOVER.md`](HANDOVER.md) — documento de repasse
+- [`CHECKPOINT.md`](CHECKPOINT.md) — estado atual e correções recentes
 
 ## 🚀 Deploy no Vercel + Neon
 A plataforma `web/` foi migrada de persistência em JSON/memória para **PostgreSQL gerenciado (Neon)**, compatível com o modelo serverless do Vercel. Veja o guia completo em [`web/README-VERCEL.md`](web/README-VERCEL.md).
@@ -126,6 +156,11 @@ npm start        # inicia o servidor
 npm run dev      # inicia com hot-reload (node --watch)
 npm run migrate  # migra os dados JSON → Postgres
 npm run vercel-build  # build para o Vercel
+npm test         # suíte de testes (Vitest + Supertest)
+npm run test:watch  # modo watch
+npm run check    # checagem de sintaxe (node --check)
+npm run lint     # ESLint (flat config)
+npm run format   # Prettier
 ```
 
 ## 🤖 Motor de IA

@@ -126,14 +126,14 @@ async function main() {
   const pools = await db.getPools();
   if (pools.length === 0) {
     await db.createPool({
-      id: '1', name: 'Bolão da Sorte', gameType: 'LOTOFACIL', contestNumber: 3005,
+      id: '974eb2c7-002b-41dc-902b-880d0cc362e3', name: 'Bolão da Sorte', gameType: 'LOTOFACIL', contestNumber: 3005,
       totalShares: 100, availableShares: 45, sharePrice: 25.00, minShares: 1, maxShares: 20,
       numbers: [1,2,5,6,9,10,11,12,15,17,18,19,21,24,25],
       creatorName: 'Maria', status: 'open', createdAt: new Date(),
       participants: [{ name: 'Maria', shares: 10, paid: true }, { name: 'João', shares: 5, paid: true }]
     });
     await db.createPool({
-      id: '2', name: 'Mega Bolão LF', gameType: 'LOTOFACIL', contestNumber: 3006,
+      id: '3f1daf61-8a33-498f-be64-cbd92fdb530e', name: 'Mega Bolão LF', gameType: 'LOTOFACIL', contestNumber: 3006,
       totalShares: 50, availableShares: 20, sharePrice: 50.00, minShares: 1, maxShares: 10,
       numbers: [3,4,7,8,13,14,16,20,22,23,1,5,9,11,25],
       creatorName: 'Carlos', status: 'open', createdAt: new Date(),

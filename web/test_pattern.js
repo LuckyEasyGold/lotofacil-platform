@@ -2,7 +2,7 @@ const ejs = require('ejs');
 const fs = require('fs');
 const path = require('path');
 
-const user = {id: '1', name: 'Admin', email: 'a@b.com', role: 'admin', balance: 5000};
+const user = {id: '9d961bea-5ffe-460a-9f31-a4738f97794b', name: 'Admin', email: 'a@b.com', role: 'admin', balance: 5000};
 
 // Test the EXACT template used by evolution.ejs 
 const evoTemplate = fs.readFileSync(path.join(__dirname, 'views', 'evolution.ejs'), 'utf8');
