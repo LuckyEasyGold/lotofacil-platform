@@ -7,6 +7,9 @@
  */
 
 require('dotenv').config();
+// Também carrega .env.local (dev local / `vercel env pull`). Em produção o
+// arquivo não existe; `quiet` evita warning. override dá prioridade ao .env.local.
+require('dotenv').config({ path: '.env.local', override: true, quiet: true });
 
 const { Pool } = require('pg');
 
@@ -626,6 +629,24 @@ async function getResults() {
   return rows.map(r => r.payload);
 }
 
+/** Total de concursos salvos (para a hidratação progressiva do cache). */
+async function getResultsCount() {
+  const { rows } = await pool.query('SELECT COUNT(*)::int AS total FROM results');
+  return rows[0] ? rows[0].total : 0;
+}
+
+/**
+ * Carrega uma janela paginada de concursos em ordem crescente de numero.
+ * Usado pela hidratação progressiva: busca os "próximos" lotes em background
+ * (ORDER BY numero DESC + OFFSET é rápido no Postgres graças ao PK).
+ */
+async function getResultsWindow(limit, offset = 0) {
+  const { rows } = await pool.query(
+    'SELECT payload FROM results ORDER BY numero DESC LIMIT $1 OFFSET $2', [limit, offset]
+  );
+  return rows.map(r => r.payload).reverse(); // volta para ordem crescente
+}
+
 /**
  * Carrega apenas os últimos N resultados (para o cache do serverless).
  * Carregar os 3740 concursos inteiros leva ~13s — estoura o limite de duração
@@ -698,7 +719,8 @@ module.exports = {
   // achievements
   getUserAchievementIds, addUserAchievement,
   // results
-  getResults, getRecentResults, getResultByNumero, getLatestResult, saveResult,
+  getResults, getResultsCount, getResultsWindow, getRecentResults,
+  getResultByNumero, getLatestResult, saveResult,
   // seeds
   getSeed, saveSeed,
   isNeon

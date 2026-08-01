@@ -1,6 +1,6 @@
 # 🎲 CHECKPOINT - Plataforma Lotofácil
 
-> Última atualização: 20/07/2026
+> Última atualização: 01/08/2026
 > Este arquivo documenta o estado atual do projeto para recuperação rápida em caso de travamento.
 
 ---
@@ -13,12 +13,47 @@
 | Login admin@lotofacil.com / 123456 | ✅ OK |
 | Login maria@email.com / 123456 | ✅ OK |
 | Todas as páginas retornam HTTP 200 | ✅ OK |
-| Motor genético carregado (gen 15, fitness 4520) | ✅ OK |
-| Cache de 3.739 concursos | ✅ OK |
+| Motor genético carregado (gen 45, fitness 145.23) | ✅ OK |
+| Cache de 3.750 concursos (até #3750, 31/07/2026) | ✅ OK |
+| Sessão de login: 30 dias (quem já logou entra direto) | ✅ OK |
+| Banco de dados: Neon (Postgres serverless, SSL) | ✅ OK |
 
 ---
 
 ## ✅ Últimas Correções Realizadas
+
+### 6. Cache progressivo de resultados + IA com histórico completo
+- **Problema:** o cache carregava só os últimos 500 concursos (comentário desatualizado de "13s"
+  da época do JSON) e a fitness da IA comparava só contra os últimos 100 — a IA não aprendia
+  com todos os 3.750 concursos disponíveis no Neon.
+- **Correção:** `web/server.js` agora carrega só os 100 mais recentes no boot (tela rápida) e
+  hidrata o resto em lotes de 500 em background (com pausa de 60ms), com reconciliação final
+  (~711ms) e sincronização incremental via API da Caixa (só os concursos que faltam).
+  No Vercel (serverless) o histórico completo é carregado de forma síncrona (~711ms), pois
+  timers de background congelam após a resposta.
+- **IA:** `web/lib/genetic_engine.js` ganhou `FITNESS_WINDOW_SIZE` configurável (default 300,
+  antes fixo em 100). `contestsAnalyzed` agora chega a 3750.
+- **Arquivos:** `web/server.js`, `web/db.js` (novos `getResultsCount`/`getResultsWindow`),
+  `web/lib/genetic_engine.js`
+
+### 7. Sessão de login longa (30 dias)
+- **Problema:** sessão expirava em 24h — usuário que já havia logado precisava logar de novo.
+- **Correção:** `web/server.js` — cookie de sessão com `maxAge` de 30 dias (configurável via
+  `SESSION_MAX_AGE_DAYS`). `/login` redireciona direto pro dashboard quando há sessão ativa.
+- **Arquivos:** `web/server.js`, `web/README-VERCEL.md`
+
+### 8. Ambiente local (.env.local)
+- **Problema:** `dotenv` carregava só `.env` — o `.env.local` (gerado pelo `vercel env pull`)
+  era ignorado e a `DATABASE_URL` ficava vazia em dev local.
+- **Correção:** `web/server.js` e `web/db.js` agora também carregam `.env.local` (com
+  `override: true` e `quiet: true`), sem quebrar produção (onde o arquivo não existe).
+- **Arquivos:** `web/server.js`, `web/db.js`
+
+### 9. Login com Google — esclarecimento (nenhum código)
+- **Não há login social no app.** A tela de "logar com Google" ao abrir os links de preview
+  (`*-git-main-*.vercel.app`) é a **Vercel Authentication (Deployment Protection)**, não o app.
+  A URL correta para usuários é a de produção: `https://lotofacil-platform.vercel.app`.
+
 
 ### 1. simulation.ejs - Bug saveGameToPortfolio
 - **Problema:** Chave `name` duplicada e variável `count` inexistente
@@ -149,6 +184,10 @@ npm start        # node server.js
 # Acessar: http://localhost:3000
 ```
 
+> O `server.js`/`db.js` carregam `.env.local` (prioridade) e `.env`. Se a `DATABASE_URL`
+> não estiver definida, o servidor sobe mas não conecta no banco — preencha o `.env.local`
+> com a connection string do Neon (pooled, com SSL).
+
 ## 🔐 Contas de Teste
 
 | Papel | Email | Senha | Nome |
@@ -158,10 +197,13 @@ npm start        # node server.js
 
 ## 📁 Arquivos Modificados Recentemente
 
+- `web/server.js` — cache progressivo de resultados, sessão 30 dias, carrega `.env.local`
+- `web/db.js` — novos `getResultsCount`/`getResultsWindow` (hidratação paginada)
+- `web/lib/genetic_engine.js` — `FITNESS_WINDOW_SIZE` configurável (default 300)
+- `web/README-VERCEL.md` — documenta cache progressivo, env vars e sessão
+- `README.md` — env vars, motor de IA, cache progressivo e URL de produção
 - `web/views/simulation.ejs` — corrigido saveGameToPortfolio
 - `web/views/bets.ejs` — adicionado tratamento de erro no catch
 - `web/views/pools.ejs` — nome dinâmico + EJS fix
 - `web/views/profile.ejs` — EJS dentro de backtick corrigido
 - `web/views/my-games.ejs` — backtick aninhado corrigido
-- `web/server.js` — principal servidor
-- `web/lib/genetic_engine.js` — motor genético

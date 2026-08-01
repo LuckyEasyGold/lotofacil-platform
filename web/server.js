@@ -1,4 +1,8 @@
 require('dotenv').config();
+// Também carrega .env.local (criado pelo `vercel env pull` / dev local).
+// Em produção (Vercel) o arquivo não existe — `quiet` evita warning e
+// `override` faz o .env.local ter prioridade sobre o .env.
+require('dotenv').config({ path: '.env.local', override: true, quiet: true });
 
 const express = require('express');
 const path = require('path');
@@ -13,6 +17,12 @@ const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ==================== CACHE PROGRESSIVO ====================
+// O cache começa só com os concursos mais recentes (boot rápido no serverless)
+// e é hidratado em background até conter o histórico completo do Postgres.
+const INITIAL_CACHE_SIZE = 100;   // concursos carregados no boot (primeira tela)
+const HYDRATE_BATCH_SIZE = 500;   // tamanho de cada lote da hidratação em background
 
 // ==================== ASYNC WRAPPER ====================
 // Express 4 não captura rejeições de handlers async. Este monkey-patch envolve
@@ -61,7 +71,9 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: process.env.VERCEL === '1' || process.env.COOKIE_SECURE === 'true',
-    maxAge: 24 * 60 * 60 * 1000 // 24h
+    // Sessão longa: quem já logou antes entra direto (sem novo login).
+    // Configurável via SESSION_MAX_AGE_DAYS (default 30 dias).
+    maxAge: (parseInt(process.env.SESSION_MAX_AGE_DAYS || '30', 10) || 30) * 24 * 60 * 60 * 1000
   }
 }));
 
@@ -106,10 +118,24 @@ async function bootstrap() {
     console.log('👥 Bolões iniciais criados');
   }
 
-  // Cache de resultados (fonte: Postgres) — carrega só os últimos 500:
-  // os 3740 inteiros levam ~13s e estouram o limite de duração do serverless.
-  resultsCache = await db.getRecentResults(500);
-  console.log(`📦 Cache: ${resultsCache.length} concursos carregados do Postgres (últimos)`);
+  // Cache de resultados (fonte: Postgres) — carregamento PROGRESSIVO:
+  // 1) o boot traz só os mais recentes (primeira tela rápida);
+  // 2) a hidratação em background preenche o resto em lotes;
+  // 3) a sincronização incremental busca nas APIs os concursos que faltam.
+  // No Vercel (serverless), timers de background congelam após a resposta HTTP —
+  // então carrega o histórico completo de forma SÍNCRONA (medido: ~711ms, bem
+  // abaixo do limite de duração) para a IA aprender com TODOS os concursos.
+  // Em dev local, carrega só os mais recentes (boot rápido) e hidrata em
+  // background — por isso o load inicial de 100 fica só nesse caminho.
+  if (process.env.VERCEL === '1') {
+    resultsCache = await db.getResults();
+    console.log(`✅ Vercel: histórico completo carregado (${resultsCache.length} concursos)`);
+  } else {
+    resultsCache = await db.getRecentResults(INITIAL_CACHE_SIZE);
+    console.log(`📦 Cache inicial: ${resultsCache.length} concursos (mais recentes)`);
+    hydrateCacheInBackground();
+    syncMissingResults();
+  }
 
   // Semente da IA
   currentSeed = await db.getSeed('LOTOFACIL');
@@ -292,7 +318,6 @@ async function saveToDatabase(contest) {
   if (!exists) {
     resultsCache.push(contest);
     resultsCache.sort((a, b) => a.numero - b.numero);
-    if (resultsCache.length > 1000) resultsCache = resultsCache.slice(-1000);
   }
 }
 
@@ -402,6 +427,84 @@ async function fetchLotofacilResultsByContest(contestNumber) {
     if (resp.data && resp.data.listaDezenas) { await saveToDatabase(resp.data); return resp.data; }
   } catch (e) {}
   return null;
+}
+
+// ==================== CACHE PROGRESSIVO: HIDRATAÇÃO ====================
+// Preenche o resultsCache em lotes até conter o histórico completo do Postgres.
+// Roda em background (com pausas) para não bloquear requisições durante o boot.
+async function hydrateCacheInBackground() {
+  try {
+    const cacheTotal = await db.getResultsCount();
+    while (true) {
+      // Pausa leve entre lotes: deixa o event loop atender as requisições
+      await new Promise(r => setTimeout(r, 60));
+      const next = await db.getResultsWindow(HYDRATE_BATCH_SIZE, resultsCache.length);
+      if (!next || next.length === 0) break;
+      const known = new Set(resultsCache.map(c => c.numero));
+      const fresh = next.filter(c => !known.has(c.numero));
+      resultsCache = resultsCache.concat(fresh);
+      resultsCache.sort((a, b) => a.numero - b.numero);
+      console.log(`📦 Cache: ${resultsCache.length}/${cacheTotal} concursos hidratados`);
+    }
+    // Reconciliação final (sempre): se um concurso antigo foi inserido no meio
+    // da hidratação (ex.: /api/results/500 logo após o boot), o offset por
+    // `length` pode ter pulado um trecho sem alterar o total — a checagem por
+    // contagem não detectaria. Recarrega tudo do Postgres (medido: ~711ms)
+    // para garantir que cache e IA fiquem 100% completos.
+    resultsCache = await db.getResults();
+    console.log(`🔁 Reconciliação final: ${resultsCache.length} concursos no cache`);
+    // Com o histórico completo, recarrega o motor da IA (aprende com TUDO)
+    geneticEngine.loadHistoricalResults();
+    console.log(`✅ Cache 100% hidratado (${resultsCache.length} concursos) — IA com histórico completo`);
+  } catch (e) {
+    // Falha na hidratação não derruba o servidor: o findInDatabase cobre
+    // qualquer número fora do cache (busca no Postgres e depois nas APIs).
+    console.error('⚠️ Hidratação em background interrompida:', e.message);
+  }
+}
+
+// ==================== SINC. INCREMENTAL (ATUALIZAÇÃO) ====================
+// Verifica qual é o último concurso nas APIs externas (prioriza a Caixa, fonte
+// oficial) e salva os concursos que faltam no banco + cache. Roda em background
+// no boot: depois disso, cada boot só baixa a atualização.
+async function syncMissingResults() {
+  try {
+    await ensureReady();
+    const dbLatest = await db.getLatestResult();
+    const dbNum = dbLatest ? parseInt(dbLatest.numero, 10) : 0;
+
+    // Busca o "último" oficial — Caixa primeiro (fonte da verdade), depois cascata
+    let apiLatest = null;
+    try {
+      const resp = await axios.get(`${CAIXA_API_BASE}/lotofacil/latest`, {
+        timeout: 4000, headers: { 'Accept': 'application/json' }
+      });
+      if (resp.data && resp.data.numero && resp.data.listaDezenas) apiLatest = resp.data;
+    } catch (e) {}
+    if (!apiLatest) apiLatest = await tryFetchFromExternalAPIs();
+    if (!apiLatest || !apiLatest.numero) return;
+
+    const apiNum = parseInt(apiLatest.numero, 10);
+    if (apiNum <= dbNum) {
+      console.log(`📥 Banco já atualizado (último: #${dbNum})`);
+      return;
+    }
+
+    const missing = Math.min(apiNum - dbNum, 30); // limite de segurança por execução
+    console.log(`📥 Sincronizando ${missing} concurso(s) faltante(s) (#${dbNum + 1} → #${apiNum})...`);
+    for (let n = dbNum + 1; n <= dbNum + missing; n++) {
+      const c = await fetchLotofacilResultsByContest(n);
+      if (!c || !c.listaDezenas) {
+        console.log(`   #${n} indisponível nas APIs — sincronização interrompida`);
+        break;
+      }
+      await saveToDatabase(c);
+      console.log(`   ✅ #${n} sincronizado (${c.dataApuracao || '?'})`);
+    }
+    console.log('📥 Sincronização concluída');
+  } catch (e) {
+    console.error('⚠️ Erro na sincronização incremental:', e.message);
+  }
 }
 
 // ==================== AI ENGINE INTEGRATION ====================
@@ -1429,6 +1532,11 @@ app.get('/api/cron/process-subscriptions', async (req, res) => {
   }
   try {
     await processSubscriptions();
+    // Sincroniza concursos faltantes (atualização incremental via Caixa). No
+    // serverless os timers de background congelam, então o cron (1x/dia no
+    // Hobby) é o lugar certo para manter o banco atualizado em produção.
+    // A função já trata erros internamente (não lança).
+    await syncMissingResults();
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });

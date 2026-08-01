@@ -34,7 +34,17 @@ docker run -d --name lotofacil-pg \
 cd web
 npm install
 cp .env.example .env   # preencha DATABASE_URL, SESSION_SECRET, CRON_SECRET, SITE_URL
+# Opcional: se preferir, use um arquivo .env.local — o dotenv também carrega ele
+# (com prioridade sobre o .env). É o formato que o `vercel env pull` gera.
 ```
+
+Env vars suportadas (todas opcionais, com default):
+- `SESSION_MAX_AGE_DAYS` — validade da sessão em dias (default `30`; quem já logou
+  entra direto no dashboard sem novo login dentro desse período)
+- `FITNESS_WINDOW_SIZE` — janela de concursos que a IA usa no treinamento
+  (default `300`; `100` = evolução rápida ~4min, `3750` = aprendizado máximo ~55min)
+- `PGSSL=false` — apenas para Postgres local sem SSL
+- `COOKIE_SECURE=false` — apenas para dev local em HTTP
 ### Passo 3: Migre os dados (importa os JSONs locais para o Postgres)
 ```bash
 npm run migrate
@@ -100,9 +110,15 @@ Resumo:
 # 2. Localmente, migre os dados:
 DATABASE_URL="postgresql://..." npm run migrate
 # 3. No Vercel, importe o repo com Root Directory: web
-#    e configure DATABASE_URL, SESSION_SECRET, CRON_SECRET, SITE_URL
+#    e configure DATABASE_URL, SESSION_SECRET, CRON_SECRET, SITE_URL,
+#    SESSION_MAX_AGE_DAYS (opcional) e FITNESS_WINDOW_SIZE (opcional)
 # 4. Deploy! O vercel.json cuida do Express, estáticos e cron.
 ```
+
+> 🔑 **URL correta para os usuários:** use a URL de produção (`https://lotofacil-platform.vercel.app`).
+> Os links de preview (`*-git-main-*.vercel.app`) são protegidos pela Vercel Authentication e
+> pedem login da Vercel (conta social) — isso é proteção da plataforma, não do app.
+> O app em si usa login por e-mail/senha (sem Google).
 
 ## 🔧 Comandos Disponíveis (Web)
 ```bash
@@ -113,8 +129,23 @@ npm run vercel-build  # build para o Vercel
 ```
 
 ## 🤖 Motor de IA
-- **`web/lib/genetic_engine.js`**: Motor genético usado pela plataforma web (carrega histórico e semente do Postgres)
+- **`web/lib/genetic_engine.js`**: Motor genético usado pela plataforma web (carrega histórico e semente do Postgres).
+  Treina contra os últimos `FITNESS_WINDOW_SIZE` concursos (default 300) — ajustável por env.
 - **`api_jogos_ia/`**: Engine em Python (FastAPI) para treinamento e geração de jogos com parâmetros de aprendizado de máquina
+
+### Cache progressivo de resultados
+O cache em memória **não carrega tudo de uma vez no boot**:
+1. **Boot rápido** — carrega só os 100 concursos mais recentes (primeira tela instantânea)
+2. **Hidratação em background** — lotes de 500 até o histórico completo do Postgres; a IA é
+   recarregada ao final para aprender com **todos** os concursos
+3. **Reconciliação** — se um concurso antigo for inserido no meio da hidratação, o cache é
+   realinhado (recarga completa ~711ms)
+4. **Sincronização incremental** — no boot consulta a Caixa (fonte oficial) e salva só os
+   concursos que faltam; no Vercel, o cron diário mantém o banco atualizado
+5. **Fallback sob demanda** — concurso fora do cache busca no Postgres/APIs como na primeira vez
+
+> No Vercel (serverless), o histórico completo é carregado de forma **síncrona** (~711ms) porque
+> timers de background congelam após a resposta HTTP — a IA sempre aprende com todos os concursos.
 
 ## 📱 Telas do Aplicativo (Mobile)
 1. **🏠 Home**: Saldo, últimos resultados, cards de jogos e geração com IA

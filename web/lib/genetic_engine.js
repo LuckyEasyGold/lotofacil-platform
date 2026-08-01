@@ -13,6 +13,13 @@
 const fs = require('fs');
 const path = require('path');
 
+// Janela de concursos usada na avaliação de fitness (os N mais recentes).
+// Trade-off: janela maior = aprendizado mais amplo, mas evolução mais lenta.
+// Medido (100pop x 20gen): 100→~4min · 300→~6min · 500→~9.6min · 3750→~55min.
+// Configurável via env FITNESS_WINDOW_SIZE (ex.: 100 para evolução rápida,
+// 500+ para aprendizado mais amplo). Default 300 = bom equilíbrio.
+const FITNESS_WINDOW_SIZE = parseInt(process.env.FITNESS_WINDOW_SIZE || '300', 10) || 300;
+
 class LotteryGeneticEngine {
   constructor(gameType = 'LOTOFACIL', options = {}) {
     this.gameType = gameType;
@@ -48,7 +55,7 @@ class LotteryGeneticEngine {
         this.historicalResults = data
           .filter(c => c.listaDezenas && Array.isArray(c.listaDezenas))
           .map(c => c.listaDezenas.map(n => parseInt(n)));
-        this.historicalSets = this.historicalResults.slice(-100).map(r => new Set(r));
+        this.historicalSets = this.historicalResults.slice(-FITNESS_WINDOW_SIZE).map(r => new Set(r));
         console.log(`🧬 Engine: ${this.historicalResults.length} resultados históricos carregados (DB)`);
         return true;
       }
@@ -62,7 +69,7 @@ class LotteryGeneticEngine {
           .filter(c => c.listaDezenas && Array.isArray(c.listaDezenas))
           .map(c => c.listaDezenas.map(n => parseInt(n)));
         // Pre-compute Sets for fast matching — evita recriar 75M de Sets na evolução
-        this.historicalSets = this.historicalResults.slice(-100).map(r => new Set(r));
+        this.historicalSets = this.historicalResults.slice(-FITNESS_WINDOW_SIZE).map(r => new Set(r));
         console.log(`🧬 Engine: ${this.historicalResults.length} resultados históricos carregados`);
         return true;
       }
