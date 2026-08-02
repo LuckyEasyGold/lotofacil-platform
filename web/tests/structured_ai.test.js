@@ -3,13 +3,16 @@
  * Cobre: perfil estrutural, geração estruturada e bolão estruturado com IA.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { registerUser, cleanupTestData } from './helpers.js';
+import { registerUser, fundUser, cleanupTestData } from './helpers.js';
 
 describe('IA Estrutural (Motor 1 + Motor 2)', () => {
   let agent;
+  let user;
 
   beforeAll(async () => {
-    ({ agent } = await registerUser());
+    const reg = await registerUser();
+    agent = reg.agent;
+    user = reg.user;
   });
 
   afterAll(async () => {
@@ -57,8 +60,8 @@ describe('IA Estrutural (Motor 1 + Motor 2)', () => {
   });
 
   it('POST /api/pools/structured cria bolão com N jogos gerados pela IA e 1 cota', async () => {
-    // Usuário de teste nasce sem saldo; deposita para passar na checagem
-    await agent.post('/api/wallet/deposit').send({ amount: 100 });
+    // Usuário de teste nasce sem saldo; credita direto (depósito PIX confirmado)
+    await fundUser(user.id, 100);
     const res = await agent.post('/api/pools/structured').send({
       name: 'Bolão IA Teste',
       quantity: 3,

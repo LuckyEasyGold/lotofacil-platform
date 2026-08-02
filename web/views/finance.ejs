@@ -1,0 +1,161 @@
+<% let body = `
+<!-- Stats -->
+<div class="stats-grid" style="margin-bottom:24px;">
+  <div class="stat-card primary">
+    <div class="stat-icon"><i class="fas fa-arrow-down"></i></div>
+    <div class="stat-label">Depósitos PIX Pendentes</div>
+    <div class="stat-value gradient" id="statDeposits">0</div>
+  </div>
+  <div class="stat-card accent">
+    <div class="stat-icon"><i class="fas fa-arrow-up"></i></div>
+    <div class="stat-label">Saques Pendentes</div>
+    <div class="stat-value" style="color:var(--accent);" id="statWithdrawals">0</div>
+  </div>
+</div>
+
+<!-- Depósitos PIX -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">⬇️ Depósitos PIX aguardando confirmação</div>
+      <div class="card-subtitle">O usuário gerou o QR Code e afirma ter pago. Confirme após verificar o recebimento na conta da plataforma.</div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="loadPending()" title="Atualizar">
+      <i class="fas fa-sync"></i>
+    </button>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr><th>Usuário</th><th>Valor</th><th>TxID</th><th>Data</th><th>Expira</th><th style="text-align:right">Ações</th></tr>
+      </thead>
+      <tbody id="depositsBody">
+        <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:40px;">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Saques -->
+<div class="card mt-3">
+  <div class="card-header">
+    <div>
+      <div class="card-title">⬆️ Saques aguardando processamento</div>
+      <div class="card-subtitle">O saldo já foi debitado do usuário. Confirme após transferir via PIX, ou cancele para estornar.</div>
+    </div>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr><th>Usuário</th><th>Valor</th><th>Destino</th><th>Data</th><th style="text-align:right">Ações</th></tr>
+      </thead>
+      <tbody id="withdrawalsBody">
+        <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:40px;">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+document.addEventListener('DOMContentLoaded', loadPending);
+
+async function loadPending() {
+  try {
+    const data = await api.getPendingFinance();
+    renderDeposits(data.deposits || []);
+    renderWithdrawals(data.withdrawals || []);
+  } catch(e) {
+    document.getElementById('depositsBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--danger);padding:40px;">Erro ao carregar fila</td></tr>';
+  }
+}
+
+function renderDeposits(deposits) {
+  document.getElementById('statDeposits').textContent = deposits.length;
+  const tbody = document.getElementById('depositsBody');
+  if (!deposits.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:40px;">Nenhum depósito pendente 🎉</td></tr>';
+    return;
+  }
+  tbody.innerHTML = deposits.map(d => {
+    const exp = d.expiresAt ? new Date(d.expiresAt).toLocaleString('pt-BR') : '—';
+    return '<tr>' +
+      '<td><div style="font-weight:600;">' + esc(d.userName || '—') + '</div><div style="font-size:12px;color:var(--text-muted);">' + esc(d.userEmail || '') + '</div></td>' +
+      '<td style="font-weight:700;color:var(--secondary);">' + formatCurrency(d.amount) + '</td>' +
+      '<td style="font-size:12px;">' + esc(d.txid || '—') + '</td>' +
+      '<td style="font-size:13px;">' + new Date(d.createdAt).toLocaleDateString('pt-BR') + ' ' + new Date(d.createdAt).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) + '</td>' +
+      '<td style="font-size:12px;color:var(--text-muted);">' + exp + '</td>' +
+      '<td style="text-align:right;white-space:nowrap;">' +
+        '<button class="btn btn-success btn-sm" onclick="confirmDeposit(\\'' + d.id + '\\')" style="margin-right:6px;"><i class="fas fa-check"></i> Confirmar</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="cancelDeposit(\\'' + d.id + '\\')"><i class="fas fa-times"></i></button>' +
+      '</td></tr>';
+  }).join('');
+}
+
+function renderWithdrawals(withdrawals) {
+  document.getElementById('statWithdrawals').textContent = withdrawals.length;
+  const tbody = document.getElementById('withdrawalsBody');
+  if (!withdrawals.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:40px;">Nenhum saque pendente 🎉</td></tr>';
+    return;
+  }
+  tbody.innerHTML = withdrawals.map(w => {
+    return '<tr>' +
+      '<td><div style="font-weight:600;">' + esc(w.userName || '—') + '</div><div style="font-size:12px;color:var(--text-muted);">' + esc(w.userEmail || '') + '</div></td>' +
+      '<td style="font-weight:700;color:var(--accent);">' + formatCurrency(Math.abs(w.amount)) + '</td>' +
+      '<td style="font-size:12px;max-width:200px;word-break:break-all;">' + esc(w.description || '—') + '</td>' +
+      '<td style="font-size:13px;">' + new Date(w.date).toLocaleDateString('pt-BR') + ' ' + new Date(w.date).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) + '</td>' +
+      '<td style="text-align:right;white-space:nowrap;">' +
+        '<button class="btn btn-success btn-sm" onclick="confirmWithdraw(\\'' + w.id + '\\')" style="margin-right:6px;"><i class="fas fa-check"></i> Pagar</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="cancelWithdraw(\\'' + w.id + '\\')"><i class="fas fa-undo"></i></button>' +
+      '</td></tr>';
+  }).join('');
+}
+
+async function confirmDeposit(id) {
+  if (!confirm('Confirmar este depósito? O saldo será creditado ao usuário.')) return;
+  try {
+    const r = await api.confirmDeposit(id);
+    if (r.success) { showToast('Depósito confirmado ✅', 'success'); loadPending(); }
+    else showToast(r.error || 'Erro', 'error');
+  } catch(e) { showToast(e.message || 'Erro', 'error'); }
+}
+
+async function cancelDeposit(id) {
+  if (!confirm('Cancelar esta cobrança PIX? O usuário não será creditado.')) return;
+  try {
+    const r = await api.cancelDeposit(id);
+    if (r.success) { showToast('Cobrança cancelada', 'info'); loadPending(); }
+    else showToast(r.error || 'Erro', 'error');
+  } catch(e) { showToast(e.message || 'Erro', 'error'); }
+}
+
+async function confirmWithdraw(id) {
+  if (!confirm('Confirmar que o saque foi PAGO via PIX? O valor já está debitado do usuário.')) return;
+  try {
+    const r = await api.confirmWithdraw(id);
+    if (r.success) { showToast('Saque marcado como pago ✅', 'success'); loadPending(); }
+    else showToast(r.error || 'Erro', 'error');
+  } catch(e) { showToast(e.message || 'Erro', 'error'); }
+}
+
+async function cancelWithdraw(id) {
+  if (!confirm('Cancelar o saque? O valor será ESTORNADO para a carteira do usuário.')) return;
+  try {
+    const r = await api.cancelWithdraw(id);
+    if (r.success) { showToast('Saque cancelado e estornado', 'info'); loadPending(); }
+    else showToast(r.error || 'Erro', 'error');
+  } catch(e) { showToast(e.message || 'Erro', 'error'); }
+}
+
+// Auto-refresh a cada 15s
+setInterval(loadPending, 15000);
+</script>
+<style>
+@media (max-width: 768px) {
+  .table-container { overflow-x: auto; }
+}
+</style>
+` %>
+<%- include('layout', { body: body, title: 'Financeiro', page: 'finance', user: user, subtitle: subtitle }) %>

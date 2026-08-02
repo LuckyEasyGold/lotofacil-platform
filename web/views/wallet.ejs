@@ -53,6 +53,34 @@
   </div>
 </div>
 
+<!-- Dados para Saque (PIX) -->
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">💳 Dados para Saque</div>
+      <div class="card-subtitle">Cadastre suas chaves PIX para receber saques</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openBankDetailModal()"><i class="fas fa-plus"></i> Nova chave</button>
+  </div>
+  <div id="bankDetailsList">
+    <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">Carregando...</div>
+  </div>
+</div>
+
+<!-- Depósitos PIX pendentes -->
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">🧾 Depósitos Pendentes</div>
+      <div class="card-subtitle">Cobranças PIX aguardando pagamento/confirmação</div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="loadDeposits()" title="Atualizar"><i class="fas fa-sync"></i></button>
+  </div>
+  <div id="pendingDeposits">
+    <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">Carregando...</div>
+  </div>
+</div>
+
 <div class="card">
   <div class="card-header">
     <div>
@@ -80,7 +108,14 @@
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
   await loadTransactions();
+  await loadBankDetails();
+  await loadDeposits();
 });
+
+// Estado local (índices numéricos nos onclicks evitam problemas de escape no EJS)
+let _bankDetails = [];
+let _pendingDeposits = [];
+let _currentPixId = null;
 
 async function loadTransactions(filter = 'all') {
   try {
@@ -105,7 +140,7 @@ async function loadTransactions(filter = 'all') {
         '<td style="color:var(--text)">' + t.description + '</td>' +
         '<td>' + new Date(t.date).toLocaleDateString('pt-BR') + '</td>' +
         '<td style="text-align:right;font-weight:700;color:' + (isPositive ? 'var(--secondary)' : 'var(--danger)') + '">' + (isPositive ? '+' : '') + formatCurrency(Math.abs(t.amount)) + '</td>' +
-        '<td><span class="status-badge ' + t.status + '">' + (t.status === 'completed' ? 'Concluído' : t.status === 'pending' ? 'Pendente' : t.status) + '</span></td>' +
+        '<td><span class="status-badge ' + t.status + '">' + (t.status === 'completed' ? 'Concluído' : t.status === 'pending' ? 'Pendente' : t.status === 'failed' ? 'Cancelado' : t.status) + '</span></td>' +
         '</tr>';
     }).join('');
   } catch(e) {
@@ -114,50 +149,222 @@ async function loadTransactions(filter = 'all') {
 }
 
 function filterTransactions(filter) { loadTransactions(filter); }
+
+// ==================== DEPÓSITO VIA PIX ====================
+
 function openDepositModal() {
-  openModal('💰 Depósito', 'Adicione saldo à sua carteira',
+  openModal('💰 Depósito via PIX', 'Gere o QR Code e pague pelo app do seu banco',
     '<div class="form-group"><label>Valor do Depósito</label><div class="form-input"><input type="number" id="depositAmount" placeholder="Ex: 100,00" step="0.01" min="1"></div></div>' +
-    '<div class="form-group"><label>Método</label><div class="form-input"><select id="depositMethod"><option value="PIX">PIX (Instantâneo)</option><option value="Boleto">Boleto Bancário</option><option value="Cartão">Cartão de Crédito</option></select></div></div>' +
     '<div style="background:var(--bg-input);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--text-secondary);">' +
-    '<i class="fas fa-info-circle" style="color:var(--primary-light)"></i> Depósitos via PIX são creditados instantaneamente.</div>' +
-    '<button class="btn btn-success btn-full" onclick="doDeposit()"><i class="fas fa-check"></i> Confirmar Depósito</button>'
+    '<i class="fas fa-info-circle" style="color:var(--primary-light)"></i> Após pagar, nossa equipe confirma o recebimento e o saldo é liberado na carteira.</div>' +
+    '<button class="btn btn-success btn-full" onclick="doDeposit()"><i class="fas fa-qrcode"></i> Gerar QR Code PIX</button>'
   );
 }
-function openWithdrawModal() {
-  openModal('💸 Saque', 'Transfira seu saldo para sua conta bancária',
+
+async function doDeposit() {
+  const amount = parseFloat(document.getElementById('depositAmount').value);
+  if (!amount || amount <= 0) return showToast('Digite um valor válido', 'error');
+  try {
+    const result = await api.requestDeposit(amount);
+    if (result.success && result.pixCharge) {
+      showPixCharge(result.pixCharge);
+    } else {
+      showToast(result.error || 'Erro ao gerar PIX', 'error');
+    }
+  } catch(e) { showToast(e.message || 'Erro ao gerar PIX', 'error'); }
+}
+
+function showPixCharge(charge) {
+  _currentPixId = charge.id;
+  const qrImg = charge.qrCodeBase64
+    ? '<img src="data:image/png;base64,' + charge.qrCodeBase64 + '" style="width:190px;height:190px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.3);" alt="QR Code PIX">'
+    : '<div style="font-size:44px;color:var(--text-muted);padding:30px;"><i class="fas fa-qrcode"></i></div>';
+  document.getElementById('modalTitle').textContent = 'Pague via PIX';
+  document.getElementById('modalDesc').textContent = 'Escaneie o QR Code ou copie o código PIX';
+  document.getElementById('modalBody').innerHTML =
+    '<div style="text-align:center;margin-bottom:16px;">' + qrImg + '</div>' +
+    '<div style="text-align:center;font-size:26px;font-weight:800;color:var(--secondary);margin-bottom:4px;">' + formatCurrency(charge.amount) + '</div>' +
+    '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:12px;">Válido até ' + new Date(charge.expiresAt).toLocaleTimeString('pt-BR') + '</div>' +
+    '<div style="background:var(--bg-input);border:1px dashed var(--border);border-radius:10px;padding:12px;font-size:11px;word-break:break-all;margin-bottom:12px;color:var(--text-secondary);" id="pixPayload">' + charge.qrCode + '</div>' +
+    '<button class="btn btn-secondary btn-full" style="margin-bottom:8px;" onclick="copyPixPayload()"><i class="fas fa-copy"></i> Copiar código PIX</button>' +
+    '<div style="background:rgba(245,158,11,0.1);border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px;color:var(--accent);text-align:center;" id="pixStatus">' +
+      '<i class="fas fa-hourglass-half"></i> Aguardando pagamento...<br><span style="font-size:12px;">Ao pagar, clique em "Já paguei" para verificar</span></div>' +
+    '<button class="btn btn-primary btn-full" onclick="checkDepositStatus()"><i class="fas fa-sync"></i> Já paguei — verificar</button>'
+  ;
+}
+
+function copyPixPayload() {
+  const el = document.getElementById('pixPayload');
+  if (!el) return showToast('Código indisponível', 'error');
+  navigator.clipboard.writeText(el.textContent.trim()).then(() => {
+    showToast('Código PIX copiado!', 'success');
+  }).catch(() => showToast('Não foi possível copiar', 'error'));
+}
+
+async function checkDepositStatus() {
+  if (!_currentPixId) return;
+  await checkPixById(_currentPixId);
+}
+
+async function checkPixById(id) {
+  try {
+    const data = await api.getDeposits();
+    const charge = (data.deposits || []).find(d => d.id === id);
+    if (!charge) return;
+    if (charge.status === 'paid') {
+      const st = document.getElementById('pixStatus');
+      if (st) st.innerHTML = '<i class="fas fa-check-circle" style="color:var(--secondary)"></i> Pagamento confirmado! Saldo liberado.';
+      showToast('Depósito confirmado! Saldo liberado.', 'success');
+      closeModal();
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      showToast('Pagamento ainda não confirmado. Aguarde a confirmação da equipe.', 'info');
+      loadDeposits();
+    }
+  } catch(e) {}
+}
+
+// ==================== DEPÓSITOS PENDENTES ====================
+
+async function loadDeposits() {
+  try {
+    const data = await api.getDeposits();
+    _pendingDeposits = (data.deposits || []).filter(d => d.status === 'pending');
+    renderPendingDeposits();
+  } catch(e) {}
+}
+
+function renderPendingDeposits() {
+  const el = document.getElementById('pendingDeposits');
+  if (!el) return;
+  if (!_pendingDeposits.length) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhum depósito pendente</div>';
+    return;
+  }
+  el.innerHTML = _pendingDeposits.map((d, i) =>
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-bottom:1px solid var(--border);">' +
+      '<div><div style="font-weight:600;color:var(--secondary);">' + formatCurrency(d.amount) + '</div>' +
+      '<div style="font-size:11px;color:var(--text-muted);">' + (d.txid || '') + '</div></div>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button class="btn btn-secondary btn-sm" onclick="copyPendingPix(' + i + ')"><i class="fas fa-copy"></i></button>' +
+        '<button class="btn btn-primary btn-sm" onclick="checkPendingPix(' + i + ')"><i class="fas fa-sync"></i> Verificar</button>' +
+      '</div></div>'
+  ).join('');
+}
+
+function copyPendingPix(i) {
+  const d = _pendingDeposits[i];
+  if (!d) return;
+  navigator.clipboard.writeText(d.qrCode || '').then(() => showToast('Código PIX copiado!', 'success'));
+}
+
+function checkPendingPix(i) {
+  const d = _pendingDeposits[i];
+  if (!d) return;
+  checkPixById(d.id);
+}
+
+// ==================== SAQUE VIA PIX ====================
+
+async function openWithdrawModal() {
+  try {
+    const data = await api.getBankDetails();
+    _bankDetails = data.bankDetails || [];
+  } catch(e) { _bankDetails = []; }
+
+  let bankOptions = '<option value="">— Digite uma chave PIX abaixo —</option>';
+  for (let i = 0; i < _bankDetails.length; i++) {
+    bankOptions += '<option value="' + _bankDetails[i].id + '">' + (_bankDetails[i].chavePix || (_bankDetails[i].bancoNome || 'Conta')) + '</option>';
+  }
+
+  openModal('💸 Saque via PIX', 'O saldo é debitado e enviado para sua chave PIX',
     '<div class="form-group"><label>Valor do Saque</label><div class="form-input"><input type="number" id="withdrawAmount" placeholder="Ex: 50,00" step="0.01" min="1"></div></div>' +
-    '<div class="form-group"><label>Banco</label><div class="form-input"><select id="withdrawBank"><option value="nubank">Nubank</option><option value="itau">Itaú</option><option value="bradesco">Bradesco</option><option value="santander">Santander</option><option value="bb">Banco do Brasil</option><option value="caixa">Caixa</option></select></div></div>' +
-    '<div class="form-group"><label>Agência</label><div class="form-input"><input type="text" id="withdrawAgency" placeholder="0000"></div></div>' +
-    '<div class="form-group"><label>Conta</label><div class="form-input"><input type="text" id="withdrawAccount" placeholder="00000-0"></div></div>' +
+    '<div class="form-group"><label>Chave PIX salva</label><div class="form-input"><select id="withdrawBankDetail">' + bankOptions + '</select></div></div>' +
+    '<div class="form-group"><label>Ou digite outra chave PIX</label><div class="form-input"><input type="text" id="withdrawPixKey" placeholder="CPF, e-mail, celular ou CNPJ"></div></div>' +
     '<div style="background:var(--bg-input);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--text-secondary);">' +
-    '<i class="fas fa-clock" style="color:var(--accent)"></i> Saques são processados em até 2 dias úteis.</div>' +
+    '<i class="fas fa-clock" style="color:var(--accent)"></i> Saques são processados em até 1 dia útil após a confirmação.</div>' +
     '<button class="btn btn-primary btn-full" onclick="doWithdraw()"><i class="fas fa-check"></i> Solicitar Saque</button>'
   );
 }
-async function doDeposit() {
-  const amount = parseFloat(document.getElementById('depositAmount').value);
-  const method = document.getElementById('depositMethod').value;
-  if (!amount || amount <= 0) return showToast('Digite um valor válido', 'error');
-  try {
-    const result = await api.deposit(amount, method);
-    if (result.success) {
-      showToast(formatCurrency(amount) + ' depositados com sucesso!', 'success');
-      closeModal();
-      setTimeout(() => location.reload(), 1500);
-    }
-  } catch(e) { showToast('Erro ao depositar', 'error'); }
-}
+
 async function doWithdraw() {
   const amount = parseFloat(document.getElementById('withdrawAmount').value);
   if (!amount || amount <= 0) return showToast('Digite um valor válido', 'error');
+  const bankDetailsId = document.getElementById('withdrawBankDetail').value || null;
+  const chavePix = document.getElementById('withdrawPixKey').value.trim() || null;
+  if (!bankDetailsId && !chavePix) return showToast('Informe a chave PIX de destino', 'error');
   try {
-    const result = await api.withdraw(amount);
+    const result = await api.withdraw(amount, chavePix, bankDetailsId);
     if (result.success) {
       showToast('Saque de ' + formatCurrency(amount) + ' solicitado!', 'success');
       closeModal();
-      setTimeout(() => location.reload(), 1500);
+      setTimeout(() => location.reload(), 1200);
     }
   } catch(e) { showToast(e.message || 'Erro ao sacar', 'error'); }
+}
+
+// ==================== DADOS BANCÁRIOS ====================
+
+async function loadBankDetails() {
+  try {
+    const data = await api.getBankDetails();
+    _bankDetails = data.bankDetails || [];
+    renderBankDetails();
+  } catch(e) { _bankDetails = []; }
+}
+
+function renderBankDetails() {
+  const el = document.getElementById('bankDetailsList');
+  if (!el) return;
+  if (!_bankDetails.length) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhuma chave PIX cadastrada. Adicione uma para receber saques.</div>';
+    return;
+  }
+  el.innerHTML = _bankDetails.map((b, i) =>
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-bottom:1px solid var(--border);">' +
+      '<div><div style="font-weight:600;">' + (b.chavePix || (b.bancoNome || 'Conta')) + '</div>' +
+      (b.bancoNome || b.titularNome
+        ? '<div style="font-size:11px;color:var(--text-muted);">' + (b.titularNome || '') + ' ' + (b.bancoNome || '') + (b.conta ? ' · ' + b.conta : '') + '</div>'
+        : '') +
+      '</div>' +
+      '<button class="btn btn-danger btn-sm" onclick="deleteBankDetail(' + i + ')"><i class="fas fa-trash"></i></button>' +
+    '</div>'
+  ).join('');
+}
+
+function openBankDetailModal() {
+  openModal('💳 Cadastrar chave PIX', 'Use esta chave para receber os valores dos saques',
+    '<div class="form-group"><label>Chave PIX *</label><div class="form-input"><input type="text" id="bdChavePix" placeholder="CPF, e-mail, celular ou CNPJ"></div></div>' +
+    '<div class="form-group"><label>Banco (opcional)</label><div class="form-input"><input type="text" id="bdBancoNome" placeholder="Ex: Nubank"></div></div>' +
+    '<div class="form-group"><label>Titular (opcional)</label><div class="form-input"><input type="text" id="bdTitular" placeholder="Nome do titular"></div></div>' +
+    '<button class="btn btn-success btn-full" onclick="saveBankDetail()"><i class="fas fa-check"></i> Salvar</button>'
+  );
+}
+
+async function saveBankDetail() {
+  const chavePix = document.getElementById('bdChavePix').value.trim();
+  if (!chavePix) return showToast('Informe a chave PIX', 'error');
+  const data = { chavePix: chavePix };
+  const bn = document.getElementById('bdBancoNome').value.trim();
+  const tt = document.getElementById('bdTitular').value.trim();
+  if (bn) data.bancoNome = bn;
+  if (tt) data.titularNome = tt;
+  try {
+    const r = await api.saveBankDetail(data);
+    if (r.success) { showToast('Chave PIX salva!', 'success'); closeModal(); loadBankDetails(); }
+    else showToast(r.error || 'Erro', 'error');
+  } catch(e) { showToast(e.message || 'Erro', 'error'); }
+}
+
+async function deleteBankDetail(i) {
+  const b = _bankDetails[i];
+  if (!b) return;
+  if (!confirm('Remover esta chave PIX?')) return;
+  try {
+    const r = await api.deleteBankDetail(b.id);
+    if (r.success) { showToast('Chave removida', 'info'); loadBankDetails(); }
+    else showToast(r.error || 'Erro', 'error');
+  } catch(e) { showToast(e.message || 'Erro', 'error'); }
 }
 </script>
 <style>

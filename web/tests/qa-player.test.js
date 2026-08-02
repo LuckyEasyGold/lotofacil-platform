@@ -15,7 +15,7 @@
  * jogador — não apenas que as rotas respondem 200.
  */
 import { describe, it, expect, afterAll } from 'vitest';
-import { registerUser, cleanupTestData } from './helpers.js';
+import { registerUser, fundUser, cleanupTestData } from './helpers.js';
 
 const QUINZE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 const VINTE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
@@ -33,10 +33,10 @@ describe('QA — fluxo completo do jogador', () => {
   });
 
   it('1. cadastro + depósito', async () => {
-    const { agent } = await registerUser();
-    const dep = await agent.post('/api/wallet/deposit').send({ amount: 1000 });
-    expect(dep.status).toBe(200);
-    expect(dep.body.balance).toBe(1000);
+    const { agent, user } = await registerUser();
+    await fundUser(user.id, 1000);
+    const wallet = await agent.get('/api/wallet');
+    expect(wallet.body.balance).toBe(1000);
   });
 
   it('2. tabela de preços oficial (Lotofácil 15-20 dezenas)', async () => {
@@ -53,8 +53,8 @@ describe('QA — fluxo completo do jogador', () => {
   });
 
   it('3. apostar 15 dezenas custa R$ 3,50 e cria o jogo no portfólio', async () => {
-    const { agent } = await registerUser();
-    await agent.post('/api/wallet/deposit').send({ amount: 100 });
+    const { agent, user } = await registerUser();
+    await fundUser(user.id, 100);
 
     // Antes: portfólio vazio
     const antes = await agent.get('/api/games');
@@ -77,8 +77,8 @@ describe('QA — fluxo completo do jogador', () => {
   });
 
   it('4. apostar 16 dezenas custa R$ 56,00 (tabela da Caixa)', async () => {
-    const { agent } = await registerUser();
-    await agent.post('/api/wallet/deposit').send({ amount: 200 });
+    const { agent, user } = await registerUser();
+    await fundUser(user.id, 200);
 
     const DEZESSEIS = [...QUINZE, 20];
     const bet = await agent.post('/api/bets').send({ gameType: 'LOTOFACIL', numbers: DEZESSEIS });
@@ -97,8 +97,8 @@ describe('QA — fluxo completo do jogador', () => {
   });
 
   it('6. criar bolão a partir de um jogo + entrar com cotas', async () => {
-    const { agent: criador } = await registerUser();
-    await criador.post('/api/wallet/deposit').send({ amount: 500 });
+    const { agent: criador, user: criadorUser } = await registerUser();
+    await fundUser(criadorUser.id, 500);
 
     const game = await criador.post('/api/games').send({ gameType: 'LOTOFACIL', numbers: QUINZE, name: 'Jogo do Bolão' });
     const gameId = game.body.game.id;
@@ -112,8 +112,8 @@ describe('QA — fluxo completo do jogador', () => {
     expect(pool.body.pool.numbers).toEqual(QUINZE);
 
     // Outro jogador entra comprando 2 cotas
-    const { agent: participante } = await registerUser({ name: 'Participante QA' });
-    await participante.post('/api/wallet/deposit').send({ amount: 200 });
+    const { agent: participante, user: participanteUser } = await registerUser({ name: 'Participante QA' });
+    await fundUser(participanteUser.id, 200);
     const join = await participante.post(`/api/pools/${pool.body.pool.id}/join`).send({ shares: 2 });
     expect(join.status).toBe(200);
     expect(join.body.pool.availableShares).toBe(7);
@@ -122,8 +122,8 @@ describe('QA — fluxo completo do jogador', () => {
 
   it('7. ofertar cotas no mercado e outro jogador comprar', async () => {
     // Nomes DISTINTOS: o buy-offer valida por nome (não comprar as próprias cotas)
-    const { agent: vendedor } = await registerUser({ name: 'Vendedor QA' });
-    await vendedor.post('/api/wallet/deposit').send({ amount: 500 });
+    const { agent: vendedor, user: vendedorUser } = await registerUser({ name: 'Vendedor QA' });
+    await fundUser(vendedorUser.id, 500);
     const game = await vendedor.post('/api/games').send({ gameType: 'LOTOFACIL', numbers: QUINZE, name: 'Oferta' });
     const pool = await vendedor.post(`/api/games/${game.body.game.id}/create-pool`).send({
       name: 'Bolão Oferta', totalShares: 10, sharePrice: 25, contestNumber: 3005
@@ -137,8 +137,8 @@ describe('QA — fluxo completo do jogador', () => {
     expect(offer.body.offer.totalValue).toBe(30);
 
     // Comprador adquire as cotas
-    const { agent: comprador } = await registerUser({ name: 'Comprador QA' });
-    await comprador.post('/api/wallet/deposit').send({ amount: 200 });
+    const { agent: comprador, user: compradorUser } = await registerUser({ name: 'Comprador QA' });
+    await fundUser(compradorUser.id, 200);
     const buy = await comprador.post(`/api/pools/${poolId}/buy-offer/${offer.body.offer.id}`);
     expect(buy.status).toBe(200);
     expect(buy.body.success).toBe(true);
@@ -153,16 +153,16 @@ describe('QA — fluxo completo do jogador', () => {
   });
 
   it('8. aposta com quantidade fora do permitido é rejeitada', async () => {
-    const { agent } = await registerUser();
-    await agent.post('/api/wallet/deposit').send({ amount: 500 });
+    const { agent, user } = await registerUser();
+    await fundUser(user.id, 500);
     // 14 dezenas: abaixo do mínimo (15)
     const res = await agent.post('/api/bets').send({ gameType: 'LOTOFACIL', numbers: QUINZE.slice(0, 14) });
     expect(res.status).toBe(400);
   });
 
   it('9. apostar vinculando jogo do portfólio (gameId) marca o jogo como usado', async () => {
-    const { agent } = await registerUser();
-    await agent.post('/api/wallet/deposit').send({ amount: 100 });
+    const { agent, user } = await registerUser();
+    await fundUser(user.id, 100);
     const game = await agent.post('/api/games').send({ gameType: 'LOTOFACIL', numbers: QUINZE, name: 'Via Portfólio' });
     const gameId = game.body.game.id;
 
@@ -181,8 +181,8 @@ describe('QA — fluxo completo do jogador', () => {
   });
 
   it('10. aposta com gameId de números divergentes é rejeitada (400)', async () => {
-    const { agent } = await registerUser();
-    await agent.post('/api/wallet/deposit').send({ amount: 100 });
+    const { agent, user } = await registerUser();
+    await fundUser(user.id, 100);
     const game = await agent.post('/api/games').send({ gameType: 'LOTOFACIL', numbers: QUINZE, name: 'Original' });
     const gameId = game.body.game.id;
 

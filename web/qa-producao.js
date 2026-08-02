@@ -66,11 +66,23 @@ async function main() {
   const users = await sql('users', 'SELECT id,email,balance,role FROM users WHERE id=$1', [qaUser.id]);
   if (users[0] && users[0].balance === 0) report(true, 'Saldo inicial 0');
 
-  // ---------- 2. Depósito ----------
+  // ---------- 2. Depósito (fluxo PIX REAL: gera cobrança pending, NÃO credita) ----------
   const dep = await qaAgent.post('/api/wallet/deposit').send({ amount: 200 });
-  report(dep.status === 200 && dep.body.balance === 200, 'Depósito R$200',
-    `saldo=${dep.body && dep.body.balance}`);
-  await sql('transactions', 'SELECT type,amount FROM transactions WHERE user_id=$1', [qaUser.id]);
+  const pixOk = dep.status === 200 && dep.body.pixCharge && dep.body.pixCharge.status === 'pending'
+    && /^000201/.test(dep.body.pixCharge.qrCode || '');
+  report(pixOk, 'Depósito PIX R$200 (cobrança pendente + BR Code)',
+    `status=${dep.body.pixCharge && dep.body.pixCharge.status} txid=${dep.body.pixCharge && dep.body.pixCharge.txid}`);
+  const charges = await sql('pix_charges', 'SELECT id,user_id,amount,status FROM pix_charges WHERE user_id=$1', [qaUser.id]);
+  report(charges.length === 1 && charges[0].status === 'pending', 'Cobrança PIX gravada no banco',
+    charges[0] ? `amount=${charges[0].amount} status=${charges[0].status}` : 'NENHUMA');
+  // Credita direto (simula a CONFIRMAÇÃO do admin) para o restante do fluxo seguir
+  await db.adjustUserBalance(qaUser.id, 200);
+  await db.addTransaction({
+    id: require('uuid').v4(), userId: qaUser.id, type: 'deposit', amount: 200,
+    description: 'Depósito QA confirmado (admin)', date: new Date(), status: 'completed'
+  });
+  const bal = await db.getUserById(qaUser.id);
+  report(bal.balance === 200, 'Saldo creditado após confirmação', `saldo=${bal.balance}`);
 
   // ---------- 3. Criar jogo ----------
   const quinze = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
@@ -156,7 +168,7 @@ async function cleanup() {
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');
-    for (const table of ['games', 'transactions', 'bets', 'notifications', 'subscriptions', 'user_achievements']) {
+    for (const table of ['games', 'transactions', 'bets', 'notifications', 'subscriptions', 'user_achievements', 'pix_charges', 'bank_details']) {
       const r = await client.query(`DELETE FROM ${table} WHERE user_id = $1`, [id]);
       if (r.rowCount > 0) console.log(`  - ${table}: ${r.rowCount} linha(s) apagadas`);
     }

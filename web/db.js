@@ -187,6 +187,43 @@ CREATE TABLE IF NOT EXISTS "session" (
   expire timestamp(6) NOT NULL,
   PRIMARY KEY ("sid")
 );
+
+-- Cobranças PIX de depósito (modelo whodo-next): o usuário solicita um
+-- depósito, o sistema gera um QR Code PIX estático e o admin confirma o
+-- pagamento manualmente — só então o saldo é creditado.
+CREATE TABLE IF NOT EXISTS pix_charges (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  amount DOUBLE PRECISION NOT NULL,
+  payload TEXT,
+  qr_code TEXT,
+  qr_code_base64 TEXT,
+  txid TEXT,
+  status TEXT DEFAULT 'pending',  -- pending | paid | canceled
+  expires_at TIMESTAMPTZ,
+  paid_at TIMESTAMPTZ,
+  confirmed_at TIMESTAMPTZ,
+  confirmed_by TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_pix_charges_user ON pix_charges(user_id);
+
+-- Dados bancários / chaves PIX do usuário para receber SAQUES.
+CREATE TABLE IF NOT EXISTS bank_details (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  chave_pix TEXT,
+  banco_nome TEXT,
+  banco_codigo TEXT,
+  agencia TEXT,
+  conta TEXT,
+  tipo_conta TEXT,
+  titular_nome TEXT,
+  cpf_cnpj TEXT,
+  verificado BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_bank_details_user ON bank_details(user_id);
 `;
 
 /** Cria as tabelas (idempotente). Chamado na inicialização. */
@@ -547,6 +584,194 @@ async function addTransaction(txn) {
   return getUserTransactions(txn.userId, 5);
 }
 
+async function getTransactionById(id) {
+  const { rows } = await pool.query('SELECT * FROM transactions WHERE id = $1', [id]);
+  return mapTransaction(rows[0]);
+}
+
+/**
+ * Busca a transação PENDING de depósito vinculada a uma cobrança PIX pelo
+ * charge.id embutido na descrição (`[<id>]`). Query direcionada SEM limite de
+ * 50 — evita o furo lógico de não encontrar cobranças antigas num usuário
+ * com muitas movimentações.
+ */
+async function getPendingDepositTxnByCharge(userId, chargeId) {
+  const { rows } = await pool.query(
+    `SELECT * FROM transactions
+     WHERE user_id = $1 AND type = 'deposit' AND status = 'pending'
+       AND description LIKE $2
+     ORDER BY date ASC LIMIT 1`,
+    [userId, `%[${chargeId}]%`]
+  );
+  return mapTransaction(rows[0]);
+}
+
+/** Atualiza o status de uma transação (ex.: saque pending → completed). */
+async function updateTransactionStatus(id, status) {
+  const { rows } = await pool.query(
+    'UPDATE transactions SET status = $1 WHERE id = $2 RETURNING *', [status, id]
+  );
+  return mapTransaction(rows[0]);
+}
+
+/** Saques pendentes (com dados do usuário) — painel do admin. */
+async function getPendingWithdrawals() {
+  const { rows } = await pool.query(
+    `SELECT t.*, u.name AS user_name, u.email AS user_email
+     FROM transactions t JOIN users u ON u.id = t.user_id
+     WHERE t.type = 'withdrawal' AND t.status = 'pending'
+     ORDER BY t.date DESC`
+  );
+  return rows.map(r => ({ ...mapTransaction(r), userName: r.user_name, userEmail: r.user_email }));
+}
+
+// ==================== PIX CHARGES (DEPÓSITOS) ====================
+
+function mapPixCharge(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    userId: row.user_id,
+    amount: Number(row.amount),
+    payload: row.payload,
+    qrCode: row.qr_code,
+    qrCodeBase64: row.qr_code_base64,
+    txid: row.txid,
+    status: row.status,
+    expiresAt: row.expires_at ? row.expires_at.toISOString() : null,
+    paidAt: row.paid_at ? row.paid_at.toISOString() : null,
+    confirmedAt: row.confirmed_at ? row.confirmed_at.toISOString() : null,
+    confirmedBy: row.confirmed_by,
+    createdAt: row.created_at ? row.created_at.toISOString() : null
+  };
+}
+
+async function createPixCharge(charge) {
+  await pool.query(
+    `INSERT INTO pix_charges (id, user_id, amount, payload, qr_code, qr_code_base64, txid, status, expires_at, created_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+    [charge.id, charge.userId, charge.amount, charge.payload, charge.qrCode, charge.qrCodeBase64,
+     charge.txid, charge.status, charge.expiresAt, charge.createdAt]
+  );
+  return getPixChargeById(charge.id);
+}
+
+async function getPixChargeById(id) {
+  const { rows } = await pool.query('SELECT * FROM pix_charges WHERE id = $1', [id]);
+  return mapPixCharge(rows[0]);
+}
+
+async function getUserPixCharges(userId) {
+  const { rows } = await pool.query(
+    'SELECT * FROM pix_charges WHERE user_id = $1 ORDER BY created_at DESC', [userId]
+  );
+  return rows.map(mapPixCharge);
+}
+
+async function updatePixCharge(id, fields) {
+  const allowed = ['status', 'paid_at', 'confirmed_at', 'confirmed_by'];
+  const sets = [];
+  const params = [id];
+  for (const key of allowed) {
+    if (fields[key] !== undefined) {
+      sets.push(`${key} = $${params.length + 1}`);
+      params.push(fields[key]);
+    }
+  }
+  if (sets.length === 0) return getPixChargeById(id);
+  const { rows } = await pool.query(
+    `UPDATE pix_charges SET ${sets.join(', ')} WHERE id = $1 RETURNING *`, params
+  );
+  return mapPixCharge(rows[0]);
+}
+
+/**
+ * Confirma uma cobrança PIX de forma ATÔMICA: `UPDATE ... WHERE status='pending'`
+ * retorna a cobrança atualizada se a transição foi feita, ou null se já
+ * processada. Fecha o TOCTOU (check-then-act) entre a leitura e o update no
+ * confirm — duas confirmações concorrentes não creditam saldo duas vezes.
+ */
+async function confirmPixCharge(id, confirmedBy) {
+  const { rows } = await pool.query(
+    `UPDATE pix_charges
+     SET status = 'paid', paid_at = NOW(), confirmed_at = NOW(), confirmed_by = $2
+     WHERE id = $1 AND status = 'pending'
+     RETURNING *`,
+    [id, confirmedBy]
+  );
+  return mapPixCharge(rows[0]);
+}
+
+/** Cancela uma cobrança PIX de forma atômica (idempotente). */
+async function cancelPixCharge(id) {
+  const { rows } = await pool.query(
+    `UPDATE pix_charges SET status = 'canceled'
+     WHERE id = $1 AND status = 'pending'
+     RETURNING *`,
+    [id]
+  );
+  return mapPixCharge(rows[0]);
+}
+
+/** Cobranças PIX pendentes (com dados do usuário) — painel do admin. */
+async function getPendingPixCharges() {
+  const { rows } = await pool.query(
+    `SELECT p.*, u.name AS user_name, u.email AS user_email
+     FROM pix_charges p JOIN users u ON u.id = p.user_id
+     WHERE p.status = 'pending'
+     ORDER BY p.created_at DESC`
+  );
+  return rows.map(r => ({ ...mapPixCharge(r), userName: r.user_name, userEmail: r.user_email }));
+}
+
+// ==================== DADOS BANCÁRIOS (SAQUES) ====================
+
+function mapBankDetail(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    userId: row.user_id,
+    chavePix: row.chave_pix,
+    bancoNome: row.banco_nome,
+    bancoCodigo: row.banco_codigo,
+    agencia: row.agencia,
+    conta: row.conta,
+    tipoConta: row.tipo_conta,
+    titularNome: row.titular_nome,
+    cpfCnpj: row.cpf_cnpj,
+    verificado: row.verificado,
+    createdAt: row.created_at ? row.created_at.toISOString() : null
+  };
+}
+
+async function createBankDetail(detail) {
+  await pool.query(
+    `INSERT INTO bank_details (id, user_id, chave_pix, banco_nome, banco_codigo, agencia, conta, tipo_conta, titular_nome, cpf_cnpj, created_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+    [detail.id, detail.userId, detail.chavePix, detail.bancoNome, detail.bancoCodigo,
+     detail.agencia, detail.conta, detail.tipoConta, detail.titularNome, detail.cpfCnpj, detail.createdAt]
+  );
+  return getBankDetailById(detail.id, detail.userId);
+}
+
+async function getUserBankDetails(userId) {
+  const { rows } = await pool.query(
+    'SELECT * FROM bank_details WHERE user_id = $1 ORDER BY created_at DESC', [userId]
+  );
+  return rows.map(mapBankDetail);
+}
+
+async function getBankDetailById(id, userId) {
+  const { rows } = await pool.query(
+    'SELECT * FROM bank_details WHERE id = $1 AND user_id = $2', [id, userId]
+  );
+  return mapBankDetail(rows[0]);
+}
+
+async function deleteBankDetail(id, userId) {
+  await pool.query('DELETE FROM bank_details WHERE id = $1 AND user_id = $2', [id, userId]);
+}
+
 // ==================== BETS ====================
 
 async function getUserBets(userId) {
@@ -771,7 +996,13 @@ module.exports = {
   // pools
   getPools, getPoolById, createPool, updatePool,
   // transactions
-  getUserTransactions, addTransaction,
+  getUserTransactions, addTransaction, getTransactionById, updateTransactionStatus,
+  getPendingWithdrawals, getPendingDepositTxnByCharge,
+  // pix charges (depósitos)
+  createPixCharge, getPixChargeById, getUserPixCharges, updatePixCharge,
+  confirmPixCharge, cancelPixCharge, getPendingPixCharges,
+  // dados bancários (saques)
+  createBankDetail, getUserBankDetails, getBankDetailById, deleteBankDetail,
   // bets
   getUserBets, addBet,
   // config de loterias

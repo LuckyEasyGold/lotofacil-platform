@@ -4,7 +4,7 @@
  * (cotas insuficientes / saldo insuficiente).
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { registerUser, cleanupTestData, db } from './helpers.js';
+import { registerUser, fundUser, cleanupTestData, db } from './helpers.js';
 
 const NUMEROS_POOL = [1, 2, 5, 6, 9, 10, 11, 12, 15, 17, 18, 19, 21, 24, 25];
 
@@ -30,9 +30,10 @@ describe('Pools API', () => {
   let agent;
 
   beforeAll(async () => {
-    ({ agent } = await registerUser());
-    // deposita para conseguir criar/entrar em bolões
-    await agent.post('/api/wallet/deposit').send({ amount: 500 });
+    const reg = await registerUser();
+    agent = reg.agent;
+    // credita saldo direto (depósito PIX já confirmado pelo admin)
+    await fundUser(reg.user.id, 500);
   });
 
   afterAll(async () => {

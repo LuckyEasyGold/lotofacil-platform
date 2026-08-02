@@ -2,7 +2,7 @@
  * routes/pages.js — Páginas (render EJS), extraído do server.js.
  */
 const { asyncRouter } = require('../lib/http');
-const { requireAuth } = require('../lib/auth');
+const { requireAuth, requireAdmin } = require('../lib/auth');
 
 const router = asyncRouter();
 
@@ -47,6 +47,14 @@ router.get('/estatisticas', requireAuth, (req, res) => {
   res.render('stats', {
     title: 'Estatísticas Avançadas', page: 'stats', user: req.currentUser,
     subtitle: '📊 Análise detalhada dos resultados históricos'
+  });
+});
+
+// Painel financeiro do ADMIN: confirma depósitos PIX e processa saques.
+router.get('/financeiro', requireAuth, requireAdmin, (req, res) => {
+  res.render('finance', {
+    title: 'Financeiro', page: 'finance', user: req.currentUser,
+    subtitle: '💰 Confirme depósitos PIX e processe saques'
   });
 });
 

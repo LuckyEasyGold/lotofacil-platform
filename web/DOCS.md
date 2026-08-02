@@ -139,6 +139,10 @@ interceptaria as rotas específicas). Sempre rode `npm test` após mover rotas.
 | `SITE_URL` | opcional | URL pública (compartilhamento social) |
 | `SESSION_MAX_AGE_DAYS` | opcional | Validade da sessão (default `30`) |
 | `FITNESS_WINDOW_SIZE` | opcional | Janela de concursos da IA (default `300`) |
+| `PIX_KEY` | ✅ (para depósitos) | Chave PIX da empresa que RECEBE os depósitos (default `67229517000128`) |
+| `PIX_NAME` | opcional | Nome do recebedor no payload PIX (máx. 25 chars) |
+| `PIX_CITY` | opcional | Cidade do recebedor no payload PIX (máx. 15 chars) |
+| `PIX_QR_DISABLED` | testes | `1` desativa a chamada externa ao gerador de imagem QR (usado nos testes) |
 | `PGSSL=false` | local | Postgres local sem SSL |
 | `COOKIE_SECURE` | local | `false` em dev HTTP; no Vercel ativa por padrão |
 
@@ -154,6 +158,8 @@ interceptaria as rotas específicas). Sempre rode `npm test` após mover rotas.
 | `users` | `id` (UUID), `name`, `email`, `password` (hash bcrypt), `balance`, `bonusBalance`, `totalWinnings`, `role` | IDs são **UUID** desde a migração (07/2026) |
 | `games` | `id`, `user_id`, `numbers` (JSON), `gameType`, `name`, `source`, `seedVersion`, `status`, `usageHistory` (JSON), `pool_id` | Portfólio de jogos |
 | `transactions` | `id`, `user_id`, `type` (deposit/withdrawal/bet/prize/pool_join), `amount`, `status`, `description` | Extrato da carteira |
+| `pix_charges` | `id`, `user_id`, `amount`, `payload`, `qr_code`, `qr_code_base64`, `txid`, `status` (pending/paid/canceled), `expires_at`, `paid_at`, `confirmed_by` | Cobranças PIX de depósito — o admin confirma manualmente antes de creditar |
+| `bank_details` | `id`, `user_id`, `chave_pix`, `banco_nome`, `banco_codigo`, `agencia`, `conta`, `tipo_conta`, `titular_nome`, `cpf_cnpj`, `verificado` | Chaves PIX / contas do usuário para receber SAQUES |
 | `bets` | `id`, `user_id`, `gameType`, `numbers`, `amount`, `status` | Apostas |
 | `pools` | `id`, `name`, `gameType`, `contestNumber`, `totalShares`, `availableShares`, `sharePrice`, `numbers`, `creator_name`, `status`, `participants` (JSON) | Bolões; participantes referenciam por **nome**, não por id |
 | `results` | `numero` (PK), `listaDezenas` (JSON), `dataApuracao` | Concursos da Lotofácil (3750+) |
@@ -187,7 +193,7 @@ Rotas de admin exigem `role === 'admin'` (`403` caso contrário).
 
 `/` (dashboard), `/apostas`, `/carteira`, `/boloes`, `/simulacao`, `/resultados`,
 `/perfil`, `/meus-jogos`, `/configuracoes`, `/estatisticas` — todas exigem login.
-`/evolucao` exige admin.
+`/evolucao` e `/financeiro` (fila de depósitos/saques) exigem admin.
 
 ### 5.3 Dashboard
 
@@ -224,13 +230,28 @@ Rotas de admin exigem `role === 'admin'` (`403` caso contrário).
 | GET | `/api/bets` | Lista apostas do usuário |
 | GET | `/api/bets/my` | Alias de listagem |
 
-### 5.6 Carteira
+### 5.6 Carteira (RECEBIMENTO REAL VIA PIX)
+
+> O depósito NÃO credita saldo automaticamente. O usuário gera uma cobrança
+> PIX (QR Code estático BR Code) com status `pending`; o **admin** confirma o
+> pagamento em `POST /api/wallet/deposit/:id/confirm` — só então o saldo cai na
+> conta. O saque exige chave PIX (digitada ou de um dado bancário salvo) e fica
+> `pending` até o admin processar (confirm = pago; cancel = estorno).
 
 | Método | Rota | Descrição |
 |---|---|---|
 | GET | `/api/wallet` | Saldo, bônus, total ganho + transações |
-| POST | `/api/wallet/deposit` | Depósito `{amount, method}` |
-| POST | `/api/wallet/withdraw` | Saque `{amount}` — status `pending`, valida saldo |
+| POST | `/api/wallet/deposit` | Gera cobrança PIX `{amount}` → `{pixCharge:{id, qrCode, qrCodeBase64, txid, status, expiresAt}}` (NÃO credita) |
+| GET | `/api/wallet/deposits` | Cobranças PIX do usuário (status; o cliente filtra as pendentes) |
+| POST | `/api/wallet/deposit/:id/confirm` | **(admin)** Confirma pagamento → credita saldo + transação `completed` |
+| POST | `/api/wallet/deposit/:id/cancel` | **(admin)** Cancela cobrança pendente (sem creditar) |
+| POST | `/api/wallet/withdraw` | Saque `{amount, chavePix?|bankDetailsId?}` — debita na hora, transação `pending` |
+| POST | `/api/wallet/withdraw/:id/confirm` | **(admin)** Marca saque como pago (`completed`) |
+| POST | `/api/wallet/withdraw/:id/cancel` | **(admin)** Cancela saque → ESTORNA o saldo |
+| GET | `/api/wallet/bank-details` | Lista chaves PIX/contas do usuário |
+| POST | `/api/wallet/bank-details` | Salva `{chavePix, bancoNome, ...}` para receber saques |
+| DELETE | `/api/wallet/bank-details/:id` | Remove um dado bancário |
+| GET | `/api/admin/finance/pending` | **(admin)** Fila de depósitos PIX + saques aguardando processamento |
 
 ### 5.7 Bolões
 

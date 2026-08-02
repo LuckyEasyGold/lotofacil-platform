@@ -13,6 +13,9 @@ process.env.VERCEL = '1';
 process.env.NODE_ENV = 'test';
 process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'test-secret';
 process.env.COOKIE_SECURE = 'false';
+// Evita chamada externa ao gerador de imagem QR nos testes (a cobrança PIX
+// continua válida — só não gera o base64 da imagem).
+process.env.PIX_QR_DISABLED = '1';
 
 import { afterAll } from 'vitest';
 import db from '../db.js';

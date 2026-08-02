@@ -11,6 +11,7 @@
  * em afterAll. NUNCA crie usuários com emails fixos.
  */
 import request from 'supertest';
+import { randomUUID } from 'node:crypto';
 import app from '../server.js';
 import db from '../db.js';
 
@@ -37,7 +38,7 @@ export async function cleanupTestData() {
   try {
     await client.query('BEGIN');
     for (const id of createdUserIds) {
-      for (const table of ['games', 'transactions', 'bets', 'notifications', 'subscriptions', 'user_achievements']) {
+      for (const table of ['games', 'transactions', 'bets', 'notifications', 'subscriptions', 'user_achievements', 'pix_charges', 'bank_details']) {
         await client.query(`DELETE FROM ${table} WHERE user_id = $1`, [id]);
       }
       await client.query('DELETE FROM users WHERE id = $1', [id]);
@@ -53,6 +54,36 @@ export async function cleanupTestData() {
     client.release();
     createdUserIds.length = 0;
   }
+}
+
+/**
+ * Credita saldo diretamente no banco (simula um depósito JÁ CONFIRMADO pelo
+ * admin). Usado pelos testes de fluxo (apostas, bolões, etc.) que precisam de
+ * saldo sem passar pelo fluxo PIX pendente.
+ */
+export async function fundUser(userId, amount) {
+  await db.adjustUserBalance(userId, amount);
+  await db.addTransaction({
+    id: randomUUID(), userId, type: 'deposit', amount,
+    description: 'Depósito (teste)', date: new Date(), status: 'completed'
+  });
+  await db.addNotification({
+    id: randomUUID(), userId, type: 'wallet',
+    title: 'Depósito confirmado!', message: 'Depósito de teste aprovado.',
+    link: '/carteira', read: false, createdAt: new Date().toISOString()
+  });
+  return amount;
+}
+
+/**
+ * Registra um usuário e o promove a ADMIN (para testar rotas admin, ex.:
+ * confirmação de depósitos PIX e processamento de saques).
+ */
+export async function registerAdmin(overrides = {}) {
+  const { agent, user, email, password } = await registerUser(overrides);
+  await db.updateUser(user.id, { role: 'admin' });
+  user.role = 'admin';
+  return { agent, user, email, password };
 }
 
 /** Cliente supertest SEM sessão (para rotas públicas / testes de 401). */

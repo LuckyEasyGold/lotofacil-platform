@@ -106,13 +106,40 @@ const createBetSchema = z.object({
 
 // ==================== CARTEIRA ====================
 
+/**
+ * Depósito agora gera uma cobrança PIX (status pending) — o saldo NÃO é
+ * creditado na hora; o admin confirma o pagamento manualmente (modelo whodo).
+ * `method` é mantido por compatibilidade de payload.
+ */
 const depositSchema = z.object({
-  amount: z.coerce.number().positive('Valor inválido'),
+  amount: z.coerce.number().positive('Valor inválido').min(1, 'Valor mínimo de R$ 1,00'),
   method: z.string().trim().optional()
 });
 
+/**
+ * Saque exige um destino real: chave PIX digitada OU um dado bancário salvo.
+ * O saldo é debitado na hora e a transação fica 'pending' até o admin processar.
+ */
 const withdrawSchema = z.object({
-  amount: z.coerce.number().positive('Valor inválido')
+  amount: z.coerce.number().positive('Valor inválido').min(1, 'Valor mínimo de R$ 1,00'),
+  chavePix: z.string().trim().optional(),
+  bankDetailsId: z.string().trim().optional()
+}).superRefine((data, ctx) => {
+  if (!data.chavePix && !data.bankDetailsId) {
+    ctx.addIssue({ code: 'custom', path: ['chavePix'], message: 'Informe uma chave PIX ou selecione um dado bancário para o saque' });
+  }
+});
+
+/** Dados bancários do usuário para receber saques (chave PIX é o essencial). */
+const bankDetailsSchema = z.object({
+  chavePix: z.string().trim().min(1, 'Informe a chave PIX'),
+  bancoNome: z.string().trim().optional(),
+  bancoCodigo: z.string().trim().optional(),
+  agencia: z.string().trim().optional(),
+  conta: z.string().trim().optional(),
+  tipoConta: z.string().trim().optional(),
+  titularNome: z.string().trim().optional(),
+  cpfCnpj: z.string().trim().optional()
 });
 
 // ==================== BOLÕES ====================
@@ -248,6 +275,7 @@ module.exports = {
   createBetSchema,
   depositSchema,
   withdrawSchema,
+  bankDetailsSchema,
   createPoolSchema,
   joinPoolSchema,
   createOfferSchema,

@@ -17,7 +17,7 @@
  * se o smoke test passa, o app está de pé e as rotas principais respondem.
  */
 import { describe, it, expect, afterAll } from 'vitest';
-import { registerUser, cleanupTestData, api } from './helpers.js';
+import { registerUser, fundUser, cleanupTestData, api } from './helpers.js';
 
 const QUINZE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
@@ -111,12 +111,10 @@ describe('Smoke test completo', () => {
   });
 
   it('fluxo de escrita completo: depósito → jogo → aposta → bolão → assinatura', async () => {
-    const { agent } = await registerUser();
+    const { agent, user } = await registerUser();
 
-    // Depósito
-    const dep = await agent.post('/api/wallet/deposit').send({ amount: 100 });
-    expect(dep.status).toBe(200);
-    expect(dep.body.balance).toBe(100);
+    // Depósito (PIX já confirmado pelo admin — credita direto)
+    await fundUser(user.id, 100);
 
     // Criação de jogo
     const game = await agent.post('/api/games').send({ gameType: 'LOTOFACIL', numbers: QUINZE, name: 'Smoke' });
@@ -178,8 +176,8 @@ describe('Smoke test completo', () => {
   });
 
   it('ações criam notificações (depósito → aposta → bolão)', async () => {
-    const { agent } = await registerUser();
-    await agent.post('/api/wallet/deposit').send({ amount: 100 });
+    const { agent, user } = await registerUser();
+    await fundUser(user.id, 100);
     const bet = await agent.post('/api/bets').send({ gameType: 'LOTOFACIL', numbers: QUINZE, amount: 3 });
     expect(bet.status).toBe(200);
     const pool = await agent.post('/api/pools').send({

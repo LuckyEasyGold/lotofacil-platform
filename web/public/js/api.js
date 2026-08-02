@@ -33,22 +33,66 @@ const api = {
   async getWallet() {
     return fetch(`${API_BASE}/api/wallet`).then(r => r.json());
   },
-  async deposit(amount, method) {
+  // Depósito PIX: gera cobrança (pending) com QR Code — saldo só cai após o admin confirmar
+  async requestDeposit(amount, method) {
     return fetch(`${API_BASE}/api/wallet/deposit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount, method })
-    }).then(r => r.json());
-  },
-  async withdraw(amount) {
-    return fetch(`${API_BASE}/api/wallet/withdraw`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount })
     }).then(r => {
       if (!r.ok) return r.json().then(e => { throw new Error(e.error); });
       return r.json();
     });
+  },
+  async getDeposits() {
+    return fetch(`${API_BASE}/api/wallet/deposits`).then(r => r.json());
+  },
+  // Saque: exige chave PIX digitada OU um dado bancário salvo (bankDetailsId)
+  async withdraw(amount, chavePix, bankDetailsId) {
+    const payload = { amount };
+    if (chavePix) payload.chavePix = chavePix;
+    if (bankDetailsId) payload.bankDetailsId = bankDetailsId;
+    return fetch(`${API_BASE}/api/wallet/withdraw`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(r => {
+      if (!r.ok) return r.json().then(e => { throw new Error(e.error); });
+      return r.json();
+    });
+  },
+  // Dados bancários / chaves PIX do usuário (destino de saques)
+  async getBankDetails() {
+    return fetch(`${API_BASE}/api/wallet/bank-details`).then(r => r.json());
+  },
+  async saveBankDetail(data) {
+    return fetch(`${API_BASE}/api/wallet/bank-details`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(r => {
+      if (!r.ok) return r.json().then(e => { throw new Error(e.error); });
+      return r.json();
+    });
+  },
+  async deleteBankDetail(id) {
+    return fetch(`${API_BASE}/api/wallet/bank-details/${id}`, { method: 'DELETE' }).then(r => r.json());
+  },
+  // Admin: fila de aprovação (depósitos PIX + saques)
+  async getPendingFinance() {
+    return fetch(`${API_BASE}/api/admin/finance/pending`).then(r => r.json());
+  },
+  async confirmDeposit(id) {
+    return fetch(`${API_BASE}/api/wallet/deposit/${id}/confirm`, { method: 'POST' }).then(r => r.json());
+  },
+  async cancelDeposit(id) {
+    return fetch(`${API_BASE}/api/wallet/deposit/${id}/cancel`, { method: 'POST' }).then(r => r.json());
+  },
+  async confirmWithdraw(id) {
+    return fetch(`${API_BASE}/api/wallet/withdraw/${id}/confirm`, { method: 'POST' }).then(r => r.json());
+  },
+  async cancelWithdraw(id) {
+    return fetch(`${API_BASE}/api/wallet/withdraw/${id}/cancel`, { method: 'POST' }).then(r => r.json());
   },
 
   // Bets
