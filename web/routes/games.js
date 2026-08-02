@@ -7,13 +7,11 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { asyncRouter } = require('../lib/http');
 const { requireAuth } = require('../lib/auth');
-const { PRIZE_TABLES, getGamePrice } = require('../lib/lottery');
-const { addNotification } = require('../lib/notifications');
-const { formatBRL } = require('../lib/format');
+const { getGamePrice } = require('../lib/lottery');
 const { checkAchievements, getUserLevel } = require('../lib/gamification');
-const { fetchLatestResultByGameType } = require('../lib/context');
 const { validate, createGameSchema } = require('../lib/validation');
 const { sendError } = require('../lib/http');
+const { checkGame } = require('../lib/checker');
 
 const router = asyncRouter();
 
@@ -124,58 +122,34 @@ router.post('/api/games/:id/use', requireAuth, async (req, res) => {
   res.json({ success: true, game });
 });
 
-/** POST /api/games/:id/check-result — Verificar se o jogo acertou no último resultado */
+/**
+ * POST /api/games/:id/check-result — Verificar o jogo contra os concursos em
+ * que ele participa (teimosinha). Para cada uso pendente (hits null), busca o
+ * resultado do concurso registrado e calcula acertos/prêmio. Se o jogo não
+ * tiver concurso registrado (aposta antiga), usa o último resultado da loteria.
+ * Prêmios são creditados automaticamente pela lib/checker.js.
+ */
 router.post('/api/games/:id/check-result', requireAuth, async (req, res) => {
   const user = req.currentUser;
   const game = await db.getGameById(req.params.id, user.id);
   if (!game) return res.status(404).json({ error: 'Jogo não encontrado' });
   try {
-    // Resultado da LOTERIA do jogo (não mais sempre Lotofácil): o check-result
-    // agora funciona para Lotofácil, Mega-Sena, Quina e Lotomania.
-    const latest = await fetchLatestResultByGameType(game.gameType);
-    if (!latest || !latest.listaDezenas) {
-      return res.status(400).json({ error: 'Não foi possível obter o resultado desta loteria' });
-    }
-    const drawnNumbers = latest.listaDezenas.map(n => parseInt(n));
-    const drawnSet = new Set(drawnNumbers);
-    const hits = game.numbers.filter(n => drawnSet.has(n)).length;
-    // Tabela oficial de prêmios por tipo de jogo (lib/lottery.js → PRIZE_TABLES).
-    // Um jogo está premiado quando o nº de acertos existe na tabela de prêmios
-    // do seu tipo (ex.: Lotofácil 11+, Mega-Sena 4+, Quina 3+).
-    const prizeTable = PRIZE_TABLES[game.gameType] || PRIZE_TABLES.LOTOFACIL;
-    const prize = prizeTable[hits] || 0;
-    const isWinner = prize > 0;
-    const lastUsage = game.usageHistory[game.usageHistory.length - 1];
-    if (lastUsage) {
-      lastUsage.hits = hits;
-      lastUsage.prize = prize;
-      lastUsage.matched = isWinner;
-      lastUsage.contestNumber = latest.numero;
-    }
-    if (isWinner) {
-      game.status = 'won';
-      await checkAchievements(user.id);
-      if (prize > 0) {
-        await db.adjustUserBalance(user.id, prize);
-        await db.adjustUserWinnings(user.id, prize);
-        await db.addTransaction({
-          id: uuidv4(), userId: user.id, type: 'prize', amount: prize,
-          description: `🏆 Prêmio de ${hits} acertos - Concurso ${latest.numero}`,
-          date: new Date(), status: 'completed'
-        });        await addNotification(user.id, 'prize', 'Jogo premiado!',
-          `"${game.name}" fez ${hits} acertos no concurso ${latest.numero}! Prêmio: ${formatBRL(prize)}`,
-          '/meus-jogos'
-        );
+    const r = await checkGame(game);
+    const updated = await db.getGameById(req.params.id, user.id);
+    const lastChecked = r.contests[r.contests.length - 1] || null;
+    res.json({
+      success: true,
+      game: updated,
+      result: {
+        contestNumber: lastChecked ? lastChecked.contestNumber : null,
+        hits: lastChecked ? lastChecked.hits : 0,
+        prize: lastChecked ? lastChecked.prize : 0,
+        isWinner: lastChecked ? lastChecked.prize > 0 : false,
+        drawnNumbers: lastChecked ? lastChecked.drawnNumbers || [] : [],
+        totalPrize: r.totalPrize,
+        checkedCount: r.checked
       }
-    }
-    await db.updateGame(req.params.id, { status: game.status, usageHistory: game.usageHistory });
-    res.json({ success: true, game, result: {
-      contestNumber: latest.numero,
-      drawnNumbers,
-      hits,
-      prize,
-      isWinner
-    }});
+    });
   } catch (e) {
     sendError(res, e, 'POST /api/games/:id/check-result');
   }
@@ -192,8 +166,12 @@ router.post('/api/games/:id/create-pool', requireAuth, async (req, res) => {
   // pois 1-1=0 e `0 || 49` = 49).
   const total = parseInt(totalShares, 10) || 50;
   const price = parseFloat(sharePrice) || 25.00;
-  if (price > user.balance) {
-    return res.status(400).json({ error: 'Saldo insuficiente' });
+  // MODELO 1 (pré-financiado): criador paga o custo real do jogo na criação.
+  // Taxa administrativa transparente = valor arrecadado (cotas × preço) − custo.
+  const baseValue = getGamePrice(game.gameType, game.numbers.length);
+  const adminFee = Math.max(0, Math.round((total * price - baseValue) * 100) / 100);
+  if (baseValue > user.balance) {
+    return res.status(400).json({ error: 'Saldo insuficiente para financiar o bolão (custo do jogo: R$ ' + baseValue.toFixed(2) + ')' });
   }
   const newPool = {
     id: uuidv4(),
@@ -203,6 +181,8 @@ router.post('/api/games/:id/create-pool', requireAuth, async (req, res) => {
     totalShares: total,
     availableShares: Math.max(total - 1, 0),
     sharePrice: price,
+    baseValue,
+    adminFee,
     minShares: 1,
     maxShares: Math.floor(total * 0.2),
     numbers: game.numbers,
@@ -222,10 +202,10 @@ router.post('/api/games/:id/create-pool', requireAuth, async (req, res) => {
     matched: false
   });
   await db.updateGame(game.id, { pool_id: newPool.id, status: 'used', usageHistory: game.usageHistory });
-  await db.adjustUserBalance(user.id, -price);
+  await db.adjustUserBalance(user.id, -baseValue);
   await db.addTransaction({
-    id: uuidv4(), userId: user.id, type: 'pool_join', amount: -price,
-    description: `Criação do bolão "${newPool.name}" - 1 cota`,
+    id: uuidv4(), userId: user.id, type: 'pool_join', amount: -baseValue,
+    description: `Pré-financiamento do bolão "${newPool.name}" - custo do jogo (R$ ${baseValue.toFixed(2)})`,
     date: new Date(), status: 'completed'
   });
   res.json({ success: true, pool: newPool });

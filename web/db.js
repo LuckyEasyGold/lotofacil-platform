@@ -75,6 +75,8 @@ CREATE TABLE IF NOT EXISTS pools (
   total_shares INT,
   available_shares INT,
   share_price DOUBLE PRECISION,
+  base_value DOUBLE PRECISION DEFAULT 0,  -- Custo real dos jogos (pré-financiado pelo criador)
+  admin_fee DOUBLE PRECISION DEFAULT 0,    -- Taxa administrativa do criador (transparente)
   min_shares INT DEFAULT 1,
   max_shares INT,
   numbers JSONB,
@@ -83,10 +85,14 @@ CREATE TABLE IF NOT EXISTS pools (
   status TEXT DEFAULT 'open',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   participants JSONB DEFAULT '[]',
-  market_offers JSONB DEFAULT '[]'
+  market_offers JSONB DEFAULT '[]',
+  results JSONB DEFAULT '[]'   -- Resultado do bolão após o sorteio: [{ contestNumber, games:[{hits,prize}], totalPrize, rateio:[{name,shares,amount}] }]
 );
--- Migração segura: garante a coluna games em bancos criados antes dela existir.
+-- Migração segura: garante as colunas em bancos criados antes delas existirem.
 ALTER TABLE pools ADD COLUMN IF NOT EXISTS games JSONB DEFAULT '[]';
+ALTER TABLE pools ADD COLUMN IF NOT EXISTS results JSONB DEFAULT '[]';
+ALTER TABLE pools ADD COLUMN IF NOT EXISTS base_value DOUBLE PRECISION DEFAULT 0;
+ALTER TABLE pools ADD COLUMN IF NOT EXISTS admin_fee DOUBLE PRECISION DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS transactions (
   id TEXT PRIMARY KEY,
@@ -258,6 +264,8 @@ function mapPool(row) {
     totalShares: row.total_shares,
     availableShares: row.available_shares,
     sharePrice: Number(row.share_price),
+    baseValue: Number(row.base_value) || 0,
+    adminFee: Number(row.admin_fee) || 0,
     minShares: row.min_shares,
     maxShares: row.max_shares,
     numbers: row.numbers,
@@ -266,7 +274,8 @@ function mapPool(row) {
     status: row.status,
     createdAt: row.created_at,
     participants: row.participants || [],
-    marketOffers: row.market_offers || []
+    marketOffers: row.market_offers || [],
+    results: row.results || []
   };
 }
 
@@ -452,6 +461,12 @@ async function deleteGame(id) {
   await pool.query('DELETE FROM games WHERE id = $1', [id]);
 }
 
+/** TODOS os jogos de todos os usuários — usado pela verificação diária (cron). */
+async function getAllGames() {
+  const { rows } = await pool.query('SELECT * FROM games ORDER BY created_at ASC');
+  return rows.map(mapGame);
+}
+
 // ==================== POOLS ====================
 
 async function getPools() {
@@ -466,10 +481,11 @@ async function getPoolById(id) {
 
 async function createPool(poolData) {
   await pool.query(
-    `INSERT INTO pools (id, name, game_type, contest_number, total_shares, available_shares, share_price, min_shares, max_shares, numbers, games, creator_name, status, created_at, participants, market_offers)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+    `INSERT INTO pools (id, name, game_type, contest_number, total_shares, available_shares, share_price, base_value, admin_fee, min_shares, max_shares, numbers, games, creator_name, status, created_at, participants, market_offers)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
     [poolData.id, poolData.name, poolData.gameType, poolData.contestNumber, poolData.totalShares,
-     poolData.availableShares, poolData.sharePrice, poolData.minShares, poolData.maxShares,
+     poolData.availableShares, poolData.sharePrice, poolData.baseValue || 0, poolData.adminFee || 0,
+     poolData.minShares, poolData.maxShares,
      safeStringify(poolData.numbers || []), safeStringify(poolData.games || []), poolData.creatorName, poolData.status,
      poolData.createdAt, safeStringify(poolData.participants || []), safeStringify(poolData.marketOffers || [])]
   );
@@ -497,6 +513,10 @@ async function updatePool(id, fields) {
   if (fields.marketOffers !== undefined) {
     sets.push(`market_offers = $${params.length + 1}`);
     params.push(safeStringify(fields.marketOffers));
+  }
+  if (fields.results !== undefined) {
+    sets.push(`results = $${params.length + 1}`);
+    params.push(safeStringify(fields.results));
   }
   if (sets.length === 0) return getPoolById(id);
   const { rows } = await pool.query(
@@ -747,7 +767,7 @@ module.exports = {
   getUserById, getUserByEmail, getUserByName, createUser, updateUser,
   adjustUserBalance, adjustUserWinnings,
   // games
-  getUserGames, getGameById, createGame, updateGame, deleteGame,
+  getUserGames, getGameById, createGame, updateGame, deleteGame, getAllGames,
   // pools
   getPools, getPoolById, createPool, updatePool,
   // transactions

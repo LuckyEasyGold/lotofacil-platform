@@ -23,7 +23,7 @@
       </div>
     </div>
     <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
-      Cada cota custa o valor de 1 jogo (tabela da Caixa: <strong>R$ 3,50</strong> com 15 dezenas; 16, 17 e 18 têm preços maiores) — o bolão tem 1 cota por jogo. Você paga 1 cota para criar e os amigos preenchem o resto.
+      Cada jogo custa o valor real da tabela da Caixa (<strong>R$ 3,50</strong> com 15 dezenas; 16, 17 e 18 custam mais). Você <strong>pré-financia o custo dos jogos</strong> na criação e os amigos reembolsam você comprando cotas. Pode adicionar uma <strong>taxa administrativa</strong> — sempre exibida na capa do bolão.
     </p>
     <button class="btn btn-primary btn-full btn-lg" onclick="openStructuredPoolModal()">
       <i class="fas fa-brain"></i> Gerar Bolão com IA
@@ -88,6 +88,7 @@
 <script>
 const currentUserName = ${_userName};
 let poolSelectedNumbers = new Set();
+let poolsCache = []; // cache dos bolões carregados (evita refetch a cada clique no card)
 
 document.addEventListener('DOMContentLoaded', () => { loadPools(); });
 
@@ -104,6 +105,7 @@ function switchPoolTab(btn, tab) {
 async function loadPools() {
   try {
     const pools = await api.getPools();
+    poolsCache = pools;
     const container = document.getElementById('poolsList');
     if (!pools || pools.length === 0) {
       container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-users"></i><h3>Nenhum bolão disponível</h3><p>Crie o primeiro bolão!</p></div>';
@@ -111,7 +113,13 @@ async function loadPools() {
     }
     container.innerHTML = pools.map(p => {
       const progress = ((p.totalShares - p.availableShares) / p.totalShares * 100).toFixed(0);
-      return '<div class="pool-card">' +
+      const costLine = (p.baseValue !== undefined && p.baseValue !== null && Number(p.baseValue) > 0)
+        ? '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">' +
+          '<span>🎫 Custo dos jogos: <strong>' + formatCurrency(p.baseValue) + '</strong></span>' +
+          (Number(p.adminFee) > 0 ? '<span>💼 Taxa adm: <strong style="color:var(--accent);">' + formatCurrency(p.adminFee) + '</strong></span>' : '<span style="color:var(--text-muted);">Sem taxa</span>') +
+          '</div>'
+        : '';
+      return '<div class="pool-card" style="cursor:pointer;" onclick="openPoolDetails(\\'' + p.id + '\\')">' +
         '<div class="pool-header"><div><div class="pool-name">' + p.name + '</div>' +
         '<div style="font-size:13px;color:var(--text-muted);margin-top:4px;">📋 ' + p.gameType + ' · Concurso ' + p.contestNumber + '</div></div>' +
         '<span class="status-badge ' + (p.status === 'open' ? 'active' : 'completed') + '">' + (p.status === 'open' ? 'Aberto' : 'Fechado') + '</span></div>' +
@@ -119,10 +127,12 @@ async function loadPools() {
         '<span class="pool-meta-item">👥 <strong>' + p.participants.length + '</strong> participante(s)</span></div>' +
         (p.numbers ? '<div class="pool-numbers">' + p.numbers.map(n => '<span class="ball small primary">' + n + '</span>').join('') + '</div>' : '') +
         (p.games && p.games.length > 1 ? renderPoolGamesToggle(p, 'available') : '') +
+        renderPoolResultBlock(p, 'available') +
+        costLine +
         '<div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%"></div></div>' +
         '<div class="flex-between"><span style="font-size:13px;color:var(--text-muted)">' + (p.totalShares - p.availableShares) + '/' + p.totalShares + ' cotas vendidas</span>' +
         '<span style="font-weight:600;color:var(--primary-light)">' + formatCurrency(p.sharePrice) + '/cota</span></div>' +
-        (p.status === 'open' ? '<button class="btn btn-primary btn-full btn-sm mt-2" onclick="joinPool(\\'' + p.id + '\\')"><i class="fas fa-handshake"></i> Participar</button>' : '<button class="btn btn-secondary btn-full btn-sm mt-2" disabled><i class="fas fa-lock"></i> Fechado</button>') +
+        (p.status === 'open' ? '<button class="btn btn-primary btn-full btn-sm mt-2" onclick="event.stopPropagation();joinPool(\\'' + p.id + '\\')"><i class="fas fa-handshake"></i> Participar</button>' : '<button class="btn btn-secondary btn-full btn-sm mt-2" disabled><i class="fas fa-lock"></i> Fechado</button>') +
         '</div>';
     }).join('');
   } catch(e) {}
@@ -130,6 +140,7 @@ async function loadPools() {
 async function loadMyPools() {
   try {
     const pools = await api.getPools();
+    poolsCache = pools;
     const myPools = pools.filter(p => p.participants.some(pp => pp.name === currentUserName));
     const container = document.getElementById('myPoolsList');
     if (myPools.length === 0) {
@@ -138,13 +149,21 @@ async function loadMyPools() {
     }
     container.innerHTML = myPools.map(p => {
       const myShare = p.participants.find(pp => pp.name === currentUserName);
-      return '<div class="pool-card"><div class="pool-header"><div><div class="pool-name">' + p.name + '</div>' +
+      const costLine = (p.baseValue !== undefined && p.baseValue !== null && Number(p.baseValue) > 0)
+        ? '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">' +
+          '<span>🎫 Custo dos jogos: <strong>' + formatCurrency(p.baseValue) + '</strong></span>' +
+          (Number(p.adminFee) > 0 ? '<span>💼 Taxa adm: <strong style="color:var(--accent);">' + formatCurrency(p.adminFee) + '</strong></span>' : '<span style="color:var(--text-muted);">Sem taxa</span>') +
+          '</div>'
+        : '';
+      return '<div class="pool-card" style="cursor:pointer;" onclick="openPoolDetails(\\'' + p.id + '\\')"><div class="pool-header"><div><div class="pool-name">' + p.name + '</div>' +
         '<div style="font-size:13px;color:var(--text-muted);margin-top:4px;">📋 ' + p.gameType + ' · Concurso ' + p.contestNumber + '</div></div>' +
         '<span class="status-badge ' + (p.status === 'open' ? 'active' : 'completed') + '">' + (p.status === 'open' ? 'Aberto' : 'Fechado') + '</span></div>' +
         '<div class="pool-meta"><span class="pool-meta-item">📦 <strong>' + (myShare ? myShare.shares : 0) + '</strong> cota(s) sua(s)</span>' +
         '<span class="pool-meta-item">💰 <strong>' + formatCurrency((myShare ? myShare.shares : 0) * p.sharePrice) + '</strong> investido</span></div>' +
         (p.numbers ? '<div class="pool-numbers">' + p.numbers.map(n => '<span class="ball small success">' + n + '</span>').join('') + '</div>' : '') +
         (p.games && p.games.length > 1 ? renderPoolGamesToggle(p, 'my') : '') +
+        renderPoolResultBlock(p, 'my') +
+        costLine +
         // Market offers
         (p.marketOffers && p.marketOffers.filter(function(o) { return o.status === 'active'; }).length > 0
           ? '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">' +
@@ -154,14 +173,14 @@ async function loadMyPools() {
               '<span style="font-size:13px;">' + o.shares + ' cotas de <strong>' + o.sellerName + '</strong></span>' +
               '<div style="display:flex;align-items:center;gap:8px;">' +
               '<span style="font-weight:600;color:var(--accent);">' + formatCurrency(o.totalValue) + '</span>' +
-              (o.sellerName !== currentUserName ? '<button class="btn btn-accent btn-sm" onclick="buyOffer(\\'' + p.id + '\\',\\'' + o.id + '\\')"><i class="fas fa-shopping-cart"></i> Comprar</button>' : '<span class="status-badge completed" style="font-size:10px;">Sua oferta</span>') +
+              (o.sellerName !== currentUserName ? '<button class="btn btn-accent btn-sm" onclick="event.stopPropagation();buyOffer(\\'' + p.id + '\\',\\'' + o.id + '\\')"><i class="fas fa-shopping-cart"></i> Comprar</button>' : '<span class="status-badge completed" style="font-size:10px;">Sua oferta</span>') +
               '</div></div>';
             }).join('') + '</div>'
           : '') +
         (myShare && myShare.shares > 1
-          ? '<button class="btn btn-secondary btn-sm btn-full mt-1" onclick="openSellOffer(\\'' + p.id + '\\', ' + myShare.shares + ', ' + p.sharePrice + ')"><i class="fas fa-tag"></i> Vender Cotas</button>'
+          ? '<button class="btn btn-secondary btn-sm btn-full mt-1" onclick="event.stopPropagation();openSellOffer(\\'' + p.id + '\\', ' + myShare.shares + ', ' + p.sharePrice + ')"><i class="fas fa-tag"></i> Vender Cotas</button>'
           : '') +
-        '<button class="btn btn-secondary btn-sm btn-full mt-1" onclick="sharePool(\\'' + p.id + '\\')"><i class="fas fa-share-alt"></i> Compartilhar</button>' +
+        '<button class="btn btn-secondary btn-sm btn-full mt-1" onclick="event.stopPropagation();sharePool(\\'' + p.id + '\\')"><i class="fas fa-share-alt"></i> Compartilhar</button>' +
         '</div>';
     }).join('');
   } catch(e) {}
@@ -245,7 +264,7 @@ function renderPoolGamesToggle(p, tab) {
   return '<div style="margin-top:10px;padding:10px 12px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.15);border-radius:10px;">' +
     '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
     '<span style="font-size:12px;color:#A78BFA;"><i class="fas fa-brain"></i> ' + p.games.length + ' jogos gerados pela IA</span>' +
-    '<button class="btn btn-secondary btn-sm" style="padding:6px 12px;font-size:12px;" onclick="togglePoolGames(\\'' + p.id + '\\')">Ver jogos</button></div>' +
+    '<button class="btn btn-secondary btn-sm" style="padding:6px 12px;font-size:12px;" onclick="event.stopPropagation();togglePoolGames(\\'' + p.id + '\\')">Ver jogos</button></div>' +
     '<div id="poolGames_' + p.id + '_' + tab + '" class="hidden" style="margin-top:10px;">' + renderPoolGames(p.games) + '</div></div>';
 }
 
@@ -264,55 +283,171 @@ function togglePoolGames(poolId) {
     el.classList.toggle('hidden');
   });
 }
+
+// Abre o modal de detalhes do bolão: todos os jogos + custo/taxa transparentes
+function openPoolDetails(poolId) {
+  const pool = poolsCache.find(p => p.id === poolId);
+  if (!pool) return showToast('Bolão não encontrado', 'error');
+  const games = (pool.games && pool.games.length > 0) ? pool.games : (pool.numbers ? [pool.numbers] : []);
+  const gamesHtml = games.length > 0
+    ? '<div style="max-height:45vh;overflow-y:auto;">' + renderPoolGames(games) + '</div>'
+    : '<p style="color:var(--text-muted);font-size:13px;">Este bolão não tem jogos registrados.</p>';
+  const costHtml = (Number(pool.baseValue) > 0)
+    ? '<div style="background:var(--bg-input);border-radius:10px;padding:12px 14px;margin:12px 0;">' +
+      '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span>🎫 Custo dos jogos (tabela Caixa)</span><strong>' + formatCurrency(pool.baseValue) + '</strong></div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span>💼 Taxa administrativa</span><strong style="color:var(--accent);">' + formatCurrency(pool.adminFee || 0) + '</strong></div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:14px;border-top:1px solid var(--border);padding-top:6px;"><span>🏆 Valor total do bolão</span><strong style="color:var(--secondary);">' + formatCurrency((Number(pool.baseValue) || 0) + (Number(pool.adminFee) || 0)) + '</strong></div>' +
+      '</div>'
+    : '';
+  openModal('📄 ' + pool.name, 'Bolão ' + pool.gameType + ' · Concurso #' + (pool.contestNumber || '—'),
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--text-secondary);margin-bottom:4px;">' +
+    '<span>👤 <strong>' + pool.creatorName + '</strong></span>' +
+    '<span>👥 <strong>' + pool.participants.length + '</strong> participante(s)</span>' +
+    '<span>🎫 <strong>' + (pool.totalShares - pool.availableShares) + '/' + pool.totalShares + '</strong> cotas vendidas</span></div>' +
+    costHtml +
+    '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">🎯 Jogos do bolão (' + games.length + '):</div>' +
+    gamesHtml);
+}
+
+// ==================== RESULTADO DO BOLÃO ====================
+// Mostra o rateio após o sorteio (bolão arquivado) ou o botão "Verificar
+// Resultado" enquanto o concurso ainda pode ser conferido.
+function renderPoolResultBlock(p, tab) {
+  const hasResult = (p.results && p.results.length > 0);
+  if (hasResult) {
+    const r = p.results[p.results.length - 1];
+    const myShare = r.rateio && p.creatorName
+      ? (r.rateio.find(x => x.name === currentUserName) || null)
+      : null;
+    const hitsInfo = (r.games || []).map((g, i) =>
+      '<span class="resultado-bola" style="width:22px;height:22px;font-size:9px;background:' + (g.hits >= 11 ? 'var(--gradient-secondary)' : 'var(--bg-input)') + ';color:' + (g.hits >= 11 ? 'white' : 'var(--text-muted)') + ';border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;">' + (i + 1) + '</span>'
+    ).join('');
+    return '<div style="margin-top:12px;padding:12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:10px;">' +
+      '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;"><i class="fas fa-check-circle"></i> Resultado · Concurso #' + r.contestNumber + '</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">' +
+      '<div><div style="font-size:20px;font-weight:700;color:var(--secondary);">' + formatCurrency(r.totalPrize) + '</div>' +
+      '<div style="font-size:11px;color:var(--text-muted);">prêmio total do bolão</div></div>' +
+      (myShare ? '<div style="text-align:right;"><div style="font-size:16px;font-weight:700;color:var(--accent);">' + formatCurrency(myShare.amount) + '</div><div style="font-size:11px;color:var(--text-muted);">seu rateio (' + myShare.shares + ' cota(s))</div></div>' : '') +
+      '</div>' +
+      '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;">' + hitsInfo + '</div>' +
+      '</div>';
+  }
+  // Bolão ainda aberto com concurso vinculado → botão de verificação
+  if (p.games && p.games.length > 0 && p.contestNumber && p.status !== 'archived') {
+    return '<button class="btn btn-secondary btn-sm btn-full mt-1" style="font-size:12px;" onclick="event.stopPropagation();checkPoolResult(\\'' + p.id + '\\')"><i class="fas fa-search"></i> Verificar Resultado (Concurso #' + p.contestNumber + ')</button>';
+  }
+  if (p.contestNumber) {
+    return '<div style="font-size:11px;color:var(--text-muted);margin-top:8px;">🎯 Concurso #' + p.contestNumber + '</div>';
+  }
+  return '';
+}
+
+async function checkPoolResult(poolId) {
+  try {
+    const result = await api.checkPoolResult(poolId);
+    if (result.success) {
+      if (result.alreadyChecked) {
+        showToast('ℹ️ Bolão já verificado', 'info');
+      } else if (result.totalPrize > 0) {
+        showToast('🏆 Bolão premiado! Rateio de ' + formatCurrency(result.totalPrize) + ' creditado aos participantes!', 'success');
+      } else {
+        showToast('📊 Concurso verificado: sem prêmio neste sorteio', 'info');
+      }
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      showToast(result.error || 'Erro ao verificar bolão', 'error');
+    }
+  } catch(e) {
+    showToast('Erro ao verificar bolão', 'error');
+  }
+}
 // ==================== BOLÃO COM IA ESTRUTURAL (2 MOTORES) ====================
 // Tabela da Caixa (base R$ 3,50): preço por quantidade de dezenas.
 // Mantida em sincronia com o override de lottery_config no banco (admin).
 const STRUCTURED_PRICES = { 15: 3.50, 16: 56.00, 17: 476.00, 18: 2856.00 };
+// Composição do bolão: quantos jogos de cada quantidade de dezenas
+let spComposition = { 15: 10, 16: 0, 17: 0, 18: 0 };
 
 function openStructuredPoolModal() {
-  openModal('✨ Bolão com IA Estrutural', '5, 10, 15 ou 20 jogos de 15 a 18 dezenas na estrutura em vigor',
+  spComposition = { 15: 10, 16: 0, 17: 0, 18: 0 };    openModal('✨ Bolão com IA Estrutural', 'Configure os jogos: quantos de cada dezena (15 a 18)',
     '<div class="form-group"><label>Nome do Bolão</label><div class="form-input"><input type="text" id="spName" placeholder="Ex: Bolão IA da Sorte"></div></div>' +
-    '<div class="form-group"><label>Quantidade de jogos</label><div class="form-input"><select id="spQty" onchange="updateStructuredPrice()" style="width:100%;">' +
-    '<option value="5">5 jogos</option>' +
-    '<option value="10" selected>10 jogos</option>' +
-    '<option value="15">15 jogos</option>' +
-    '<option value="20">20 jogos</option></select></div></div>' +
-    '<div class="form-group"><label>Dezenas por jogo</label><div class="form-input"><select id="spPick" onchange="updateStructuredPrice()" style="width:100%;">' +
-    '<option value="15" selected>15 números · R$ 3,50/jogo</option>' +
-    '<option value="16">16 números · R$ 56,00/jogo</option>' +
-    '<option value="17">17 números · R$ 476,00/jogo</option>' +
-    '<option value="18">18 números · R$ 2.856,00/jogo</option></select></div></div>' +
-    '<div id="spPrice" style="background:var(--bg-input);border-radius:10px;padding:14px 16px;margin:12px 0;display:flex;justify-content:space-between;align-items:center;">' +
-    '<span style="font-size:13px;color:var(--text-secondary);">Cota (1 jogo)</span><span style="font-size:20px;font-weight:700;color:var(--secondary);">R$ 3,50</span></div>' +
+    '<div class="form-group"><label>Composição de jogos</label>' +
+    '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Defina quantos jogos de cada quantidade de dezenas. Mais jogos = mais chances (e valor maior).</div>' +
+    '<div id="spCompositionEditor"></div></div>' +
+    '<div class="form-group"><label>Concurso</label><div class="form-input"><input type="number" id="spContest" placeholder="Deixe vazio para o próximo concurso"></div></div>' +
+    '<div class="form-group"><label>Taxa administrativa (R$, opcional)</label><div class="form-input"><input type="number" id="spAdminFee" value="0" step="0.01" min="0" oninput="updateStructuredPrice()"></div>' +
+    '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Recompensa pelo trabalho de organizar — aparece transparente na capa do bolão.</div></div>' +
+    '<div id="spPrice" style="background:var(--bg-input);border-radius:10px;padding:14px 16px;margin:12px 0;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--text-secondary);">🎫 Custo dos jogos</span><span style="font-size:14px;font-weight:600;" id="spBaseValue">R$ 35,00</span></div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;"><span style="font-size:13px;color:var(--text-secondary);">💼 Taxa administrativa</span><span style="font-size:14px;font-weight:600;color:var(--accent);" id="spAdminFeeLabel">R$ 0,00</span></div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);"><span style="font-size:13px;color:var(--text-secondary);">Valor total do bolão</span><span style="font-size:20px;font-weight:700;color:var(--secondary);" id="spTotalValue">R$ 35,00</span></div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;"><span style="font-size:12px;color:var(--text-muted);">Valor por cota</span><span style="font-size:14px;font-weight:600;" id="spSharePrice">R$ 3,50</span></div></div>' +
     '<button class="btn btn-primary btn-full btn-lg" id="spBtn" onclick="confirmStructuredPool()"><i class="fas fa-brain"></i> Gerar e Criar Bolão</button>' +
-    '<p style="font-size:12px;color:var(--text-muted);margin-top:12px;"><i class="fas fa-info-circle"></i> A IA usa a estrutura em vigor (soma 170–220, blocos 4–5, pool de ~20 números quentes+frios). Você paga 1 cota; os demais participantes preenchem o bolão.</p>');
+    '<p style="font-size:12px;color:var(--text-muted);margin-top:12px;"><i class="fas fa-info-circle"></i> Você pré-financia o <strong>custo dos jogos</strong> (tabela da Caixa); os participantes compram cotas e reembolsam você. Após o sorteio, o resultado é conferido automaticamente e o rateio vai para a carteira de cada participante.</p>');
+  renderCompositionEditor();
   updateStructuredPrice();
 }
 
+function renderCompositionEditor() {
+  const editor = document.getElementById('spCompositionEditor');
+  if (!editor) return;
+  editor.innerHTML = [15, 16, 17, 18].map(pick => {
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-input);border-radius:10px;margin-bottom:8px;">' +
+      '<span style="font-size:13px;"><strong>' + pick + ' números</strong> · ' + formatCurrency(STRUCTURED_PRICES[pick]) + '/jogo</span>' +
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+      '<button class="btn btn-secondary btn-sm" style="padding:4px 12px;" onclick="adjustComposition(' + pick + ', -1)">−</button>' +
+      '<span style="font-weight:700;font-size:15px;min-width:24px;text-align:center;" id="spComp_' + pick + '">' + (spComposition[pick] || 0) + '</span>' +
+      '<button class="btn btn-secondary btn-sm" style="padding:4px 12px;" onclick="adjustComposition(' + pick + ', 1)">+</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function adjustComposition(pick, delta) {
+  spComposition[pick] = Math.max(0, (spComposition[pick] || 0) + delta);
+  document.getElementById('spComp_' + pick).textContent = spComposition[pick];
+  updateStructuredPrice();
+}
+
+function getCompositionTotal() {
+  const totalValue = [15, 16, 17, 18].reduce((s, pick) => s + (STRUCTURED_PRICES[pick] || 0) * (spComposition[pick] || 0), 0);
+  const totalGames = [15, 16, 17, 18].reduce((s, pick) => s + (spComposition[pick] || 0), 0);
+  return { totalValue: Math.round(totalValue * 100) / 100, totalGames };
+}
+
 function updateStructuredPrice() {
-  const pick = parseInt(document.getElementById('spPick').value, 10) || 15;
-  const qty = parseInt(document.getElementById('spQty').value, 10) || 10;
-  const perGame = STRUCTURED_PRICES[pick] || 3.50;
-  const total = perGame * qty;
-  document.getElementById('spPrice').innerHTML =
-    '<div style="text-align:left;"><span style="font-size:13px;color:var(--text-secondary);">Cota (1 jogo de ' + pick + ')</span><br>' +
-    '<span style="font-size:13px;color:var(--text-secondary);">Valor total do bolão (' + qty + ' jogos)</span></div>' +
-    '<div style="text-align:right;"><span style="font-size:20px;font-weight:700;color:var(--secondary);">R$ ' + formatNumberBR(perGame) + '</span><br>' +
-    '<span style="font-size:15px;color:var(--text-secondary);">' + formatCurrency(total) + ' total</span></div>';
+  const { totalValue, totalGames } = getCompositionTotal();
+  const fee = Math.max(0, parseFloat(document.getElementById('spAdminFee').value) || 0);
+  const totalWithFee = Math.round((totalValue + fee) * 100) / 100;
+  document.getElementById('spBaseValue').textContent = formatCurrency(totalValue);
+  document.getElementById('spAdminFeeLabel').textContent = formatCurrency(fee);
+  document.getElementById('spTotalValue').textContent = formatCurrency(totalWithFee);
+  const sharePrice = totalGames > 0 ? Math.round((totalWithFee / totalGames) * 100) / 100 : 0;
+  document.getElementById('spSharePrice').textContent = formatCurrency(sharePrice);
 }
 
 async function confirmStructuredPool() {
   const name = document.getElementById('spName').value.trim() || 'Bolão IA ' + new Date().toLocaleDateString('pt-BR');
-  const quantity = parseInt(document.getElementById('spQty').value, 10) || 10;
-  const pickCount = parseInt(document.getElementById('spPick').value, 10) || 15;
+  const composition = [15, 16, 17, 18]
+    .filter(pick => (spComposition[pick] || 0) > 0)
+    .map(pick => ({ pickCount: pick, quantity: spComposition[pick] }));
+  const contestNumber = document.getElementById('spContest').value;
+  if (composition.length === 0) {
+    showToast('Adicione pelo menos 1 jogo ao bolão', 'error');
+    return;
+  }
   const btn = document.getElementById('spBtn');
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando jogos e criando bolão...';
   btn.disabled = true;
+  const payload = { name, composition };
+  if (contestNumber) payload.contestNumber = parseInt(contestNumber, 10);
+  const fee = Math.max(0, parseFloat(document.getElementById('spAdminFee').value) || 0);
+  if (fee > 0) payload.adminFee = fee;
   try {
-    const result = await api.createStructuredPool({ name, quantity, pickCount });
+    const result = await api.createStructuredPool(payload);
     if (result.success) {
       closeModal();
-      showToast('🎉 Bolão "' + name + '" criado com ' + (result.games || []).length + ' jogos gerados pela IA!', 'success');
+      const games = (result.games || []).length;
+      showToast('🎉 Bolão "' + name + '" criado com ' + games + ' jogos (concurso ' + (result.contestNumber || '—') + ')!', 'success');
       setTimeout(() => location.reload(), 1800);
     } else {
       showToast(result.error || 'Erro ao criar bolão IA', 'error');

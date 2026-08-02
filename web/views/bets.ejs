@@ -78,11 +78,19 @@
           <span style="color:var(--text-secondary);font-size:14px;">Quantidade</span>
           <span style="font-weight:600;font-size:14px;" id="betQuantity">0</span>
         </div>
+        <!-- Teimosinha: participa de N concursos (valor = N × preço do jogo) -->
+        <div class="flex-between mb-1" style="gap:8px;flex-wrap:wrap;">
+          <span style="color:var(--text-secondary);font-size:14px;">Concursos (Teimosinha)</span>
+          <select id="betContests" onchange="setBetContests(this.value)" style="padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-weight:600;">
+            ${Array.from({length: 30}, (_, i) => { const n = i + 1; return '<option value="' + n + '"' + (n === 1 ? ' selected' : '') + '>' + n + ' concurso' + (n > 1 ? 's' : '') + '</option>'; }).join('')}
+          </select>
+        </div>
         <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px;">
           <div class="flex-between">
             <span style="font-size:16px;font-weight:600;">Valor da Aposta</span>
             <span style="font-size:24px;font-weight:700;color:var(--secondary);" id="betAmount">R$ 3,00</span>
           </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:6px;" id="betContestsInfo">1 concurso · vale para o próximo sorteio</div>
         </div>
       </div>
       <button class="btn btn-primary btn-full btn-lg" onclick="confirmBet()">
@@ -121,6 +129,7 @@
 
 <script>
 let selectedNumbers = new Set();
+let selectedContests = 1;
 // Config dinâmica: preços vêm do servidor (/api/lottery-config) para refletir
 // a tabela oficial da Caixa + overrides do admin. Fallback local idêntico.
 const FALLBACK_CONFIGS = {
@@ -138,6 +147,17 @@ function getPrice(count) {
   const cfg = getConfig();
   const p = cfg.prices[count];
   return p != null ? p : (count >= cfg.minPick ? 0 : null);
+}
+
+function setBetContests(value) {
+  selectedContests = Math.min(Math.max(parseInt(value, 10) || 1, 1), 30);
+  updateSummary();
+}
+
+function getTotalValue() {
+  const price = getPrice(selectedNumbers.size);
+  const unit = price != null && price > 0 ? price : 0;
+  return Math.round(unit * selectedContests * 100) / 100;
 }
 
 function formatPriceBR(value) {
@@ -189,19 +209,24 @@ function updateSummary() {
   document.getElementById('betNumbers').textContent = count === 0 ? '-' : [...selectedNumbers].sort((a,b) => a-b).join(', ');
   document.getElementById('betQuantity').textContent = count;
   const price = getPrice(count);
-  document.getElementById('betAmount').textContent = price != null && price > 0
-    ? formatPriceBR(price)
-    : 'R$ 0,00';
+  const total = Math.round((price != null && price > 0 ? price : 0) * selectedContests * 100) / 100;
+  document.getElementById('betAmount').textContent = total > 0 ? formatPriceBR(total) : 'R$ 0,00';
+  const info = document.getElementById('betContestsInfo');
+  if (info) {
+    info.textContent = selectedContests === 1
+      ? '1 concurso · vale para o próximo sorteio'
+      : selectedContests + ' concursos · valor total ' + formatPriceBR(total) + ' (' + formatPriceBR(price || 0) + ' × ' + selectedContests + ')';
+  }
 
   // Bilhete fixo mobile: aparece quando há seleção, com total + confirmar
   const slipBar = document.getElementById('betSlipBar');
   if (slipBar) {
+    const unit = price != null && price > 0 ? price : 0;
+    const total = Math.round(unit * selectedContests * 100) / 100;
     slipBar.classList.toggle('show', count > 0);
     document.body.classList.toggle('has-betslip', count > 0);
     document.getElementById('betSlipCount').textContent = count;
-    document.getElementById('betSlipAmount').textContent = price != null && price > 0
-      ? formatPriceBR(price)
-      : 'R$ 0,00';
+    document.getElementById('betSlipAmount').textContent = total > 0 ? formatPriceBR(total) : 'R$ 0,00';
     // Botão desabilitado até atingir o mínimo (padrão casa de apostas)
     const slipBtn = document.querySelector('.bet-slip-btn');
     if (slipBtn) slipBtn.disabled = count < cfg.minPick;
@@ -418,7 +443,7 @@ async function confirmBet() {
   try {
     // O servidor calcula o preço oficial (o amount aqui é só informativo) e
     // cria/vincula o jogo no portfólio automaticamente (bug corrigido).
-    const result = await api.saveBet(currentGame, numbers, amount, portfolioGameId);    if (result.success) {
+    const result = await api.saveBet(currentGame, numbers, amount, portfolioGameId, selectedContests);    if (result.success) {
       showToast(result.game
         ? '🎉 Aposta realizada! Jogo salvo no seu portfólio (Meus Jogos). Boa sorte!'
         : '🎉 Aposta realizada com sucesso! Boa sorte!', 'success');

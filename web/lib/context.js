@@ -184,6 +184,40 @@ async function fetchLotofacilResultsByContest(contestNumber) {
   return null;
 }
 
+/**
+ * Resultado de UM concurso específico de QUALQUER loteria (multi-loteria).
+ * - LOTOFACIL: cache local/Postgres + APIs externas (cascata).
+ * - Outras: APIs externas direto (Guidi/free-apiloterias/Caixa pelo slug).
+ * Usado pela verificação por concurso de jogos e bolões (teimosinha).
+ */
+async function fetchResultByContestAndType(gameType, contestNumber) {
+  const slug = GAME_TYPE_SLUGS[gameType] || 'lotofacil';
+  if (slug === 'lotofacil') return fetchLotofacilResultsByContest(contestNumber);
+
+  try {
+    const resp = await axiosGet(`${API_GUIDI.replace('lotofacil', slug)}/${contestNumber}`, 4000);
+    if (resp && resp.listaDezenas) return resp;
+  } catch (e) {}
+  try {
+    const resp = await axiosGet(`${API_LOTERIAS_BASE.replace('lotofacil', slug)}/${contestNumber}.json`, 4000);
+    if (resp && resp.listaDezenas) return resp;
+  } catch (e) {}
+  try {
+    const resp = await axiosGet(`${CAIXA_API_BASE}/${slug}/${contestNumber}`, 3000, { 'Accept': 'application/json' });
+    if (resp && resp.listaDezenas) return resp;
+  } catch (e) {}
+  return null;
+}
+
+/**
+ * Número do PRÓXIMO concurso de uma loteria (último resultado + 1).
+ * Usado para registrar a aposta/bolão no concurso que vem (nunca no passado).
+ */
+async function getNextContestNumber(gameType = 'LOTOFACIL') {
+  const latest = await fetchLatestResultByGameType(gameType);
+  return latest && latest.numero ? parseInt(latest.numero, 10) + 1 : 3001;
+}
+
 // ==================== RESULTADO POR TIPO DE JOGO (MULTI-LOTERIA) ====================
 // Slug usado nas APIs externas por tipo de jogo (Guidi / free-apiloterias / Caixa).
 const GAME_TYPE_SLUGS = {
@@ -451,6 +485,8 @@ module.exports = {
   fetchLatestLotofacilResult,
   fetchLatestResultByGameType,
   fetchLotofacilResultsByContest,
+  fetchResultByContestAndType,
+  getNextContestNumber,
   hydrateCacheInBackground,
   syncMissingResults,
   generateMockAIGames,

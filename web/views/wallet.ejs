@@ -95,8 +95,8 @@ async function loadTransactions(filter = 'all') {
       return;
     }
     
-    const typeIcons = { deposit: 'fa-arrow-down', bet: 'fa-ticket-alt', prize: 'fa-trophy', withdrawal: 'fa-arrow-up', share_sale: 'fa-handshake', pool_join: 'fa-users' };
-    const typeLabels = { deposit: 'Depósito', bet: 'Aposta', prize: 'Prêmio', withdrawal: 'Saque', share_sale: 'Venda Cota', pool_join: 'Bolão' };
+    const typeIcons = { deposit: 'fa-arrow-down', bet: 'fa-ticket-alt', prize: 'fa-trophy', withdrawal: 'fa-arrow-up', share_sale: 'fa-handshake', pool_join: 'fa-users', pool_sale: 'fa-coins' };
+    const typeLabels = { deposit: 'Depósito', bet: 'Aposta', prize: 'Prêmio', withdrawal: 'Saque', share_sale: 'Venda Cota', pool_join: 'Bolão', pool_sale: 'Reembolso Bolão' };
     
     tbody.innerHTML = txns.map(t => {
       const isPositive = t.amount > 0;

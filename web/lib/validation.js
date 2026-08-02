@@ -79,7 +79,10 @@ const createBetSchema = z.object({
   amount: z.coerce.number().positive('Valor da aposta inválido').optional(),
   // Opcional: id do jogo do portfólio que originou esta aposta (evita duplicar
   // o jogo e cria o vínculo aposta ↔ jogo).
-  gameId: z.string().optional()
+  gameId: z.string().optional(),
+  // Teimosinha: quantidade de concursos em que o jogo participa (1-30).
+  // O valor cobrado é N × preço do jogo (o servidor calcula e debita).
+  contests: z.coerce.number().int().min(1, 'Mínimo 1 concurso').max(30, 'Máximo 30 concursos').optional().default(1)
 }).superRefine((data, ctx) => {
   const cfg = LOTTERY_CONFIGS[data.gameType];
   if (!cfg) return;
@@ -185,16 +188,41 @@ const structuredGenerateSchema = z.object({
   antiRateio: z.boolean().optional().default(true)
 });
 
-/** Criação de bolão estruturado (N jogos + cotas com preço da tabela). */
+/**
+ * Criação de bolão estruturado (N jogos + cotas com preço da tabela).
+ *
+ * O bolão é CONFIGURÁVEL por composição de jogos: em vez de escolher só
+ * 'quantity' jogos com um único pickCount, o usuário define QUANTOS jogos
+ * de cada quantidade de dezenas — ex.: [{pickCount:15,quantity:10},
+ * {pickCount:16,quantity:5},{pickCount:17,quantity:2}].
+ *
+ * Compatibilidade: se `composition` for omitido, usa quantity × pickCount
+ * (comportamento anterior).
+ */
+const structuredCompositionItem = z.object({
+  pickCount: z.coerce.number().int().min(15, 'Dezenas entre 15 e 20').max(20, 'Dezenas entre 15 e 20').default(15),
+  quantity: z.coerce.number().int().min(1, 'Quantidade mínima de 1 jogo').max(50, 'Máximo de 50 jogos por grupo').default(1)
+});
+
 const structuredPoolSchema = z.object({
   name: z.string().trim().min(1, 'Informe o nome do bolão'),
-  quantity: z.coerce.number().int().min(1, 'Quantidade de jogos inválida').max(20, 'Máximo de 20 jogos').default(10),
-  pickCount: z.coerce.number().int().min(15, 'Dezenas por jogo entre 15 e 20').max(20, 'Dezenas por jogo entre 15 e 20').default(15),
-  sharePrice: z.coerce.number().positive('Valor da cota inválido').default(3.5),
+  quantity: z.coerce.number().int().min(1, 'Quantidade de jogos inválida').max(20, 'Máximo de 20 jogos').optional(),
+  pickCount: z.coerce.number().int().min(15, 'Dezenas por jogo entre 15 e 20').max(20, 'Dezenas por jogo entre 15 e 20').optional(),
+  // Configuração flexível: lista de grupos (dezenas × quantidade)
+  composition: z.array(structuredCompositionItem).min(1, 'Informe pelo menos 1 grupo de jogos').optional(),
+  sharePrice: z.coerce.number().positive('Valor da cota inválido').optional(),
   totalShares: z.coerce.number().int().positive('Total de cotas inválido').optional(),
+  // Taxa administrativa (R$) que o criador cobra pelo trabalho de organizar.
+  // Sempre transparente: aparece na capa do bolão como "Custo dos jogos + Taxa".
+  adminFee: z.coerce.number().min(0, 'Taxa administrativa não pode ser negativa').optional().default(0),
   contestNumber: z.coerce.number().int().positive().optional(),
   poolSize: z.coerce.number().int().min(15, 'Pool entre 15 e 25').max(25, 'Pool entre 15 e 25').optional(),
   antiRateio: z.boolean().optional().default(true)
+}).superRefine((data, ctx) => {
+  // Valida a composição: sem composition, quantity/pickCount são obrigatórios
+  if (!data.composition && !data.quantity) {
+    ctx.addIssue({ code: 'custom', path: ['composition'], message: 'Informe a composição de jogos ou a quantidade' });
+  }
 });
 
 // ==================== ADMIN: CONFIG DE LOTERIAS ====================
@@ -229,5 +257,6 @@ module.exports = {
   updateProfileSchema,
   lotteryConfigSchema,
   structuredGenerateSchema,
-  structuredPoolSchema
+  structuredPoolSchema,
+  structuredCompositionItem
 };

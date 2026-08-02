@@ -136,7 +136,8 @@ describe('Smoke test completo', () => {
     expect(linkedGame.status).toBe('used');
     expect(linkedGame.usageHistory).toHaveLength(1);
 
-    // Criação de bolão (debita 1 cota)
+    // Criação de bolão — MODELO 1: o criador PRÉ-FINANCIA o custo real dos
+    // jogos (15 dezenas de Lotofácil = R$ 3,50), não 1 cota de R$ 5.
     const pool = await agent.post('/api/pools').send({
       name: 'Bolão Smoke', gameType: 'LOTOFACIL', contestNumber: 3005,
       totalShares: 10, sharePrice: 5, numbers: QUINZE
@@ -152,9 +153,11 @@ describe('Smoke test completo', () => {
     const sub = await agent.post('/api/subscriptions').send({ gameType: 'LOTOFACIL', numbers: QUINZE, interval: 'weekly' });
     expect(sub.status).toBe(200);
 
-    // Saldo final consistente: 100 - 3,5 (aposta oficial 15 dezenas) - 5 (bolão) - 5 (join 1 cota)
+    // Saldo final consistente (MODELO 1):
+    // 100 - 3,5 (aposta oficial 15 dezenas) - 3,5 (pré-financiamento do bolão)
+    // - 5 (join 1 cota) = 88,00
     const wallet = await agent.get('/api/wallet');
-    expect(wallet.body.balance).toBeCloseTo(86.5, 2);
+    expect(wallet.body.balance).toBeCloseTo(88, 2);
   });
 
   it('aposta sem saldo é rejeitada (400)', async () => {

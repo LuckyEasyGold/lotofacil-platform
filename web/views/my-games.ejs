@@ -236,6 +236,11 @@ function renderGameCard(game) {
   const statusClasses = { active: 'completed', used: 'pending', won: 'active', archived: 'cancelled' };
   const statusBadge = '<span class="status-badge ' + (statusClasses[game.status] || 'active') + '">' + (statusLabels[game.status] || game.status) + '</span>';
 
+  // Badge de teimosinha: jogo participando de N concursos (verificação automática)
+  const teimosinhaBadge = game.usageHistory.length > 1
+    ? '<span class="ai-badge" style="margin-left:8px;background:rgba(245,158,11,0.15);color:var(--accent);"><i class="fas fa-sync"></i> Teimosinha · ' + game.usageHistory.length + ' concursos</span>'
+    : '';
+
   const sourceBadge = game.source === 'ai'
     ? '<span class="ai-badge" style="margin-left:8px;"><i class="fas fa-robot"></i> IA ' + (game.seedVersion || '') + '</span>'
     : '<span style="margin-left:8px;font-size:12px;color:var(--text-muted);"><i class="fas fa-user"></i> Manual</span>';
@@ -282,7 +287,7 @@ function renderGameCard(game) {
     '<div>' +
     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
     '<span style="font-size:16px;font-weight:600;">' + game.name + '</span>' +
-    statusBadge + sourceBadge +
+    statusBadge + sourceBadge + teimosinhaBadge +
     '</div>' +
     '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">' +
     'Criado em ' + new Date(game.createdAt).toLocaleDateString('pt-BR') +

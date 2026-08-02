@@ -52,9 +52,10 @@ const api = {
   },
 
   // Bets
-  async saveBet(gameType, numbers, amount, gameId) {
+  async saveBet(gameType, numbers, amount, gameId, contests) {
     const payload = { gameType, numbers, amount };
     if (gameId) payload.gameId = gameId;
+    if (contests) payload.contests = contests;
     return fetch(`${API_BASE}/api/bets`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -117,6 +118,11 @@ const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
+    }).then(r => r.json());
+  },
+  async checkPoolResult(poolId) {
+    return fetch(`${API_BASE}/api/pools/${poolId}/check-result`, {
+      method: 'POST'
     }).then(r => r.json());
   },
   async generateAIGames(gameType, quantity = 5, pickCount) {

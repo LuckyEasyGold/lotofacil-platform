@@ -147,7 +147,9 @@ describe('QA — fluxo completo do jogador', () => {
     expect(walletComprador.body.balance).toBe(170); // 200 - 30
 
     const walletVendedor = await vendedor.get('/api/wallet');
-    expect(walletVendedor.body.balance).toBe(505); // 500 - 25 (1 cota do criador) + 30
+    // MODELO 1 (pré-financiado): o criador paga o CUSTO REAL do jogo (15
+    // dezenas = R$ 3,50), não 1 cota de R$ 25. Saldo: 500 - 3,5 + 30 = 526,50
+    expect(walletVendedor.body.balance).toBe(526.5);
   });
 
   it('8. aposta com quantidade fora do permitido é rejeitada', async () => {

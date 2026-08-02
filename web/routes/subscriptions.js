@@ -10,6 +10,7 @@ const { addNotification } = require('../lib/notifications');
 const { checkAchievements } = require('../lib/gamification');
 const { syncMissingResults } = require('../lib/context');
 const { processSubscriptions } = require('../lib/subscriptions');
+const { checkAllGames, checkAllPools } = require('../lib/checker');
 const { validate, createSubscriptionSchema } = require('../lib/validation');
 const { sendError } = require('../lib/http');
 
@@ -78,7 +79,11 @@ router.get('/api/cron/process-subscriptions', async (req, res) => {
     // serverless os timers de background congelam, então o cron (1x/dia no
     // Hobby) é o lugar certo para manter o banco atualizado em produção.
     await syncMissingResults();
-    res.json({ success: true });
+    // Verificação diária: confere todos os jogos (teimosinha) e bolões
+    // contra os resultados disponíveis e credita prêmios automaticamente.
+    const games = await checkAllGames();
+    const pools = await checkAllPools();
+    res.json({ success: true, games, pools });
   } catch (e) {
     sendError(res, e, 'GET /api/cron/process-subscriptions');
   }
