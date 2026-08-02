@@ -64,11 +64,33 @@ async function findInDatabase(contestNumber) {
 
 async function getLatestFromDatabase() {
   await ensureReady();
+  // FONTE DA VERDADE: o Postgres. No serverless (Vercel), a instância pode
+  // ficar quente com o cache em memória DESATUALIZADO (carregado num cold
+  // start anterior à última sincronização), fazendo o app mostrar resultado
+  // antigo (bug real reportado: produção mostrava #3657 enquanto o banco já
+  // tinha #3750). Lendo o último concurso direto do banco, o resultado fica
+  // sempre atualizado. O cache em memória vira apenas fallback.
+  try {
+    const fromDb = await db.getLatestResult();
+    if (fromDb) return fromDb;
+  } catch (e) {
+    console.error('⚠️ Erro ao ler último resultado do Postgres:', e.message);
+  }
   return resultsCache.length > 0 ? resultsCache[resultsCache.length - 1] : null;
 }
 
 async function getRecentContests(limit = 10) {
   await ensureReady();
+  // Mesma lógica do getLatestFromDatabase: histórico vem do Postgres (fonte
+  // da verdade), não do cache em memória da instância serverless — que pode
+  // estar desatualizado/parcial e esvaziar o histórico na tela.
+  try {
+    // getRecentResults já retorna em ordem crescente (últimos N do Postgres)
+    const fromDb = await db.getRecentResults(limit);
+    if (fromDb.length > 0) return fromDb.reverse(); // mais recente primeiro
+  } catch (e) {
+    console.error('⚠️ Erro ao ler histórico do Postgres:', e.message);
+  }
   if (resultsCache.length === 0) return [];
   return resultsCache.slice(-limit).reverse();
 }
