@@ -19,11 +19,11 @@
     <div class="card-header">
       <div>
         <div class="card-title">✨ Criar Bolão com IA Estrutural</div>
-        <div class="card-subtitle">A IA aprende a estrutura em vigor (soma, blocos, pool de números) e gera 10 ou 20 jogos de 15 dezenas</div>
+        <div class="card-subtitle">A IA aprende a estrutura em vigor (soma, blocos, pool de números) e gera 5, 10, 15 ou 20 jogos de 15 a 18 dezenas</div>
       </div>
     </div>
     <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
-      Cada cota custa o valor de 1 jogo (tabela da Caixa: <strong>R$ 3,50</strong>) — o bolão tem 1 cota por jogo. Você paga 1 cota para criar e os amigos preenchem o resto.
+      Cada cota custa o valor de 1 jogo (tabela da Caixa: <strong>R$ 3,50</strong> com 15 dezenas; 16, 17 e 18 têm preços maiores) — o bolão tem 1 cota por jogo. Você paga 1 cota para criar e os amigos preenchem o resto.
     </p>
     <button class="btn btn-primary btn-full btn-lg" onclick="openStructuredPoolModal()">
       <i class="fas fa-brain"></i> Gerar Bolão com IA
@@ -265,15 +265,23 @@ function togglePoolGames(poolId) {
   });
 }
 // ==================== BOLÃO COM IA ESTRUTURAL (2 MOTORES) ====================
+// Tabela da Caixa (base R$ 3,50): preço por quantidade de dezenas.
+// Mantida em sincronia com o override de lottery_config no banco (admin).
+const STRUCTURED_PRICES = { 15: 3.50, 16: 56.00, 17: 476.00, 18: 2856.00 };
+
 function openStructuredPoolModal() {
-  openModal('✨ Bolão com IA Estrutural', '10 ou 20 jogos de 15 dezenas na estrutura em vigor',
+  openModal('✨ Bolão com IA Estrutural', '5, 10, 15 ou 20 jogos de 15 a 18 dezenas na estrutura em vigor',
     '<div class="form-group"><label>Nome do Bolão</label><div class="form-input"><input type="text" id="spName" placeholder="Ex: Bolão IA da Sorte"></div></div>' +
     '<div class="form-group"><label>Quantidade de jogos</label><div class="form-input"><select id="spQty" onchange="updateStructuredPrice()" style="width:100%;">' +
-    '<option value="10" selected>10 jogos · R$ 35,00 total</option>' +
-    '<option value="20">20 jogos · R$ 70,00 total</option></select></div></div>' +
+    '<option value="5">5 jogos</option>' +
+    '<option value="10" selected>10 jogos</option>' +
+    '<option value="15">15 jogos</option>' +
+    '<option value="20">20 jogos</option></select></div></div>' +
     '<div class="form-group"><label>Dezenas por jogo</label><div class="form-input"><select id="spPick" onchange="updateStructuredPrice()" style="width:100%;">' +
     '<option value="15" selected>15 números · R$ 3,50/jogo</option>' +
-    '<option value="16">16 números · R$ 56,00/jogo</option></select></div></div>' +
+    '<option value="16">16 números · R$ 56,00/jogo</option>' +
+    '<option value="17">17 números · R$ 476,00/jogo</option>' +
+    '<option value="18">18 números · R$ 2.856,00/jogo</option></select></div></div>' +
     '<div id="spPrice" style="background:var(--bg-input);border-radius:10px;padding:14px 16px;margin:12px 0;display:flex;justify-content:space-between;align-items:center;">' +
     '<span style="font-size:13px;color:var(--text-secondary);">Cota (1 jogo)</span><span style="font-size:20px;font-weight:700;color:var(--secondary);">R$ 3,50</span></div>' +
     '<button class="btn btn-primary btn-full btn-lg" id="spBtn" onclick="confirmStructuredPool()"><i class="fas fa-brain"></i> Gerar e Criar Bolão</button>' +
@@ -283,10 +291,14 @@ function openStructuredPoolModal() {
 
 function updateStructuredPrice() {
   const pick = parseInt(document.getElementById('spPick').value, 10) || 15;
-  const perGame = pick === 16 ? 56.00 : 3.50;
+  const qty = parseInt(document.getElementById('spQty').value, 10) || 10;
+  const perGame = STRUCTURED_PRICES[pick] || 3.50;
+  const total = perGame * qty;
   document.getElementById('spPrice').innerHTML =
-    '<span style="font-size:13px;color:var(--text-secondary);">Cota (1 jogo de ' + pick + ')</span>' +
-    '<span style="font-size:20px;font-weight:700;color:var(--secondary);">R$ ' + formatNumberBR(perGame) + '</span>';
+    '<div style="text-align:left;"><span style="font-size:13px;color:var(--text-secondary);">Cota (1 jogo de ' + pick + ')</span><br>' +
+    '<span style="font-size:13px;color:var(--text-secondary);">Valor total do bolão (' + qty + ' jogos)</span></div>' +
+    '<div style="text-align:right;"><span style="font-size:20px;font-weight:700;color:var(--secondary);">R$ ' + formatNumberBR(perGame) + '</span><br>' +
+    '<span style="font-size:15px;color:var(--text-secondary);">' + formatCurrency(total) + ' total</span></div>';
 }
 
 async function confirmStructuredPool() {
