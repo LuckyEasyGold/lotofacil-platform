@@ -101,6 +101,24 @@
   </div>
 </div>
 
+<!-- ==================== BILHETE FIXO (MOBILE) ====================
+     Padrão casa de apostas: barra fixa acima da bottom-nav que aparece
+     quando há números selecionados, com total e botão Confirmar sempre
+     visíveis — sem precisar rolar até o fim da página. -->
+<div id="betSlipBar" class="bet-slip-bar">
+  <div class="bet-slip-block">
+    <span class="bet-slip-label">Números</span>
+    <span class="bet-slip-count" id="betSlipCount">0</span>
+  </div>
+  <div class="bet-slip-block bet-slip-total">
+    <span class="bet-slip-label">Total</span>
+    <span class="bet-slip-amount" id="betSlipAmount">R$ 0,00</span>
+  </div>
+  <button class="btn btn-primary bet-slip-btn" onclick="confirmBet()">
+    <i class="fas fa-check"></i> Confirmar
+  </button>
+</div>
+
 <script>
 let selectedNumbers = new Set();
 // Config dinâmica: preços vêm do servidor (/api/lottery-config) para refletir
@@ -174,6 +192,20 @@ function updateSummary() {
   document.getElementById('betAmount').textContent = price != null && price > 0
     ? formatPriceBR(price)
     : 'R$ 0,00';
+
+  // Bilhete fixo mobile: aparece quando há seleção, com total + confirmar
+  const slipBar = document.getElementById('betSlipBar');
+  if (slipBar) {
+    slipBar.classList.toggle('show', count > 0);
+    document.body.classList.toggle('has-betslip', count > 0);
+    document.getElementById('betSlipCount').textContent = count;
+    document.getElementById('betSlipAmount').textContent = price != null && price > 0
+      ? formatPriceBR(price)
+      : 'R$ 0,00';
+    // Botão desabilitado até atingir o mínimo (padrão casa de apostas)
+    const slipBtn = document.querySelector('.bet-slip-btn');
+    if (slipBtn) slipBtn.disabled = count < cfg.minPick;
+  }
 
   if (count >= cfg.minPick && currentGame === 'LOTOFACIL') {
     const nums = [...selectedNumbers].sort((a,b) => a-b);
@@ -409,6 +441,38 @@ async function confirmBet() {
    ficava esticada no mobile. Agora casa pela parte unica 1fr 380px. */
 @media (max-width: 1024px) {
   div[style*="1fr 380px"] { grid-template-columns: 1fr !important; }
+}
+
+/* ==================== BILHETE FIXO (MOBILE) ==================== */
+.bet-slip-bar { display: none; }
+@media (max-width: 768px) {
+  .bet-slip-bar.show {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.45);
+    z-index: 150;
+    animation: betSlipIn 0.25s ease;
+  }
+  @keyframes betSlipIn {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .bet-slip-block { display: flex; flex-direction: column; line-height: 1.2; }
+  .bet-slip-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .bet-slip-count { font-size: 20px; font-weight: 700; color: var(--primary-light); }
+  .bet-slip-amount { font-size: 20px; font-weight: 700; color: var(--secondary); }
+  .bet-slip-total { margin-left: auto; text-align: right; }
+  .bet-slip-btn { flex-shrink: 0; padding: 12px 22px; }
+  /* Espaço extra no fim da página para o bilhete não cobrir o resumo */
+  body.has-betslip .page-content { padding-bottom: 140px; }
 }
 </style>
 ` %>
