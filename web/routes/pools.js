@@ -44,6 +44,9 @@ router.post('/api/pools', requireAuth, validate(createPoolSchema), async (req, r
     description: `Criação do bolão "${pool.name}" - 1 cota`,
     date: new Date(), status: 'completed'
   });
+  await addNotification(user.id, 'pool', 'Bolão criado!',
+    `"${pool.name}" criado com ${total} cotas a R$ ${price.toFixed(2)} — compartilhe para vender mais!`,
+    '/boloes');
   res.json({ success: true, pool: newPool });
 });
 
@@ -71,6 +74,9 @@ router.post('/api/pools/:id/join', requireAuth, validate(joinPoolSchema), async 
     date: new Date(), status: 'completed'
   });
   await checkAchievements(user.id);
+  await addNotification(user.id, 'pool', 'Entrou no bolão!',
+    `Você comprou ${qty} cota(s) do bolão "${pool.name}" (R$ ${(qty * pool.sharePrice).toFixed(2)})`,
+    '/boloes');
   const updated = await db.getUserById(user.id);
   res.json({ success: true, pool, balance: updated.balance });
 });
@@ -144,7 +150,7 @@ router.post('/api/pools/:id/buy-offer/:offerId', requireAuth, async (req, res) =
     date: new Date(), status: 'completed'
   });
 
-  await addNotification(user.id, 'info', '📦 Cotas adquiridas!',
+  await addNotification(user.id, 'pool', 'Cotas adquiridas!',
     `Você comprou ${offer.shares} cotas do bolão "${pool.name}" por R$ ${offer.totalValue.toFixed(2)}`,
     '/boloes');
 

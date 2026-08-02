@@ -376,7 +376,7 @@
         return;
       }
       list.innerHTML = data.notifications.slice(0, 15).map(n => {
-        const icons = { prize: '🏆', result: '📊', info: '💡', warning: '⚠️' };
+        const icons = { prize: '🏆', result: '📊', info: '💡', warning: '⚠️', wallet: '💰', pool: '👥', bet: '🎟️', sub: '🔄' };
         return '<div class="notif-item ' + (n.read ? '' : 'unread') + '" data-nid="' + n.id + '" data-nlink="' + (n.link || '') + '">' +
           '<div class="notif-title">' + (icons[n.type] || '💡') + ' ' + n.title + '</div>' +
           '<div class="notif-msg">' + n.message + '</div>' +

@@ -6,6 +6,7 @@ const db = require('../db');
 const { asyncRouter } = require('../lib/http');
 const { requireAuth } = require('../lib/auth');
 const { validate, depositSchema, withdrawSchema } = require('../lib/validation');
+const { addNotification } = require('../lib/notifications');
 
 const router = asyncRouter();
 
@@ -27,6 +28,9 @@ router.post('/api/wallet/deposit', requireAuth, validate(depositSchema), async (
   await db.adjustUserBalance(req.currentUser.id, amount);
   const txn = { id: uuidv4(), userId: req.currentUser.id, type: 'deposit', amount, description: `Depósito via ${method}`, date: new Date(), status: 'completed' };
   await db.addTransaction(txn);
+  await addNotification(req.currentUser.id, 'wallet', 'Depósito realizado!',
+    `R$ ${amount.toFixed(2)} adicionados via ${method}.`,
+    '/carteira');
   const user = await db.getUserById(req.currentUser.id);
   res.json({ success: true, transaction: txn, balance: user.balance });
 });

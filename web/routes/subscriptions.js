@@ -40,7 +40,7 @@ router.post('/api/subscriptions', requireAuth, validate(createSubscriptionSchema
 
   await db.createSubscription(sub);
   await checkAchievements(user.id);
-  await addNotification(user.id, 'info', '🔄 Assinatura criada!',
+  await addNotification(user.id, 'sub', 'Assinatura criada!',
     `"${sub.name}" vai apostar automaticamente a partir do concurso ${sub.nextContest}`,
     '/configuracoes');
 

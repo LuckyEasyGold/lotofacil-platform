@@ -1,4 +1,18 @@
 <% let body = `
+${user && user.role === 'admin' ? `
+<!-- ==================== ADMIN: PREÇOS DAS LOTERIAS ==================== -->
+<div class="card mb-3" id="adminLotteryCard" style="max-width:760px;border:1px solid rgba(245,158,11,0.3);">
+  <div class="card-header" style="border-bottom:1px solid var(--border);padding-bottom:16px;">
+    <div>
+      <div class="card-title">🛠️ Preços das Loterias <span class="status-badge active" style="font-size:10px;">ADM</span></div>
+      <div class="card-subtitle">Tabela oficial da Caixa por quantidade de dezenas. Edite e salve para sobrescrever.</div>
+    </div>
+  </div>
+  <div id="adminLotteryList" style="padding:16px 20px;">
+    <div style="text-align:center;padding:24px;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Carregando tabelas...</div>
+  </div>
+</div>
+` : ''}
 <div class="card mb-3" style="max-width:600px;">
   <div class="card-header">
     <div>
@@ -50,7 +64,85 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   loadSubscriptions();
+  if (document.getElementById('adminLotteryList')) loadAdminLotteryConfig();
 });
+
+// ==================== ADMIN: EDITOR DE PREÇOS DAS LOTERIAS ====================
+let adminLotteryState = {}; // { gameType: { [pickCount]: price } }
+
+async function loadAdminLotteryConfig() {
+  try {
+    const data = await api.getAdminLotteryConfig();
+    const list = document.getElementById('adminLotteryList');
+    if (!data.lotteries || data.lotteries.length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:var(--text-muted);">Nenhuma loteria configurada.</div>';
+      return;
+    }
+    list.innerHTML = data.lotteries.map(function(l) {
+      adminLotteryState[l.key] = {};
+      (l.priceTable || []).forEach(function(t) {
+        adminLotteryState[l.key][t.pickCount] = t.price;
+      });
+      const inputs = (l.priceTable || []).map(function(t) {
+        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">' +
+          '<span style="font-size:13px;color:var(--text-secondary);min-width:90px;">' + t.pickCount + ' dezenas</span>' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+          '<span style="font-size:12px;color:var(--text-muted);">R$</span>' +
+          '<input type="number" step="0.01" min="0.01" id="' + l.key + '_' + t.pickCount + '" value="' + t.price.toFixed(2) + '" ' +
+          'onchange="adminPriceChanged(\'' + l.key + '\',' + t.pickCount + ',this.value)" ' +
+          'style="width:96px;padding:6px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;text-align:right;">' +
+          '</div></div>';
+      }).join('');
+      return '<div style="background:var(--bg-input);border-radius:12px;padding:16px;margin-bottom:14px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+        '<div><div style="font-weight:600;font-size:14px;">🎯 ' + l.name + '</div>' +
+        '<div style="font-size:12px;color:var(--text-muted);">' + l.minPick + '-' + l.maxPick + ' dezenas · base R$ ' + l.basePrice.toFixed(2) + '</div></div>' +
+        '<button class="btn btn-secondary btn-sm" onclick="resetAdminLottery(\'' + l.key + '\')" title="Voltar aos valores da Caixa"><i class="fas fa-undo"></i></button></div>' +
+        inputs +
+        '<button class="btn btn-primary btn-sm btn-full" style="margin-top:10px;" onclick="saveAdminLottery(\'' + l.key + '\')"><i class="fas fa-save"></i> Salvar preços de ' + l.name + '</button></div>';
+    }).join('');
+  } catch(e) {
+    document.getElementById('adminLotteryList').innerHTML = '<div style="text-align:center;color:var(--danger);">Erro ao carregar configuração.</div>';
+  }
+}
+
+function adminPriceChanged(gameType, pickCount, value) {
+  if (!adminLotteryState[gameType]) adminLotteryState[gameType] = {};
+  adminLotteryState[gameType][pickCount] = parseFloat(value) || 0;
+}
+
+async function saveAdminLottery(gameType) {
+  const prices = {};
+  Object.keys(adminLotteryState[gameType] || {}).forEach(function(pick) {
+    const val = adminLotteryState[gameType][pick];
+    if (val && val > 0) prices[pick] = val;
+  });
+  if (Object.keys(prices).length === 0) return showToast('Informe pelo menos um preço', 'error');
+  try {
+    const res = await api.saveAdminLotteryConfig(gameType, prices);
+    if (res.success) {
+      showToast('✅ Preços de ' + gameType + ' atualizados!', 'success');
+      loadAdminLotteryConfig();
+    } else {
+      showToast(res.error || 'Erro ao salvar', 'error');
+    }
+  } catch(e) {
+    showToast('Erro ao salvar preços', 'error');
+  }
+}
+
+async function resetAdminLottery(gameType) {
+  if (!confirm('Voltar ' + gameType + ' para os valores oficiais da Caixa?')) return;
+  try {
+    const res = await api.deleteAdminLotteryConfig(gameType);
+    if (res.success) {
+      showToast('✅ ' + gameType + ' voltou aos valores da Caixa', 'success');
+      loadAdminLotteryConfig();
+    }
+  } catch(e) {
+    showToast('Erro ao resetar', 'error');
+  }
+}
 
 async function loadSubscriptions() {
   try {

@@ -29,7 +29,7 @@
       </div>
       <div class="selection-info" id="selectionInfo" style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:rgba(79,70,229,0.1);border-radius:10px;">
         <span class="count" id="selectedCount" style="font-size:24px;font-weight:700;color:var(--primary-light)">0</span>
-        <span class="text" style="font-size:14px;color:var(--text-secondary)">de <strong>15</strong> selecionados</span>
+        <span class="text" style="font-size:14px;color:var(--text-secondary)">de <strong id="selectedTarget">15-20</strong> selecionados</span>
       </div>
     </div>
     <div class="numbers-grid" id="numbersGrid">
@@ -103,15 +103,49 @@
 
 <script>
 let selectedNumbers = new Set();
-const GAME_CONFIGS = {
-  LOTOFACIL: { total: 25, pick: 15, price: 3.00 },
-  MEGASENA: { total: 60, pick: 6, price: 5.00 },
-  QUINA: { total: 80, pick: 5, price: 2.50 },
-  LOTOMANIA: { total: 100, pick: 20, price: 3.00 }
+// Config dinâmica: preços vêm do servidor (/api/lottery-config) para refletir
+// a tabela oficial da Caixa + overrides do admin. Fallback local idêntico.
+const FALLBACK_CONFIGS = {
+  LOTOFACIL: { name: 'Lotofácil', total: 25, pick: 15, minPick: 15, maxPick: 20, prices: { 15: 3.00, 16: 48.00, 17: 408.00, 18: 2448.00, 19: 11628.00, 20: 46512.00 } },
+  MEGASENA: { name: 'Mega-Sena', total: 60, pick: 6, minPick: 6, maxPick: 15, prices: { 6: 5.00, 7: 35.00, 8: 140.00, 9: 420.00, 10: 1050.00, 11: 2310.00, 12: 4620.00, 13: 8580.00, 14: 15015.00, 15: 25025.00 } },
+  QUINA: { name: 'Quina', total: 80, pick: 5, minPick: 5, maxPick: 15, prices: { 5: 2.50, 6: 15.00, 7: 52.50, 8: 140.00, 9: 315.00, 10: 630.00, 11: 1155.00, 12: 1980.00, 13: 3217.50, 14: 5005.00, 15: 7507.50 } },
+  LOTOMANIA: { name: 'Lotomania', total: 100, pick: 20, minPick: 20, maxPick: 20, prices: { 20: 3.00 } }
 };
+let GAME_CONFIGS = JSON.parse(JSON.stringify(FALLBACK_CONFIGS));
 let currentGame = 'LOTOFACIL';
 
 function getConfig() { return GAME_CONFIGS[currentGame]; }
+
+function getPrice(count) {
+  const cfg = getConfig();
+  const p = cfg.prices[count];
+  return p != null ? p : (count >= cfg.minPick ? 0 : null);
+}
+
+function formatPriceBR(value) {
+  return 'R$ ' + Number(value).toFixed(2).replace('.', ',');
+}
+
+// Carrega a tabela oficial de preços do servidor (com overrides do admin)
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const data = await api.getLotteryConfig();
+    if (data && data.lotteries) {
+      const next = {};
+      data.lotteries.forEach(l => {
+        const prices = {};
+        (l.priceTable || []).forEach(t => { prices[t.pickCount] = t.price; });
+        next[l.key] = {
+          name: l.name, total: l.totalNumbers, pick: l.pickCount,
+          minPick: l.minPick, maxPick: l.maxPick, prices
+        };
+      });
+      if (Object.keys(next).length > 0) GAME_CONFIGS = next;
+      // Re-renderiza a seleção atual com os preços corretos
+      updateSummary();
+    }
+  } catch(e) { /* mantém fallback local */ }
+});
 
 function toggleNumber(btn, num) {
   const cfg = getConfig();
@@ -119,13 +153,14 @@ function toggleNumber(btn, num) {
     selectedNumbers.delete(num);
     btn.classList.remove('selected');
   } else {
-    if (selectedNumbers.size >= cfg.pick) {
-      showToast('Você já selecionou ' + cfg.pick + ' números! Use "Limpar" para recomeçar.', 'info');
+    if (selectedNumbers.size >= cfg.maxPick) {
+      showToast('Máximo de ' + cfg.maxPick + ' números para ' + cfg.name + ' (regra da Caixa).', 'info');
       return;
     }
     selectedNumbers.add(num);
     btn.classList.add('selected');
   }
+  guardPortfolioLink();
   updateSummary();
 }
 
@@ -135,22 +170,25 @@ function updateSummary() {
   document.getElementById('selectedCount').textContent = count;
   document.getElementById('betNumbers').textContent = count === 0 ? '-' : [...selectedNumbers].sort((a,b) => a-b).join(', ');
   document.getElementById('betQuantity').textContent = count;
-  document.getElementById('betAmount').textContent = count === cfg.pick ? 'R$ ' + cfg.price.toFixed(2).replace('.',',') : 'R$ 0,00';
-  
-  if (count === cfg.pick && currentGame === 'LOTOFACIL') {
+  const price = getPrice(count);
+  document.getElementById('betAmount').textContent = price != null && price > 0
+    ? formatPriceBR(price)
+    : 'R$ 0,00';
+
+  if (count >= cfg.minPick && currentGame === 'LOTOFACIL') {
     const nums = [...selectedNumbers].sort((a,b) => a-b);
     const evens = nums.filter(n => n % 2 === 0).length;
-    const odds = cfg.pick - evens;
     const sum = nums.reduce((a,b) => a+b, 0);
     document.getElementById('aiTip').innerHTML =
-      '📊 <strong>Análise:</strong> ' + evens + ' pares · ' + odds + ' ímpares · Soma ' + sum +
-      '<br>💡 <strong>Dica:</strong> ' + (evens >= 6 && evens <= 9 ? '✅ Boa distribuição par/ímpar!' : '⚠️ Tente equilibrar entre 7-9 pares');
-  } else if (count === cfg.pick) {
-    document.getElementById('aiTip').textContent = '✅ ' + cfg.pick + ' números selecionados! Confirme sua aposta.';
+      '📊 <strong>Análise:</strong> ' + evens + ' pares · ' + (count - evens) + ' ímpares · Soma ' + sum +
+      '<br>💡 <strong>Valor:</strong> ' + formatPriceBR(price) + ' (' + count + ' dezenas)' +
+      (count > cfg.minPick ? '<br>ℹ️ <strong>Mais dezenas</strong> = mais combinações, aposta mais cara (tabela da Caixa).' : '');
+  } else if (count >= cfg.minPick) {
+    document.getElementById('aiTip').textContent = '✅ ' + count + ' números selecionados (' + formatPriceBR(price) + ')! Confirme sua aposta.';
   } else {
-    document.getElementById('aiTip').textContent = count < cfg.pick ? 
-      'Selecione ' + (cfg.pick - count) + ' números para completar sua aposta.' :
-      'Selecione ' + cfg.pick + ' números para fazer sua aposta.';
+    const need = count === 0 ? cfg.minPick : (cfg.minPick - count);
+    document.getElementById('aiTip').textContent =
+      'Selecione ' + (need > 0 ? 'mais ' + need : cfg.minPick) + ' números (mínimo ' + cfg.minPick + ' de ' + cfg.name + ').';
   }
 }
 
@@ -176,12 +214,11 @@ async function loadFromPortfolio() {
     if (games.length === 0) {
       showToast('Nenhum jogo ativo no portfólio. Crie um em "Meus Jogos"', 'info');
       return;
-    }
-    // Show a simple selection list
+    }      // Show a simple selection list
     let html = '<div style="max-height:400px;overflow-y:auto;">';
     games.slice(0, 20).forEach((game, idx) => {
       const nums = game.numbers.join(', ');
-      html += '<div style="padding:12px 16px;background:var(--bg-input);border-radius:10px;margin-bottom:8px;cursor:pointer;" onclick="selectGameFromPortfolio(' + JSON.stringify(game.numbers) + '); closeModal();">' +
+      html += '<div style="padding:12px 16px;background:var(--bg-input);border-radius:10px;margin-bottom:8px;cursor:pointer;" onclick="selectGameFromPortfolio(' + JSON.stringify(game.numbers) + ', \'' + game.id + '\'); closeModal();">' +
         '<div style="font-size:14px;font-weight:600;color:var(--text);">' + game.name + '</div>' +
         '<div style="font-size:12px;color:var(--text-muted);">' + nums + '</div>' +
         '<div style="display:flex;gap:6px;margin-top:8px;">' +
@@ -195,13 +232,15 @@ async function loadFromPortfolio() {
   }
 }
 
-function selectGameFromPortfolio(numbers) {
+function selectGameFromPortfolio(numbers, gameId) {
   clearAll();
   numbers.forEach(n => {
     selectedNumbers.add(n);
     const btn = document.querySelector('[data-number="' + n + '"]');
     if (btn) btn.classList.add('selected');
   });
+  portfolioGameId = gameId || null;
+  portfolioLoadedNumbers = gameId ? [...numbers] : null;
   updateSummary();
   showToast('✅ Jogo carregado do portfólio!', 'success');
 }
@@ -233,6 +272,8 @@ async function useAIGenerate() {
 
 function clearAll() {
   selectedNumbers.clear();
+  portfolioGameId = null;
+  portfolioLoadedNumbers = null;
   document.querySelectorAll('.number-btn.selected').forEach(b => b.classList.remove('selected'));
   updateSummary();
 }
@@ -243,6 +284,8 @@ function selectLottery(el, type) {
   el.classList.add('active');
   const cfg = GAME_CONFIGS[type];
   document.getElementById('betModalidade').textContent = cfg.name || type;
+  // Mínimo/máximo de dezenas por modalidade (regra da Caixa)
+  document.getElementById('selectedTarget').textContent = cfg.maxPick > cfg.minPick ? cfg.minPick + '-' + cfg.maxPick : String(cfg.minPick);
   clearAll();
   // Rebuild number grid
   const grid = document.getElementById('numbersGrid');
@@ -256,35 +299,49 @@ function selectLottery(el, type) {
   grid.innerHTML = html;
 }
 
+// Id do jogo do portfólio carregado via "Meus Jogos" (para vincular a aposta
+// ao jogo existente em vez de criar uma cópia duplicada).
+let portfolioGameId = null;
+let portfolioLoadedNumbers = null;
+
+// Se o jogador MUDAR os números depois de carregar do portfólio, desvincula:
+// a aposta não pode ser atribuída a um jogo com números diferentes.
+function guardPortfolioLink() {
+  if (!portfolioGameId || !portfolioLoadedNumbers) return;
+  const current = [...selectedNumbers].sort((a, b) => a - b);
+  const original = [...portfolioLoadedNumbers].sort((a, b) => a - b);
+  if (current.length !== original.length || current.some((n, i) => n !== original[i])) {
+    portfolioGameId = null;
+    portfolioLoadedNumbers = null;
+  }
+}
+
 async function confirmBet() {
   const cfg = getConfig();
-  if (selectedNumbers.size !== cfg.pick) {
-    showToast('Selecione exatamente ' + cfg.pick + ' números para continuar', 'error');
+  const count = selectedNumbers.size;
+  if (count < cfg.minPick || count > cfg.maxPick) {
+    showToast('Selecione entre ' + cfg.minPick + ' e ' + cfg.maxPick + ' números para continuar', 'error');
     return;
   }
   
   const numbers = [...selectedNumbers].sort((a,b) => a-b);
+  const amount = getPrice(count);
   
   try {
-    const result = await api.saveBet(currentGame, numbers, cfg.price);
-    if (result.success) {
-      showToast('🎉 Aposta realizada com sucesso! Boa sorte!', 'success');
-      // Salvar automaticamente no portfólio
-      try {
-        await api.saveGame(numbers, { 
-          gameType: currentGame,
-          name: cfg.name + ' ' + new Date().toLocaleDateString('pt-BR'), 
-          source: 'manual' 
-        });
-      } catch(e) { 
-        console.warn('⚠️ Erro ao salvar jogo no portfólio:', e); 
-        showToast('Aposta confirmada, mas não foi possível salvar no portfólio', 'info');
-      }
+    // O servidor calcula o preço oficial (o amount aqui é só informativo) e
+    // cria/vincula o jogo no portfólio automaticamente (bug corrigido).
+    const result = await api.saveBet(currentGame, numbers, amount, portfolioGameId);    if (result.success) {
+      showToast(result.game
+        ? '🎉 Aposta realizada! Jogo salvo no seu portfólio (Meus Jogos). Boa sorte!'
+        : '🎉 Aposta realizada com sucesso! Boa sorte!', 'success');
+      portfolioGameId = null;
+      portfolioLoadedNumbers = null;
       clearAll();
-      setTimeout(() => location.reload(), 2000);
+      setTimeout(() => location.reload(), 2500);
     }
   } catch(e) {
-    showToast('Erro ao realizar aposta. Tente novamente.', 'error');
+    const msg = (e && e.message) || '';
+    showToast(/insuficiente/i.test(msg) ? 'Saldo insuficiente — deposite na Carteira' : 'Erro ao realizar aposta. Tente novamente.', 'error');
   }
 }
 </script>

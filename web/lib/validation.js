@@ -52,10 +52,12 @@ const createGameSchema = z.object({
     ctx.addIssue({ code: 'custom', path: ['gameType'], message: 'Tipo de jogo inválido' });
     return;
   }
-  if (data.numbers.length !== cfg.pickCount) {
+  // A Caixa permite apostar com mais dezenas que o mínimo (ex.: Lotofácil 15-20).
+  // Um jogo salvo no portfólio respeita esse mesmo range.
+  if (data.numbers.length < cfg.minPick || data.numbers.length > cfg.maxPick) {
     ctx.addIssue({
       code: 'custom', path: ['numbers'],
-      message: `É necessário exatamente ${cfg.pickCount} números para ${cfg.name}`
+      message: `${cfg.name}: selecione entre ${cfg.minPick} e ${cfg.maxPick} números`
     });
     return;
   }
@@ -64,7 +66,7 @@ const createGameSchema = z.object({
     ctx.addIssue({ code: 'custom', path: ['numbers'], message: `Números devem estar entre 1 e ${cfg.totalNumbers}` });
     return;
   }
-  if (new Set(sorted).size !== cfg.pickCount) {
+  if (new Set(sorted).size !== data.numbers.length) {
     ctx.addIssue({ code: 'custom', path: ['numbers'], message: 'Números não podem se repetir' });
   }
 });
@@ -74,7 +76,29 @@ const createGameSchema = z.object({
 const createBetSchema = z.object({
   gameType: z.enum(Object.keys(LOTTERY_CONFIGS), { error: 'Tipo de jogo inválido' }).default('LOTOFACIL'),
   numbers: z.array(z.coerce.number().int()).min(1, 'Informe os números'),
-  amount: z.coerce.number().positive('Valor da aposta inválido')
+  amount: z.coerce.number().positive('Valor da aposta inválido').optional(),
+  // Opcional: id do jogo do portfólio que originou esta aposta (evita duplicar
+  // o jogo e cria o vínculo aposta ↔ jogo).
+  gameId: z.string().optional()
+}).superRefine((data, ctx) => {
+  const cfg = LOTTERY_CONFIGS[data.gameType];
+  if (!cfg) return;
+  if (data.numbers.length < cfg.minPick || data.numbers.length > cfg.maxPick) {
+    ctx.addIssue({
+      code: 'custom', path: ['numbers'],
+      message: `${cfg.name}: selecione entre ${cfg.minPick} e ${cfg.maxPick} números`
+    });
+    return;
+  }
+  // Os números viram um jogo no portfólio — precisam ser válidos (range e únicos)
+  const sorted = [...data.numbers].sort((a, b) => a - b);
+  if (sorted[0] < 1 || sorted[sorted.length - 1] > cfg.totalNumbers) {
+    ctx.addIssue({ code: 'custom', path: ['numbers'], message: `Números devem estar entre 1 e ${cfg.totalNumbers}` });
+    return;
+  }
+  if (new Set(sorted).size !== data.numbers.length) {
+    ctx.addIssue({ code: 'custom', path: ['numbers'], message: 'Números não podem se repetir' });
+  }
 });
 
 // ==================== CARTEIRA ====================
@@ -97,6 +121,15 @@ const createPoolSchema = z.object({
   totalShares: z.coerce.number().int().positive('Total de cotas inválido'),
   sharePrice: z.coerce.number().positive('Valor da cota inválido'),
   numbers: z.array(z.coerce.number().int()).min(1, 'Informe os números do bolão')
+}).superRefine((data, ctx) => {
+  const cfg = LOTTERY_CONFIGS[data.gameType];
+  if (!cfg) return;
+  if (data.numbers.length < cfg.minPick || data.numbers.length > cfg.maxPick) {
+    ctx.addIssue({
+      code: 'custom', path: ['numbers'],
+      message: `${cfg.name}: bolão deve ter entre ${cfg.minPick} e ${cfg.maxPick} números`
+    });
+  }
 });
 
 const joinPoolSchema = z.object({
@@ -139,6 +172,21 @@ const updateProfileSchema = z.object({
   email: z.string().trim().email('E-mail inválido').optional()
 });
 
+// ==================== ADMIN: CONFIG DE LOTERIAS ====================
+
+/**
+ * Atualiza o preço por quantidade de dezenas de uma loteria.
+ * `prices` é um mapa { "16": 48.00, "17": 408.00 } — só as quantidades
+ * informadas são sobrescritas; as demais continuam com a fórmula da Caixa.
+ */
+const lotteryConfigSchema = z.object({
+  gameType: z.enum(Object.keys(LOTTERY_CONFIGS), { error: 'Tipo de jogo inválido' }),
+  prices: z.record(z.coerce.number().positive('Preço deve ser positivo')).refine(
+    obj => Object.keys(obj).length > 0,
+    'Informe pelo menos um preço'
+  )
+});
+
 module.exports = {
   validate,
   registerSchema,
@@ -153,5 +201,6 @@ module.exports = {
   simulateSchema,
   evolveSchema,
   createSubscriptionSchema,
-  updateProfileSchema
+  updateProfileSchema,
+  lotteryConfigSchema
 };

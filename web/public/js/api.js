@@ -52,11 +52,13 @@ const api = {
   },
 
   // Bets
-  async saveBet(gameType, numbers, amount) {
+  async saveBet(gameType, numbers, amount, gameId) {
+    const payload = { gameType, numbers, amount };
+    if (gameId) payload.gameId = gameId;
     return fetch(`${API_BASE}/api/bets`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gameType, numbers, amount })
+      body: JSON.stringify(payload)
     }).then(r => r.json());
   },
   async getBets() {
@@ -249,6 +251,24 @@ const api = {
   },
   async getAchievements() {
     return fetch(`${API_BASE}/api/gamification/achievements`).then(r => r.json());
+  },
+
+  // ==================== CONFIG DE LOTERIAS ====================
+  async getLotteryConfig() {
+    return fetch(`${API_BASE}/api/lottery-config`).then(r => r.json());
+  },
+  async getAdminLotteryConfig() {
+    return fetch(`${API_BASE}/api/admin/lottery-config`).then(r => r.json());
+  },
+  async saveAdminLotteryConfig(gameType, prices) {
+    return fetch(`${API_BASE}/api/admin/lottery-config`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameType, prices })
+    }).then(r => r.json());
+  },
+  async deleteAdminLotteryConfig(gameType) {
+    return fetch(`${API_BASE}/api/admin/lottery-config/${gameType}`, { method: 'DELETE' }).then(r => r.json());
   },
 
   // ==================== COMPARTILHAMENTO ====================

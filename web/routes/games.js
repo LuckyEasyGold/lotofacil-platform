@@ -7,10 +7,10 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { asyncRouter } = require('../lib/http');
 const { requireAuth } = require('../lib/auth');
-const { LOTTERY_CONFIGS } = require('../lib/lottery');
+const { PRIZE_TABLES, getGamePrice } = require('../lib/lottery');
 const { addNotification } = require('../lib/notifications');
 const { checkAchievements, getUserLevel } = require('../lib/gamification');
-const { fetchLatestLotofacilResult } = require('../lib/context');
+const { fetchLatestResultByGameType } = require('../lib/context');
 const { validate, createGameSchema } = require('../lib/validation');
 const { sendError } = require('../lib/http');
 
@@ -23,7 +23,6 @@ router.post('/api/games', requireAuth, validate(createGameSchema), async (req, r
     // Validação de quantidade/range/duplicados/gameType já é garantida pelo
     // createGameSchema (Zod, lib/validation.js) via validate() acima.
     const { numbers, gameType, name, source, seedVersion } = req.body;
-    const gType = gameType || 'LOTOFACIL';
     const userGames = await db.getUserGames(user.id);
     const game = {
       id: uuidv4(),
@@ -130,23 +129,29 @@ router.post('/api/games/:id/check-result', requireAuth, async (req, res) => {
   const game = await db.getGameById(req.params.id, user.id);
   if (!game) return res.status(404).json({ error: 'Jogo não encontrado' });
   try {
-    const latest = await fetchLatestLotofacilResult();
+    // Resultado da LOTERIA do jogo (não mais sempre Lotofácil): o check-result
+    // agora funciona para Lotofácil, Mega-Sena, Quina e Lotomania.
+    const latest = await fetchLatestResultByGameType(game.gameType);
     if (!latest || !latest.listaDezenas) {
-      return res.status(400).json({ error: 'Não foi possível obter resultado' });
+      return res.status(400).json({ error: 'Não foi possível obter o resultado desta loteria' });
     }
     const drawnNumbers = latest.listaDezenas.map(n => parseInt(n));
     const drawnSet = new Set(drawnNumbers);
     const hits = game.numbers.filter(n => drawnSet.has(n)).length;
-    const prizes = { 11: 6, 12: 12, 13: 30, 14: 1124.87, 15: 924479.40 };
-    const prize = hits >= 11 ? (prizes[hits] || 0) : 0;
+    // Tabela oficial de prêmios por tipo de jogo (lib/lottery.js → PRIZE_TABLES).
+    // Um jogo está premiado quando o nº de acertos existe na tabela de prêmios
+    // do seu tipo (ex.: Lotofácil 11+, Mega-Sena 4+, Quina 3+).
+    const prizeTable = PRIZE_TABLES[game.gameType] || PRIZE_TABLES.LOTOFACIL;
+    const prize = prizeTable[hits] || 0;
+    const isWinner = prize > 0;
     const lastUsage = game.usageHistory[game.usageHistory.length - 1];
     if (lastUsage) {
       lastUsage.hits = hits;
       lastUsage.prize = prize;
-      lastUsage.matched = hits >= 11;
+      lastUsage.matched = isWinner;
       lastUsage.contestNumber = latest.numero;
     }
-    if (hits >= 11) {
+    if (isWinner) {
       game.status = 'won';
       await checkAchievements(user.id);
       if (prize > 0) {
@@ -156,9 +161,7 @@ router.post('/api/games/:id/check-result', requireAuth, async (req, res) => {
           id: uuidv4(), userId: user.id, type: 'prize', amount: prize,
           description: `🏆 Prêmio de ${hits} acertos - Concurso ${latest.numero}`,
           date: new Date(), status: 'completed'
-        });
-        await addNotification(user.id, 'prize',
-          '🏆 Jogo premiado!',
+        });        await addNotification(user.id, 'prize', 'Jogo premiado!',
           `"${game.name}" fez ${hits} acertos no concurso ${latest.numero}! Prêmio: R$ ${prize.toFixed(2)}`,
           '/meus-jogos'
         );
@@ -170,7 +173,7 @@ router.post('/api/games/:id/check-result', requireAuth, async (req, res) => {
       drawnNumbers,
       hits,
       prize,
-      isWinner: hits >= 11
+      isWinner
     }});
   } catch (e) {
     sendError(res, e, 'POST /api/games/:id/check-result');
@@ -351,8 +354,8 @@ router.get('/api/games/performance-report', requireAuth, async (req, res) => {
   const wonGames = userGs.filter(g => g.status === 'won');
   let totalSpent = 0;
   usedGames.forEach(g => {
-    const cfg = LOTTERY_CONFIGS[g.gameType];
-    totalSpent += (cfg ? cfg.price : 3.00) * g.usageHistory.length;
+    // Preço oficial por quantidade de dezenas (tabela da Caixa, com override admin)
+    totalSpent += getGamePrice(g.gameType, g.numbers.length) * g.usageHistory.length;
   });
   const totalPrize = usedGames.reduce((s, g) => s + g.usageHistory.reduce((s2, u) => s2 + (u.prize || 0), 0), 0);
   const roi = totalSpent > 0 ? ((totalPrize - totalSpent) / totalSpent * 100).toFixed(1) : '0.0';

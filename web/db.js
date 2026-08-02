@@ -103,9 +103,23 @@ CREATE TABLE IF NOT EXISTS bets (
   numbers JSONB,
   amount DOUBLE PRECISION,
   date TIMESTAMPTZ DEFAULT NOW(),
-  status TEXT DEFAULT 'active'
+  status TEXT DEFAULT 'active',
+  game_id TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_bets_user ON bets(user_id);
+-- Migração segura: CREATE TABLE IF NOT EXISTS não altera tabelas existentes.
+-- Garante a coluna game_id em bancos criados antes desta coluna existir.
+ALTER TABLE bets ADD COLUMN IF NOT EXISTS game_id TEXT;
+
+-- Preços por quantidade de dezenas configuráveis pelo admin (Caixa).
+-- prices é um JSONB no formato { "16": 48.00, "17": 408.00, ... } — só as
+-- quantidades sobrescritas; as demais usam a fórmula oficial base × C(n,k).
+CREATE TABLE IF NOT EXISTS lottery_config (
+  game_type TEXT PRIMARY KEY,
+  prices JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 
 CREATE TABLE IF NOT EXISTS notifications (
   id TEXT PRIMARY KEY,
@@ -274,7 +288,8 @@ function mapBet(row) {
     numbers: row.numbers,
     amount: Number(row.amount),
     date: row.date,
-    status: row.status
+    status: row.status,
+    gameId: row.game_id || null
   };
 }
 
@@ -346,17 +361,16 @@ async function updateUser(id, fields) {
   const allowed = ['name', 'email', 'avatar', 'role'];
   const sets = [];
   const params = [id];
-  let i = 2;
   for (const key of allowed) {
     if (fields[key] !== undefined) {
-      sets.push(`${key} = $${i++}`);
+      sets.push(`${key} = $${params.length + 1}`);
       params.push(fields[key]);
     }
   }
   // Campos numéricos: balance, bonus_balance, total_winnings
   for (const [key, col] of [['balance', 'balance'], ['bonusBalance', 'bonus_balance'], ['totalWinnings', 'total_winnings']]) {
     if (fields[key] !== undefined) {
-      sets.push(`${col} = $${i++}`);
+      sets.push(`${col} = $${params.length + 1}`);
       params.push(fields[key]);
     }
   }
@@ -413,15 +427,14 @@ async function updateGame(id, fields) {
   const allowed = ['name', 'status', 'pool_id'];
   const sets = [];
   const params = [id];
-  let i = 2;
   for (const key of allowed) {
     if (fields[key] !== undefined) {
-      sets.push(`${key} = $${i++}`);
+      sets.push(`${key} = $${params.length + 1}`);
       params.push(fields[key]);
     }
   }
   if (fields.usageHistory !== undefined) {
-    sets.push(`usage_history = $${i++}`);
+    sets.push(`usage_history = $${params.length + 1}`);
     params.push(safeStringify(fields.usageHistory));
   }
   if (sets.length === 0) return null;
@@ -463,23 +476,22 @@ async function updatePool(id, fields) {
   const allowed = ['name', 'status'];
   const sets = [];
   const params = [id];
-  let i = 2;
   for (const key of allowed) {
     if (fields[key] !== undefined) {
-      sets.push(`${key} = $${i++}`);
+      sets.push(`${key} = $${params.length + 1}`);
       params.push(fields[key]);
     }
   }
   if (fields.availableShares !== undefined) {
-    sets.push(`available_shares = $${i++}`);
+    sets.push(`available_shares = $${params.length + 1}`);
     params.push(fields.availableShares);
   }
   if (fields.participants !== undefined) {
-    sets.push(`participants = $${i++}`);
+    sets.push(`participants = $${params.length + 1}`);
     params.push(safeStringify(fields.participants));
   }
   if (fields.marketOffers !== undefined) {
-    sets.push(`market_offers = $${i++}`);
+    sets.push(`market_offers = $${params.length + 1}`);
     params.push(safeStringify(fields.marketOffers));
   }
   if (sets.length === 0) return getPoolById(id);
@@ -522,9 +534,9 @@ async function getUserBets(userId) {
 
 async function addBet(bet) {
   await pool.query(
-    `INSERT INTO bets (id, user_id, game_type, numbers, amount, date, status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-    [bet.id, bet.userId, bet.gameType, safeStringify(bet.numbers), bet.amount, bet.date, bet.status]
+    `INSERT INTO bets (id, user_id, game_type, numbers, amount, date, status, game_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    [bet.id, bet.userId, bet.gameType, safeStringify(bet.numbers), bet.amount, bet.date, bet.status, bet.gameId || null]
   );
   return bet;
 }
@@ -598,17 +610,16 @@ async function updateSubscription(id, fields) {
   const allowed = ['active'];
   const sets = [];
   const params = [id];
-  let i = 2;
   for (const key of allowed) {
     if (fields[key] !== undefined) {
-      sets.push(`${key} = $${i++}`);
+      sets.push(`${key} = $${params.length + 1}`);
       params.push(fields[key]);
     }
   }
-  if (fields.lastExecuted !== undefined) { sets.push(`last_executed = $${i++}`); params.push(fields.lastExecuted); }
-  if (fields.totalExecutions !== undefined) { sets.push(`total_executions = $${i++}`); params.push(fields.totalExecutions); }
-  if (fields.totalSpent !== undefined) { sets.push(`total_spent = $${i++}`); params.push(fields.totalSpent); }
-  if (fields.nextContest !== undefined) { sets.push(`next_contest = $${i++}`); params.push(fields.nextContest); }
+  if (fields.lastExecuted !== undefined) { sets.push(`last_executed = $${params.length + 1}`); params.push(fields.lastExecuted); }
+  if (fields.totalExecutions !== undefined) { sets.push(`total_executions = $${params.length + 1}`); params.push(fields.totalExecutions); }
+  if (fields.totalSpent !== undefined) { sets.push(`total_spent = $${params.length + 1}`); params.push(fields.totalSpent); }
+  if (fields.nextContest !== undefined) { sets.push(`next_contest = $${params.length + 1}`); params.push(fields.nextContest); }
   if (sets.length === 0) return null;
   await pool.query(`UPDATE subscriptions SET ${sets.join(', ')} WHERE id = $1`, params);
 }
@@ -702,6 +713,27 @@ async function saveSeed(gameType, payload) {
   );
 }
 
+// ==================== CONFIG DE LOTERIAS (ADMIN) ====================
+
+/** Retorna todos os overrides de preço: [{ gameType, prices: {pick: price} }] */
+async function getLotteryConfigs() {
+  const { rows } = await pool.query('SELECT game_type, prices, updated_at FROM lottery_config');
+  return rows.map(r => ({
+    gameType: r.game_type,
+    prices: r.prices,
+    updatedAt: r.updated_at
+  }));
+}
+
+/** Salva (upsert) o override de preço de um tipo de jogo. */
+async function saveLotteryConfig(gameType, prices) {
+  await pool.query(
+    `INSERT INTO lottery_config (game_type, prices, updated_at) VALUES ($1,$2,NOW())
+     ON CONFLICT (game_type) DO UPDATE SET prices = EXCLUDED.prices, updated_at = NOW()`,
+    [gameType, safeStringify(prices)]
+  );
+}
+
 // ==================== EXPORTAÇÃO ====================
 
 module.exports = {
@@ -718,6 +750,8 @@ module.exports = {
   getUserTransactions, addTransaction,
   // bets
   getUserBets, addBet,
+  // config de loterias
+  getLotteryConfigs, saveLotteryConfig,
   // notifications
   getUserNotifications, addNotification, markNotificationRead, markAllNotificationsRead,
   // subscriptions

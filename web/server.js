@@ -67,6 +67,7 @@ app.use(require('./routes/games'));         // /api/games (portfólio)
 app.use(require('./routes/wallet'));        // /api/wallet
 app.use(require('./routes/pools'));         // /api/pools + mercado de cotas
 app.use(require('./routes/results'));       // /api/results + /api/database/stats
+app.use(require('./routes/lottery'));       // /api/lottery-config (tabela de preços)
 app.use(require('./routes/notifications')); // /api/notifications
 app.use(require('./routes/subscriptions')); // /api/subscriptions + cron
 app.use(require('./routes/gamification'));  // /api/gamification

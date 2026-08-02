@@ -86,7 +86,7 @@ async function checkAchievements(userId) {
   }
 
   if (newAchievements.length > 0) {
-    await addNotification(userId, 'prize', '🏅 Nova conquista!',
+    await addNotification(userId, 'prize', 'Nova conquista!',
       `Você desbloqueou: ${newAchievements.map(a => a.name).join(', ')}!`,
       '/perfil');
   }

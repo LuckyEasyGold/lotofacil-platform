@@ -123,9 +123,18 @@ describe('Smoke test completo', () => {
     expect(game.status).toBe(200);
     const gameId = game.body.game.id;
 
-    // Aposta (debita da carteira)
-    const bet = await agent.post('/api/bets').send({ gameType: 'LOTOFACIL', numbers: QUINZE, amount: 10 });
+    // Aposta (debita da carteira) — preço oficial calculado no servidor:
+    // 15 dezenas de Lotofácil = R$ 3,00 (tabela da Caixa), o amount do cliente é ignorado.
+    // Passa gameId para exercitar o ramo de VINCULAÇÃO (jogo existente) em vez de criação.
+    const bet = await agent.post('/api/bets').send({ gameType: 'LOTOFACIL', numbers: QUINZE, amount: 10, gameId });
     expect(bet.status).toBe(200);
+    expect(bet.body.amount).toBe(3);
+    expect(bet.body.game.id).toBe(gameId);
+    // O jogo vinculado foi marcado como usado (usageHistory ganhou entrada)
+    const linked = await agent.get('/api/games');
+    const linkedGame = linked.body.games.find(g => g.id === gameId);
+    expect(linkedGame.status).toBe('used');
+    expect(linkedGame.usageHistory).toHaveLength(1);
 
     // Criação de bolão (debita 1 cota)
     const pool = await agent.post('/api/pools').send({
@@ -143,9 +152,9 @@ describe('Smoke test completo', () => {
     const sub = await agent.post('/api/subscriptions').send({ gameType: 'LOTOFACIL', numbers: QUINZE, interval: 'weekly' });
     expect(sub.status).toBe(200);
 
-    // Saldo final consistente: 100 - 10 (aposta) - 5 (bolão) - 5 (join 1 cota)
+    // Saldo final consistente: 100 - 3 (aposta oficial 15 dezenas) - 5 (bolão) - 5 (join 1 cota)
     const wallet = await agent.get('/api/wallet');
-    expect(wallet.body.balance).toBe(80);
+    expect(wallet.body.balance).toBe(87);
   });
 
   it('aposta sem saldo é rejeitada (400)', async () => {
@@ -163,6 +172,26 @@ describe('Smoke test completo', () => {
     });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/insuficiente/i);
+  });
+
+  it('ações criam notificações (depósito → aposta → bolão)', async () => {
+    const { agent } = await registerUser();
+    await agent.post('/api/wallet/deposit').send({ amount: 100 });
+    const bet = await agent.post('/api/bets').send({ gameType: 'LOTOFACIL', numbers: QUINZE, amount: 3 });
+    expect(bet.status).toBe(200);
+    const pool = await agent.post('/api/pools').send({
+      name: 'Bolão Notif', gameType: 'LOTOFACIL', contestNumber: 3005,
+      totalShares: 10, sharePrice: 5, numbers: QUINZE
+    });
+    expect(pool.status).toBe(200);
+
+    const notif = await agent.get('/api/notifications');
+    expect(notif.status).toBe(200);
+    const types = notif.body.notifications.map(n => n.type);
+    expect(types).toContain('wallet'); // depósito
+    expect(types).toContain('bet');    // aposta
+    expect(types).toContain('pool');   // bolão criado
+    expect(notif.body.unread).toBeGreaterThanOrEqual(3);
   });
 
   it('logout encerra a sessão', async () => {

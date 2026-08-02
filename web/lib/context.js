@@ -14,6 +14,7 @@
 const db = require('../db');
 const axios = require('axios');
 const LotteryGeneticEngine = require('./genetic_engine');
+const { applyPriceOverrides } = require('./lottery');
 
 // ==================== CACHE PROGRESSIVO ====================
 // O cache começa só com os concursos mais recentes (boot rápido no serverless)
@@ -161,6 +162,45 @@ async function fetchLotofacilResultsByContest(contestNumber) {
   return null;
 }
 
+// ==================== RESULTADO POR TIPO DE JOGO (MULTI-LOTERIA) ====================
+// Slug usado nas APIs externas por tipo de jogo (Guidi / free-apiloterias / Caixa).
+const GAME_TYPE_SLUGS = {
+  LOTOFACIL: 'lotofacil',
+  MEGASENA: 'megasena',
+  QUINA: 'quina',
+  LOTOMANIA: 'lotomania'
+};
+
+/**
+ * Último resultado do tipo de jogo informado.
+ * - LOTOFACIL: usa o cache local (Postgres) + APIs externas em background.
+ * - Outras loterias: busca direto nas APIs externas (o cache é só da Lotofácil).
+ * Usado pelo check-result de jogos de qualquer modalidade.
+ */
+async function fetchLatestResultByGameType(gameType) {
+  const slug = GAME_TYPE_SLUGS[gameType] || 'lotofacil';
+  if (slug === 'lotofacil') return fetchLatestLotofacilResult();
+
+  let result = null;
+  try {
+    const resp = await axiosGet(`${API_GUIDI.replace('lotofacil', slug)}/ultimo`, 4000);
+    if (resp && resp.listaDezenas) result = resp;
+  } catch (e) {}
+  if (!result) {
+    try {
+      const resp = await axiosGet(`${API_LOTERIAS_BASE.replace('lotofacil', slug)}/_ultimo.json`, 4000);
+      if (resp && resp.listaDezenas) result = resp;
+    } catch (e) {}
+  }
+  if (!result) {
+    try {
+      const resp = await axiosGet(`${CAIXA_API_BASE}/${slug}/latest`, 3000, { 'Accept': 'application/json' });
+      if (resp && resp.listaDezenas) result = resp;
+    } catch (e) {}
+  }
+  return result;
+}
+
 // ==================== CACHE PROGRESSIVO: HIDRATAÇÃO ====================
 // Preenche o resultsCache em lotes até conter o histórico completo do Postgres.
 // Roda em background (com pausas) para não bloquear requisições durante o boot.
@@ -276,6 +316,17 @@ function simulateAI(numbers) {
 async function bootstrap() {
   await db.ensureSchema();
 
+  // Overrides de preço configurados pelo admin (tabela lottery_config).
+  // Precisa rodar SEMPRE (mesmo se as linhas abaixo falharem) para que os
+  // preços efetivos fiquem prontos antes de qualquer rota responder.
+  try {
+    const configs = await db.getLotteryConfigs();
+    applyPriceOverrides(configs);
+    if (configs.length > 0) console.log(`🎯 ${configs.length} tipo(s) de jogo com preços customizados (admin)`);
+  } catch (e) {
+    console.error('⚠️ Erro ao carregar config de loterias:', e.message);
+  }
+
   // Bolões iniciais (se a tabela estiver vazia)
   const pools = await db.getPools();
   if (pools.length === 0) {
@@ -375,6 +426,7 @@ module.exports = {
   getDatabaseStats,
   tryFetchFromExternalAPIs,
   fetchLatestLotofacilResult,
+  fetchLatestResultByGameType,
   fetchLotofacilResultsByContest,
   hydrateCacheInBackground,
   syncMissingResults,
