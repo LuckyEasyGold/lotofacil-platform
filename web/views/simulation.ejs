@@ -61,6 +61,51 @@
   </div>
 </div>
 
+<div class="card mt-3" style="background:linear-gradient(135deg,rgba(124,58,237,0.06),rgba(16,185,129,0.06));border:1px solid rgba(124,58,237,0.2);">
+  <div class="card-header">
+    <div>
+      <div class="card-title">🧬 Estrutura em Vigor <span style="font-size:11px;background:rgba(124,58,237,0.15);color:#A78BFA;padding:3px 8px;border-radius:20px;vertical-align:middle;">IA ESTRUTURAL</span></div>
+      <div class="card-subtitle">Motor 1: a estrutura que os sorteios seguem AGORA (soma, blocos, intervalos, paridade) — atualizada a cada concurso novo</div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="loadStructureProfile()"><i class="fas fa-sync"></i> Atualizar</button>
+  </div>
+  <div id="structureProfile">
+    <div class="empty-state"><i class="fas fa-dna"></i><h3>Analisando concursos...</h3><p>Calculando o perfil estrutural com peso nos resultados recentes</p></div>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header">
+    <div>
+      <div class="card-title">⚙️ Gerar Jogos Estruturados</div>
+      <div class="card-subtitle">Motor 2: preenche a estrutura com o pool de números quentes + frios (proporção aprendida) — espalhando em N jogos independentes</div>
+    </div>
+  </div>
+  <div class="gen-controls">
+    <div class="form-group">
+      <label>Quantidade de jogos</label>
+      <div class="form-input"><select id="strQty" style="width:100%;">
+        <option value="10" selected>10 jogos · R$ 35,00</option>
+        <option value="20">20 jogos · R$ 70,00</option>
+        <option value="5">5 jogos · R$ 17,50</option>
+      </select></div>
+    </div>
+    <div class="form-group">
+      <label>Dezenas por jogo</label>
+      <div class="form-input"><select id="strPick" style="width:100%;">
+        <option value="15" selected>15 números · R$ 3,50/jogo</option>
+        <option value="16">16 números · R$ 56,00/jogo</option>
+      </select></div>
+    </div>
+    <button class="btn btn-primary btn-lg" onclick="generateStructuredGames()">
+      <i class="fas fa-brain"></i> Gerar Jogos
+    </button>
+  </div>
+  <div id="structuredGames">
+    <p style="font-size:13px;color:var(--text-muted);">Escolha a quantidade e gere jogos na estrutura em vigor — salve no portfólio ou crie um bolão.</p>
+  </div>
+</div>
+
 <div class="card mt-3">
   <div class="card-header">
     <div>
@@ -82,6 +127,7 @@ let simSelectedNumbers = new Set();
 let aiGamesCache = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
+  loadStructureProfile();
   try {
     const seed = await api.getAISeed();
     if (seed && seed.status !== 'mock') {
@@ -118,11 +164,11 @@ async function generateAIGames() {
     aiGamesCache = result.games || [];
     const container = document.getElementById('aiGamesList');
     container.innerHTML = result.games.map((game, idx) =>
-      '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg-input);border-radius:12px;margin-bottom:8px;">' +
-      '<div style="display:flex;align-items:center;gap:12px;">' +
-      '<span style="width:28px;height:28px;background:var(--gradient-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;">' + (idx + 1) + '</span>' +
-      '<div class="balls" style="gap:4px;">' + game.map(n => '<span class="ball primary" style="width:28px;height:28px;font-size:11px;">' + n + '</span>').join('') + '</div></div>' +
-      '<div style="display:flex;gap:4px;">' +
+      '<div class="game-row">' +
+      '<div class="game-row-balls">' +
+      '<span class="game-row-index variant-primary">' + (idx + 1) + '</span>' +
+      '<div class="balls">' + game.map(n => '<span class="ball small primary">' + n + '</span>').join('') + '</div></div>' +
+      '<div class="game-row-actions">' +
       '<button class="btn btn-secondary btn-sm" onclick="useThisGame(' + JSON.stringify(game) + ')"><i class="fas fa-check"></i></button>' +
       '<button class="btn btn-primary btn-sm" onclick="saveGameToPortfolio(' + JSON.stringify(game) + ', \\'' + (result.seed_version || '1.0') + '\\')"><i class="fas fa-save"></i></button></div></div>'
     ).join('') +
@@ -189,6 +235,85 @@ async function runSimulation() {
   } catch(e) { showToast('Erro na simulação', 'error'); }
   btn.innerHTML = '<i class="fas fa-play"></i> Simular';
   btn.disabled = false;
+}
+
+// ==================== IA ESTRUTURAL (MOTOR 1 + MOTOR 2) ====================
+async function loadStructureProfile() {
+  const container = document.getElementById('structureProfile');
+  container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><h3>Analisando...</h3></div>';
+  try {
+    const p = await api.getStructureProfile();
+    if (!p || !p.success) { container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Sem dados</h3></div>'; return; }
+    const s = p.structure || {};
+    const hotBalls = (p.hot || []).map(n => '<span class="ball small accent">' + n + '</span>').join('');
+    const coldBalls = (p.cold || []).map(n => '<span class="ball small" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);">' + n + '</span>').join('');
+    const sumBand = s.sumBand ? s.sumBand[0] + '–' + s.sumBand[1] : '170–220';
+    const probRows = (p.probabilityTable || []).map(r =>
+      '<tr><td>' + r.pickCount + ' números</td><td><strong>' + (r.probability * 100).toFixed(1) + '%</strong></td></tr>').join('');
+    const anomalyBox = p.anomalies && p.anomalies.anomalies && p.anomalies.anomalies.length > 0
+      ? '<div style="margin-top:16px;padding:12px;background:rgba(245,158,11,0.1);border-radius:10px;font-size:13px;color:var(--accent);"><i class="fas fa-search"></i> <strong>Anomalia temporal detectada:</strong> ' +
+        p.anomalies.anomalies.map(a => 'nº ' + a.number + ' divergiu em ' + a.eras.length + ' eras').join(' · ') +
+        ' — investigar (pode indicar mudança de padrão, como na história das bolas).</div>' : '';
+    const theo = p.theoretical || {};
+    const theoVerdict = theo.verdict
+      ? '<div style="margin-top:12px;padding:12px;background:rgba(16,185,129,0.08);border-radius:10px;font-size:13px;color:var(--secondary);"><i class="fas fa-balance-scale"></i> <strong>Comparação com o espaço teórico:</strong> ' + theo.verdict + '</div>'
+      : '';
+    container.innerHTML =
+      '<div class="str-grid">' +
+      '<div class="str-card"><div class="str-card-label">🎯 Faixa de soma em vigor</div><div class="str-card-value" style="color:var(--primary-light);">' + sumBand + '</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">~' + (p.contests || 0) + ' concursos analisados · ' + (s.maxBlock ? 'bloco máx ' + s.maxBlock : '') + '</div></div>' +
+      '<div class="str-card"><div class="str-card-label">🔥 Quentes (pool)</div><div class="balls">' + (hotBalls || '-') + '</div><div style="font-size:12px;color:var(--text-muted);margin-top:8px;">' + (p.hotShare !== undefined ? 'split aprendido: ' + Math.round(p.hotShare * 100) + '% quentes · pool ' + (p.poolSize || 20) + ' de 25' : '') + '</div></div>' +
+      '<div class="str-card"><div class="str-card-label">❄️ Frios (pool)</div><div class="balls">' + (coldBalls || '-') + '</div></div>' +
+      '<div class="str-card wide"><div class="str-card-label">📈 Chance de 11+ (tabela da Caixa)</div><table style="width:100%;font-size:13px;"><tbody>' + probRows + '</tbody></table></div>' +
+      '</div>' +
+      (p.pool && p.pool.length ? '<div style="margin-top:16px;"><div class="str-card-label">🎱 Pool de números usado pelo gerador (' + p.pool.length + ' de 25):</div><div class="balls">' + p.pool.map(n => '<span class="ball small primary">' + n + '</span>').join('') + '</div></div>' : '') +
+      theoVerdict + anomalyBox;
+  } catch(e) {
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Erro ao carregar perfil</h3></div>';
+  }
+}
+
+let structuredGamesCache = [];
+async function generateStructuredGames() {
+  const qty = parseInt(document.getElementById('strQty').value, 10) || 10;
+  const pick = parseInt(document.getElementById('strPick').value, 10) || 15;
+  const container = document.getElementById('structuredGames');
+  container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><h3>Gerando jogos estruturados...</h3></div>';
+  try {
+    const r = await api.structuredGenerate({ quantity: qty, pickCount: pick });
+    if (!r || !r.success) { container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>' + (r && r.error ? r.error : 'Erro ao gerar') + '</h3></div>'; return; }
+    structuredGamesCache = r.games || [];
+    container.innerHTML =
+      '<div style="margin-bottom:12px;padding:12px;background:rgba(124,58,237,0.08);border-radius:10px;font-size:13px;">' +
+      '<i class="fas fa-info-circle" style="color:#A78BFA"></i> Gerados ' + structuredGamesCache.length + ' jogos de ' + r.pickCount + ' dezenas · pool de ' + r.pool.length + ' números · total <strong>' + formatCurrency(r.totalPrice) + '</strong> (R$ ' + formatNumberBR(r.perGamePrice) + '/jogo).' +
+      ' Soma alvo ' + (r.structure && r.structure.sumBand ? r.structure.sumBand[0] + '–' + r.structure.sumBand[1] : '') + ' · bloco máx ' + (r.structure ? r.structure.maxBlock : '-') + '</div>' +
+      structuredGamesCache.map((game, idx) =>
+      '<div class="game-row">' +
+      '<div class="game-row-balls">' +
+      '<span class="game-row-index" style="background:var(--gradient-secondary);">' + (idx + 1) + '</span>' +
+      '<div class="balls">' + game.map(n => '<span class="ball small primary">' + n + '</span>').join('') + '</div></div>' +
+      '<div class="game-row-actions">' +
+      '<button class="btn btn-secondary btn-sm" onclick="saveStructuredToPortfolio(' + idx + ')" title="Salvar no portfólio"><i class="fas fa-save"></i></button>' +
+      // O simulador exige EXATAMENTE 15 dezenas — o botão flask só faz sentido em jogos de 15
+      (r.pickCount === 15
+        ? '<button class="btn btn-primary btn-sm" onclick="useThisGame(' + JSON.stringify(game) + ')" title="Usar no simulador"><i class="fas fa-flask"></i></button>'
+        : '') + '</div></div>'
+      ).join('');
+    showToast('🧠 ' + structuredGamesCache.length + ' jogos estruturados gerados!', 'success');
+  } catch(e) {
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Erro ao gerar jogos</h3></div>';
+  }
+}
+
+async function saveStructuredToPortfolio(idx) {
+  const game = structuredGamesCache[idx];
+  if (!game) return;
+  try {
+    const stats = await api.getGameStats().catch(() => null);
+    const name = 'IA Estrutural #' + (((stats && stats.total) || 0) + 1);
+    const result = await api.saveGame(game, { name: name, source: 'ai', seedVersion: '1.0.structural' });
+    if (result.success) showToast('💾 Jogo salvo no portfólio!', 'success');
+    else showToast('Erro ao salvar', 'error');
+  } catch(e) { showToast('Erro ao salvar jogo', 'error'); }
 }
 
 function generateAnalysis() {

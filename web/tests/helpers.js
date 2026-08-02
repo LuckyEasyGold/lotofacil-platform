@@ -42,6 +42,9 @@ export async function cleanupTestData() {
       }
       await client.query('DELETE FROM users WHERE id = $1', [id]);
     }
+    // Pools criados por testes (não têm user_id — remove pelo criador: todos os
+    // usuários de teste são 'Usuário Teste' / '* QA' via registerUser()).
+    await client.query("DELETE FROM pools WHERE creator_name LIKE '%Teste%' OR creator_name LIKE '%QA%'");
     await client.query('COMMIT');
   } catch (e) {
     await client.query('ROLLBACK');

@@ -78,12 +78,15 @@ CREATE TABLE IF NOT EXISTS pools (
   min_shares INT DEFAULT 1,
   max_shares INT,
   numbers JSONB,
+  games JSONB DEFAULT '[]',  -- Bolão com N jogos (IA estrutural): [[n1,...],[n2,...]]
   creator_name TEXT,
   status TEXT DEFAULT 'open',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   participants JSONB DEFAULT '[]',
   market_offers JSONB DEFAULT '[]'
 );
+-- Migração segura: garante a coluna games em bancos criados antes dela existir.
+ALTER TABLE pools ADD COLUMN IF NOT EXISTS games JSONB DEFAULT '[]';
 
 CREATE TABLE IF NOT EXISTS transactions (
   id TEXT PRIMARY KEY,
@@ -258,6 +261,7 @@ function mapPool(row) {
     minShares: row.min_shares,
     maxShares: row.max_shares,
     numbers: row.numbers,
+    games: row.games || [],
     creatorName: row.creator_name,
     status: row.status,
     createdAt: row.created_at,
@@ -462,11 +466,11 @@ async function getPoolById(id) {
 
 async function createPool(poolData) {
   await pool.query(
-    `INSERT INTO pools (id, name, game_type, contest_number, total_shares, available_shares, share_price, min_shares, max_shares, numbers, creator_name, status, created_at, participants, market_offers)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+    `INSERT INTO pools (id, name, game_type, contest_number, total_shares, available_shares, share_price, min_shares, max_shares, numbers, games, creator_name, status, created_at, participants, market_offers)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
     [poolData.id, poolData.name, poolData.gameType, poolData.contestNumber, poolData.totalShares,
      poolData.availableShares, poolData.sharePrice, poolData.minShares, poolData.maxShares,
-     safeStringify(poolData.numbers || []), poolData.creatorName, poolData.status,
+     safeStringify(poolData.numbers || []), safeStringify(poolData.games || []), poolData.creatorName, poolData.status,
      poolData.createdAt, safeStringify(poolData.participants || []), safeStringify(poolData.marketOffers || [])]
   );
   return getPoolById(poolData.id);

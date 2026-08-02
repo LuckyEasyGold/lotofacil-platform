@@ -102,6 +102,23 @@ const api = {
   async getAISeed() {
     return fetch(`${API_BASE}/api/ai/seed`).then(r => r.json());
   },
+  async getStructureProfile() {
+    return fetch(`${API_BASE}/api/ai/structure-profile`).then(r => r.json());
+  },
+  async structuredGenerate(payload) {
+    return fetch(`${API_BASE}/api/ai/structured-generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(r => r.json());
+  },
+  async createStructuredPool(payload) {
+    return fetch(`${API_BASE}/api/pools/structured`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(r => r.json());
+  },
   async generateAIGames(gameType, quantity = 5, pickCount) {
     const q = `?gameType=${gameType}&quantity=${quantity}` + (pickCount ? `&pickCount=${pickCount}` : '');
     return fetch(`${API_BASE}/api/ai/generate${q}`).then(r => r.json());

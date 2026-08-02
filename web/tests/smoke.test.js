@@ -124,11 +124,11 @@ describe('Smoke test completo', () => {
     const gameId = game.body.game.id;
 
     // Aposta (debita da carteira) — preço oficial calculado no servidor:
-    // 15 dezenas de Lotofácil = R$ 3,00 (tabela da Caixa), o amount do cliente é ignorado.
+    // 15 dezenas de Lotofácil = R$ 3,50 (tabela da Caixa corrigida), o amount do cliente é ignorado.
     // Passa gameId para exercitar o ramo de VINCULAÇÃO (jogo existente) em vez de criação.
     const bet = await agent.post('/api/bets').send({ gameType: 'LOTOFACIL', numbers: QUINZE, amount: 10, gameId });
     expect(bet.status).toBe(200);
-    expect(bet.body.amount).toBe(3);
+    expect(bet.body.amount).toBe(3.5);
     expect(bet.body.game.id).toBe(gameId);
     // O jogo vinculado foi marcado como usado (usageHistory ganhou entrada)
     const linked = await agent.get('/api/games');
@@ -152,9 +152,9 @@ describe('Smoke test completo', () => {
     const sub = await agent.post('/api/subscriptions').send({ gameType: 'LOTOFACIL', numbers: QUINZE, interval: 'weekly' });
     expect(sub.status).toBe(200);
 
-    // Saldo final consistente: 100 - 3 (aposta oficial 15 dezenas) - 5 (bolão) - 5 (join 1 cota)
+    // Saldo final consistente: 100 - 3,5 (aposta oficial 15 dezenas) - 5 (bolão) - 5 (join 1 cota)
     const wallet = await agent.get('/api/wallet');
-    expect(wallet.body.balance).toBe(87);
+    expect(wallet.body.balance).toBeCloseTo(86.5, 2);
   });
 
   it('aposta sem saldo é rejeitada (400)', async () => {

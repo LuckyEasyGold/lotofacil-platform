@@ -172,6 +172,31 @@ const updateProfileSchema = z.object({
   email: z.string().trim().email('E-mail inválido').optional()
 });
 
+// ==================== IA ESTRUTURAL (2 MOTORES) ====================
+
+/**
+ * Geração de jogos estruturados (Motor 1 + Motor 2): quantidade de jogos,
+ * dezenas por jogo (15-20), tamanho do pool (~20 de 25) e anti-rateio.
+ */
+const structuredGenerateSchema = z.object({
+  quantity: z.coerce.number().int().min(1, 'Quantidade deve ser entre 1 e 20').max(20, 'Quantidade deve ser entre 1 e 20').default(10),
+  pickCount: z.coerce.number().int().min(15, 'Dezenas por jogo entre 15 e 20').max(20, 'Dezenas por jogo entre 15 e 20').default(15),
+  poolSize: z.coerce.number().int().min(15, 'Pool entre 15 e 25').max(25, 'Pool entre 15 e 25').optional(),
+  antiRateio: z.boolean().optional().default(true)
+});
+
+/** Criação de bolão estruturado (N jogos + cotas com preço da tabela). */
+const structuredPoolSchema = z.object({
+  name: z.string().trim().min(1, 'Informe o nome do bolão'),
+  quantity: z.coerce.number().int().min(1, 'Quantidade de jogos inválida').max(20, 'Máximo de 20 jogos').default(10),
+  pickCount: z.coerce.number().int().min(15, 'Dezenas por jogo entre 15 e 20').max(20, 'Dezenas por jogo entre 15 e 20').default(15),
+  sharePrice: z.coerce.number().positive('Valor da cota inválido').default(3.5),
+  totalShares: z.coerce.number().int().positive('Total de cotas inválido').optional(),
+  contestNumber: z.coerce.number().int().positive().optional(),
+  poolSize: z.coerce.number().int().min(15, 'Pool entre 15 e 25').max(25, 'Pool entre 15 e 25').optional(),
+  antiRateio: z.boolean().optional().default(true)
+});
+
 // ==================== ADMIN: CONFIG DE LOTERIAS ====================
 
 /**
@@ -202,5 +227,7 @@ module.exports = {
   evolveSchema,
   createSubscriptionSchema,
   updateProfileSchema,
-  lotteryConfigSchema
+  lotteryConfigSchema,
+  structuredGenerateSchema,
+  structuredPoolSchema
 };

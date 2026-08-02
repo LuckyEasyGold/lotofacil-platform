@@ -21,7 +21,11 @@ const QUINZE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 const VINTE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 
 // Preços oficiais da Caixa (tabela combinatória: base × C(n, 15))
-const PRECOS_LOTOFACIL = { 15: 3.00, 16: 48.00, 17: 408.00, 18: 2448.00, 19: 11628.00, 20: 46512.00 };
+// BASE CORRIGIDA para R$ 3,50 (admin atualizou no banco — teste acompanha a tabela real).
+// ⚠️ Este teste depende do override `lottery_config` presente no banco de teste.
+// Se rodar contra um banco isolado SEM override, getGamePrice() cai no fallback
+// de LOTTERY_CONFIGS e estes valores quebram — semear a tabela antes se precisar.
+const PRECOS_LOTOFACIL = { 15: 3.50, 16: 56.00, 17: 476.00, 18: 2856.00, 19: 13566.00, 20: 54264.00 };
 
 describe('QA — fluxo completo do jogador', () => {
   afterAll(async () => {
@@ -48,7 +52,7 @@ describe('QA — fluxo completo do jogador', () => {
     }
   });
 
-  it('3. apostar 15 dezenas custa R$ 3,00 e cria o jogo no portfólio', async () => {
+  it('3. apostar 15 dezenas custa R$ 3,50 e cria o jogo no portfólio', async () => {
     const { agent } = await registerUser();
     await agent.post('/api/wallet/deposit').send({ amount: 100 });
 
@@ -58,7 +62,7 @@ describe('QA — fluxo completo do jogador', () => {
 
     const bet = await agent.post('/api/bets').send({ gameType: 'LOTOFACIL', numbers: QUINZE });
     expect(bet.status).toBe(200);
-    expect(bet.body.amount).toBe(3);
+    expect(bet.body.amount).toBe(3.5);
     expect(bet.body.game).toBeDefined(); // jogo criado junto com a aposta
 
     // Depois: o jogo APARECE no portfólio (bug do "não aparece em Meus Jogos")
@@ -67,22 +71,22 @@ describe('QA — fluxo completo do jogador', () => {
     expect(depois.body.games[0].id).toBe(bet.body.game.id);
     expect(depois.body.games[0].source).toBe('bet');
 
-    // Saldo: 100 - 3
+    // Saldo: 100 - 3,5
     const wallet = await agent.get('/api/wallet');
-    expect(wallet.body.balance).toBe(97);
+    expect(wallet.body.balance).toBeCloseTo(96.5, 2);
   });
 
-  it('4. apostar 16 dezenas custa R$ 48,00 (tabela da Caixa)', async () => {
+  it('4. apostar 16 dezenas custa R$ 56,00 (tabela da Caixa)', async () => {
     const { agent } = await registerUser();
     await agent.post('/api/wallet/deposit').send({ amount: 200 });
 
     const DEZESSEIS = [...QUINZE, 20];
     const bet = await agent.post('/api/bets').send({ gameType: 'LOTOFACIL', numbers: DEZESSEIS });
     expect(bet.status).toBe(200);
-    expect(bet.body.amount).toBe(48);
+    expect(bet.body.amount).toBe(56);
 
     const wallet = await agent.get('/api/wallet');
-    expect(wallet.body.balance).toBe(152);
+    expect(wallet.body.balance).toBe(144);
   });
 
   it('5. criar jogo de 20 dezenas no portfólio (válido pela Caixa)', async () => {

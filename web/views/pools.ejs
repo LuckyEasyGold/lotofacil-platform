@@ -15,6 +15,20 @@
 </div>
 
 <div id="poolTabCreate" class="hidden">
+  <div class="card" style="max-width:600px;margin-bottom:20px;background:linear-gradient(135deg,rgba(79,70,229,0.06),rgba(16,185,129,0.06));border:1px solid rgba(79,70,229,0.15);">
+    <div class="card-header">
+      <div>
+        <div class="card-title">✨ Criar Bolão com IA Estrutural</div>
+        <div class="card-subtitle">A IA aprende a estrutura em vigor (soma, blocos, pool de números) e gera 10 ou 20 jogos de 15 dezenas</div>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
+      Cada cota custa o valor de 1 jogo (tabela da Caixa: <strong>R$ 3,50</strong>) — o bolão tem 1 cota por jogo. Você paga 1 cota para criar e os amigos preenchem o resto.
+    </p>
+    <button class="btn btn-primary btn-full btn-lg" onclick="openStructuredPoolModal()">
+      <i class="fas fa-brain"></i> Gerar Bolão com IA
+    </button>
+  </div>
   <div class="card" style="max-width:600px;">
     <div class="card-header">
       <div>
@@ -103,7 +117,8 @@ async function loadPools() {
         '<span class="status-badge ' + (p.status === 'open' ? 'active' : 'completed') + '">' + (p.status === 'open' ? 'Aberto' : 'Fechado') + '</span></div>' +
         '<div class="pool-meta"><span class="pool-meta-item">👤 Criado por <strong>' + p.creatorName + '</strong></span>' +
         '<span class="pool-meta-item">👥 <strong>' + p.participants.length + '</strong> participante(s)</span></div>' +
-        (p.numbers ? '<div class="pool-numbers">' + p.numbers.map(n => '<span class="ball primary" style="width:30px;height:30px;font-size:11px;">' + n + '</span>').join('') + '</div>' : '') +
+        (p.numbers ? '<div class="pool-numbers">' + p.numbers.map(n => '<span class="ball small primary">' + n + '</span>').join('') + '</div>' : '') +
+        (p.games && p.games.length > 1 ? renderPoolGamesToggle(p, 'available') : '') +
         '<div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%"></div></div>' +
         '<div class="flex-between"><span style="font-size:13px;color:var(--text-muted)">' + (p.totalShares - p.availableShares) + '/' + p.totalShares + ' cotas vendidas</span>' +
         '<span style="font-weight:600;color:var(--primary-light)">' + formatCurrency(p.sharePrice) + '/cota</span></div>' +
@@ -128,7 +143,8 @@ async function loadMyPools() {
         '<span class="status-badge ' + (p.status === 'open' ? 'active' : 'completed') + '">' + (p.status === 'open' ? 'Aberto' : 'Fechado') + '</span></div>' +
         '<div class="pool-meta"><span class="pool-meta-item">📦 <strong>' + (myShare ? myShare.shares : 0) + '</strong> cota(s) sua(s)</span>' +
         '<span class="pool-meta-item">💰 <strong>' + formatCurrency((myShare ? myShare.shares : 0) * p.sharePrice) + '</strong> investido</span></div>' +
-        (p.numbers ? '<div class="pool-numbers">' + p.numbers.map(n => '<span class="ball success" style="width:30px;height:30px;font-size:11px;">' + n + '</span>').join('') + '</div>' : '') +
+        (p.numbers ? '<div class="pool-numbers">' + p.numbers.map(n => '<span class="ball small success">' + n + '</span>').join('') + '</div>' : '') +
+        (p.games && p.games.length > 1 ? renderPoolGamesToggle(p, 'my') : '') +
         // Market offers
         (p.marketOffers && p.marketOffers.filter(function(o) { return o.status === 'active'; }).length > 0
           ? '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">' +
@@ -222,6 +238,82 @@ function quickPoolPick() {
   nums.forEach(n => { poolSelectedNumbers.add(n); document.querySelector('[data-pool-num="' + n + '"]').classList.add('selected'); });
   document.getElementById('poolSelectedCount').textContent = 15;
 }
+
+// ==================== BOLÃO IA: MOSTRAR JOGOS GERADOS ====================
+// Renderiza o badge "N jogos gerados pela IA" + toggle que expande os jogos.
+function renderPoolGamesToggle(p, tab) {
+  return '<div style="margin-top:10px;padding:10px 12px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.15);border-radius:10px;">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
+    '<span style="font-size:12px;color:#A78BFA;"><i class="fas fa-brain"></i> ' + p.games.length + ' jogos gerados pela IA</span>' +
+    '<button class="btn btn-secondary btn-sm" style="padding:6px 12px;font-size:12px;" onclick="togglePoolGames(\\'' + p.id + '\\')">Ver jogos</button></div>' +
+    '<div id="poolGames_' + p.id + '_' + tab + '" class="hidden" style="margin-top:10px;">' + renderPoolGames(p.games) + '</div></div>';
+}
+
+// Lista compacta de jogos (usa as classes .game-row mobile-first)
+function renderPoolGames(games) {
+  return games.map((g, i) =>
+    '<div class="game-row">' +
+    '<div class="game-row-balls">' +
+    '<span class="game-row-index" style="background:var(--gradient-secondary);">' + (i + 1) + '</span>' +
+    '<div class="balls">' + g.map(n => '<span class="ball small primary">' + n + '</span>').join('') + '</div></div></div>'
+  ).join('');
+}
+
+function togglePoolGames(poolId) {
+  document.querySelectorAll('[id^="poolGames_' + poolId + '"]').forEach(el => {
+    el.classList.toggle('hidden');
+  });
+}
+// ==================== BOLÃO COM IA ESTRUTURAL (2 MOTORES) ====================
+function openStructuredPoolModal() {
+  openModal('✨ Bolão com IA Estrutural', '10 ou 20 jogos de 15 dezenas na estrutura em vigor',
+    '<div class="form-group"><label>Nome do Bolão</label><div class="form-input"><input type="text" id="spName" placeholder="Ex: Bolão IA da Sorte"></div></div>' +
+    '<div class="form-group"><label>Quantidade de jogos</label><div class="form-input"><select id="spQty" onchange="updateStructuredPrice()" style="width:100%;">' +
+    '<option value="10" selected>10 jogos · R$ 35,00 total</option>' +
+    '<option value="20">20 jogos · R$ 70,00 total</option></select></div></div>' +
+    '<div class="form-group"><label>Dezenas por jogo</label><div class="form-input"><select id="spPick" onchange="updateStructuredPrice()" style="width:100%;">' +
+    '<option value="15" selected>15 números · R$ 3,50/jogo</option>' +
+    '<option value="16">16 números · R$ 56,00/jogo</option></select></div></div>' +
+    '<div id="spPrice" style="background:var(--bg-input);border-radius:10px;padding:14px 16px;margin:12px 0;display:flex;justify-content:space-between;align-items:center;">' +
+    '<span style="font-size:13px;color:var(--text-secondary);">Cota (1 jogo)</span><span style="font-size:20px;font-weight:700;color:var(--secondary);">R$ 3,50</span></div>' +
+    '<button class="btn btn-primary btn-full btn-lg" id="spBtn" onclick="confirmStructuredPool()"><i class="fas fa-brain"></i> Gerar e Criar Bolão</button>' +
+    '<p style="font-size:12px;color:var(--text-muted);margin-top:12px;"><i class="fas fa-info-circle"></i> A IA usa a estrutura em vigor (soma 170–220, blocos 4–5, pool de ~20 números quentes+frios). Você paga 1 cota; os demais participantes preenchem o bolão.</p>');
+  updateStructuredPrice();
+}
+
+function updateStructuredPrice() {
+  const pick = parseInt(document.getElementById('spPick').value, 10) || 15;
+  const perGame = pick === 16 ? 56.00 : 3.50;
+  document.getElementById('spPrice').innerHTML =
+    '<span style="font-size:13px;color:var(--text-secondary);">Cota (1 jogo de ' + pick + ')</span>' +
+    '<span style="font-size:20px;font-weight:700;color:var(--secondary);">R$ ' + formatNumberBR(perGame) + '</span>';
+}
+
+async function confirmStructuredPool() {
+  const name = document.getElementById('spName').value.trim() || 'Bolão IA ' + new Date().toLocaleDateString('pt-BR');
+  const quantity = parseInt(document.getElementById('spQty').value, 10) || 10;
+  const pickCount = parseInt(document.getElementById('spPick').value, 10) || 15;
+  const btn = document.getElementById('spBtn');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando jogos e criando bolão...';
+  btn.disabled = true;
+  try {
+    const result = await api.createStructuredPool({ name, quantity, pickCount });
+    if (result.success) {
+      closeModal();
+      showToast('🎉 Bolão "' + name + '" criado com ' + (result.games || []).length + ' jogos gerados pela IA!', 'success');
+      setTimeout(() => location.reload(), 1800);
+    } else {
+      showToast(result.error || 'Erro ao criar bolão IA', 'error');
+      btn.innerHTML = '<i class="fas fa-brain"></i> Gerar e Criar Bolão';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    showToast('Erro ao criar bolão IA', 'error');
+    btn.innerHTML = '<i class="fas fa-brain"></i> Gerar e Criar Bolão';
+    btn.disabled = false;
+  }
+}
+
 async function createPool(e) {
   e.preventDefault();
   const numbers = [...poolSelectedNumbers].sort((a,b) => a-b);

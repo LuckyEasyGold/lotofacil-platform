@@ -1857,3 +1857,171 @@ p, span, div, a, h1, h2, h3, h4, td, th {
   .toast { width: 100%; min-width: 0; box-sizing: border-box; }
   .form-input input, .form-input select, .form-input textarea { font-size: 16px; }
 }
+
+/* ==================== IA ESTRUTURAL — MOBILE-FIRST ====================
+   Componentes da IA Estrutural (Motor 1 + Motor 2) com classes próprias
+   (em vez de estilos inline que estouram a tela no mobile). */
+
+/* Linha de jogo: bolas à esquerda, ações à direita. No mobile empilha:
+   bolas em grade de 5 colunas (15 dezenas = 3 linhas) + botões full-width. */
+.game-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-input);
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+.game-row-balls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0; /* permite encolher (senão a linha estoura no mobile) */
+  flex: 1;
+}
+.game-row-index {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--gradient-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+.game-row-index.variant-primary {
+  background: var(--gradient-primary);
+}
+.game-row-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Bolas compactas (28px) usadas em listas de jogos e no perfil estrutural */
+.ball.small {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+/* Grade do perfil estrutural (cards da faixa de soma, quentes, frios, tabela) */
+.str-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+.str-card {
+  background: var(--bg-input);
+  border-radius: 12px;
+  padding: 20px;
+  min-width: 0;
+}
+.str-card-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.str-card-value {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* Controles do gerador estruturado (quantidade + dezenas + botão) */
+.gen-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+.gen-controls .form-group {
+  flex: 1;
+  min-width: 140px;
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .game-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .game-row-balls {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  /* 15 dezenas em grade 5×3 — não estica a tela */
+  .game-row-balls .balls {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    justify-items: center;
+    width: 100%;
+  }
+  .game-row-balls .balls .ball.small {
+    width: 32px;
+    height: 32px;
+    font-size: 11px;
+  }
+  .game-row-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .game-row-actions .btn {
+    flex: 1;
+  }
+  .str-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .str-card {
+    padding: 14px;
+  }
+  .str-card-value {
+    font-size: 20px;
+  }
+  /* 5 bolas (quentes/frios) em linha única dentro do card de perfil */
+  .str-card .balls {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    justify-items: center;
+  }
+  .str-card .balls .ball.small {
+    width: 26px;
+    height: 26px;
+    font-size: 10px;
+  }
+  /* Card da tabela teórica ocupa a linha inteira (tabela de 6 linhas) */
+  .str-card.wide {
+    grid-column: 1 / -1;
+  }
+  .str-card.wide table { font-size: 12px; }
+  .gen-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .gen-controls .btn {
+    width: 100%;
+  }
+  /* Tabs de bolões: rolam horizontalmente em vez de cortar texto */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 10px 14px;
+  }
+}

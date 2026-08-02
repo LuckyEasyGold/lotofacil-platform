@@ -1,11 +1,13 @@
 /**
  * routes/ai.js — Simulação e geração com IA, extraído do server.js.
  */
-const { asyncRouter } = require('../lib/http');
+const { asyncRouter, sendError } = require('../lib/http');
 const { requireAuth } = require('../lib/auth');
-const { geneticEngine, ensureReady, generateMockAIGames, simulateAI } = require('../lib/context');
-const { validate, simulateSchema } = require('../lib/validation');
-const { LOTTERY_CONFIGS } = require('../lib/lottery');
+const { geneticEngine, ensureReady, generateMockAIGames, simulateAI, getResultsCache } = require('../lib/context');
+const { validate, simulateSchema, structuredGenerateSchema } = require('../lib/validation');
+const { LOTTERY_CONFIGS, getGamePrice } = require('../lib/lottery');
+const { buildProfile, getActiveStructure, detectAnomalies, compareToTheoretical, getTheoreticalTable } = require('../lib/patterns');
+const { buildPool, generateStructuredGames } = require('../lib/number_pool');
 
 const router = asyncRouter();
 
@@ -35,6 +37,75 @@ router.get('/api/ai/generate', requireAuth, async (req, res) => {
     res.json(result);
   } catch (e) {
     res.json(generateMockAIGames(quantity, pickCount));
+  }
+});
+
+/** GET /api/ai/structure-profile — Perfil estrutural aprendido (Motor 1 + Motor 2) */
+router.get('/api/ai/structure-profile', requireAuth, async (req, res) => {
+  try {
+    await ensureReady();
+    const draws = getResultsCache()
+      .filter(c => c && c.listaDezenas && Array.isArray(c.listaDezenas))
+      .map(c => c.listaDezenas.map(n => parseInt(n, 10)));
+    const profile = buildProfile(draws);
+    const activeStructure = getActiveStructure(profile);
+    const anomalies = detectAnomalies(draws);
+    const theoretical = compareToTheoretical(draws);
+    const poolResult = buildPool(draws);
+    res.json({
+      success: true,
+      contests: draws.length,
+      structure: activeStructure,
+      hot: profile.hot,
+      cold: profile.cold,
+      anomalies,
+      theoretical,
+      pool: poolResult.pool,
+      hotShare: poolResult.hotShare,
+      poolSize: poolResult.size,
+      probabilityTable: getTheoreticalTable()
+    });
+  } catch (e) {
+    sendError(res, e, 'GET /api/ai/structure-profile');
+  }
+});
+
+/**
+ * POST /api/ai/structured-generate — Gerar N jogos com a estrutura ativa
+ * (Motor 1) preenchida pelo pool de números aprendido (Motor 2).
+ * Corpo: { quantity, pickCount, poolSize, antiRateio }
+ */
+router.post('/api/ai/structured-generate', requireAuth, validate(structuredGenerateSchema), async (req, res) => {
+  try {
+    await ensureReady();
+    const draws = getResultsCache()
+      .filter(c => c && c.listaDezenas && Array.isArray(c.listaDezenas))
+      .map(c => c.listaDezenas.map(n => parseInt(n, 10)));
+    const { quantity, pickCount, poolSize, antiRateio } = req.body;
+
+    const profile = buildProfile(draws);
+    const activeStructure = getActiveStructure(profile);
+    const poolResult = buildPool(draws, { size: poolSize });
+    // pickCount não pode exceder o pool (senão retorna lista vazia com success:true)
+    const actualPick = Math.min(pickCount, poolResult.pool.length);
+    const games = generateStructuredGames(activeStructure, poolResult, { quantity, pickCount: actualPick, antiRateio });
+
+    const perGame = getGamePrice('LOTOFACIL', actualPick);
+    res.json({
+      success: true,
+      structure: activeStructure,
+      pool: poolResult.pool,
+      hotShare: poolResult.hotShare,
+      poolSize: poolResult.size,
+      games,
+      pickCount: actualPick,
+      perGamePrice: perGame,
+      totalPrice: +(perGame * quantity).toFixed(2),
+      seedVersion: '1.0.structural',
+      generatedAt: new Date().toISOString()
+    });
+  } catch (e) {
+    sendError(res, e, 'POST /api/ai/structured-generate');
   }
 });
 

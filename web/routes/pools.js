@@ -3,12 +3,16 @@
  */
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { asyncRouter } = require('../lib/http');
+const { asyncRouter, sendError } = require('../lib/http');
 const { requireAuth } = require('../lib/auth');
 const { addNotification } = require('../lib/notifications');
 const { checkAchievements } = require('../lib/gamification');
-const { validate, createPoolSchema, joinPoolSchema, createOfferSchema } = require('../lib/validation');
+const { validate, createPoolSchema, joinPoolSchema, createOfferSchema, structuredPoolSchema } = require('../lib/validation');
 const { formatBRL } = require('../lib/format');
+const { ensureReady, getResultsCache } = require('../lib/context');
+const { buildProfile, getActiveStructure } = require('../lib/patterns');
+const { buildPool, generateStructuredGames } = require('../lib/number_pool');
+const { getGamePrice } = require('../lib/lottery');
 
 const router = asyncRouter();
 
@@ -156,6 +160,68 @@ router.post('/api/pools/:id/buy-offer/:offerId', requireAuth, async (req, res) =
     '/boloes');
 
   res.json({ success: true, pool });
+});
+
+/**
+ * POST /api/pools/structured — Criar bolão com N jogos gerados pela IA
+ * estrutural (Motor 1: estrutura em vigor + Motor 2: pool de números).
+ * Cada cota custa o valor de 1 jogo (tabela da Caixa, ex.: R$ 3,50) e o
+ * bolão tem `quantity` cotas (1 por jogo) — ou `totalShares` se informado.
+ * Corpo: { name, quantity, pickCount, sharePrice, totalShares, contestNumber, poolSize, antiRateio }
+ */
+router.post('/api/pools/structured', requireAuth, validate(structuredPoolSchema), async (req, res) => {
+  try {
+    await ensureReady();
+    const user = req.currentUser;
+    const draws = getResultsCache()
+      .filter(c => c && c.listaDezenas && Array.isArray(c.listaDezenas))
+      .map(c => c.listaDezenas.map(n => parseInt(n, 10)));
+
+    const { name, quantity, pickCount, sharePrice, totalShares, contestNumber, poolSize, antiRateio } = req.body;
+    const profile = buildProfile(draws);
+    const activeStructure = getActiveStructure(profile);
+    const poolResult = buildPool(draws, { size: poolSize });
+    const actualPick = Math.min(pickCount, poolResult.pool.length);
+    const games = generateStructuredGames(activeStructure, poolResult, { quantity, pickCount: actualPick, antiRateio });
+
+    // Custo: quantity jogos × preço da tabela. Cota = valor de 1 jogo (ou o
+    // informado). totalShares = quantity por padrão (1 cota por jogo).
+    // Usa actualPick (clampado ao pool) para o preço bater com os jogos gerados.
+    const perGame = getGamePrice('LOTOFACIL', actualPick);
+    const price = parseFloat(sharePrice) || perGame;
+    const total = parseInt(totalShares, 10) || quantity;
+    if (price > user.balance) {
+      return res.status(400).json({ error: 'Saldo insuficiente' });
+    }
+
+    const newPool = {
+      id: uuidv4(), name, gameType: 'LOTOFACIL',
+      contestNumber: parseInt(contestNumber, 10) || 3005,
+      totalShares: total,
+      availableShares: Math.max(total - 1, 0),
+      sharePrice: price,
+      minShares: 1, maxShares: Math.floor(total * 0.2),
+      numbers: games[0] || [],
+      games,
+      creatorName: user.name,
+      status: 'open', createdAt: new Date(),
+      participants: [{ name: user.name, shares: 1, paid: true }]
+    };
+    await db.createPool(newPool);
+    await db.adjustUserBalance(user.id, -price);
+    await db.addTransaction({
+      id: uuidv4(), userId: user.id, type: 'pool_join', amount: -price,
+      description: `Criação do bolão IA "${name}" - 1 cota (${quantity} jogos)`,
+      date: new Date(), status: 'completed'
+    });
+    await addNotification(user.id, 'pool', 'Bolão IA criado!',
+      `"${name}" criado com ${games.length} jogos gerados pela IA estrutural — ${formatBRL(price)} por cota.`,
+      '/boloes');
+    await checkAchievements(user.id); // consistência com o POST /api/pools normal
+    res.json({ success: true, pool: newPool, games, structure: activeStructure, numberPool: poolResult.pool, perGame });
+  } catch (e) {
+    sendError(res, e, 'POST /api/pools/structured');
+  }
 });
 
 /** GET /api/pools/popular — Bolões populares (dashboard) */
