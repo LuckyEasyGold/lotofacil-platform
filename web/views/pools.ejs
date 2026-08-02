@@ -107,7 +107,7 @@ async function loadPools() {
         '<div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%"></div></div>' +
         '<div class="flex-between"><span style="font-size:13px;color:var(--text-muted)">' + (p.totalShares - p.availableShares) + '/' + p.totalShares + ' cotas vendidas</span>' +
         '<span style="font-weight:600;color:var(--primary-light)">' + formatCurrency(p.sharePrice) + '/cota</span></div>' +
-        (p.status === 'open' ? '<button class="btn btn-primary btn-full btn-sm mt-2" onclick="joinPool(\'' + p.id + '\')"><i class="fas fa-handshake"></i> Participar</button>' : '<button class="btn btn-secondary btn-full btn-sm mt-2" disabled><i class="fas fa-lock"></i> Fechado</button>') +
+        (p.status === 'open' ? '<button class="btn btn-primary btn-full btn-sm mt-2" onclick="joinPool(\\'' + p.id + '\\')"><i class="fas fa-handshake"></i> Participar</button>' : '<button class="btn btn-secondary btn-full btn-sm mt-2" disabled><i class="fas fa-lock"></i> Fechado</button>') +
         '</div>';
     }).join('');
   } catch(e) {}
@@ -138,14 +138,14 @@ async function loadMyPools() {
               '<span style="font-size:13px;">' + o.shares + ' cotas de <strong>' + o.sellerName + '</strong></span>' +
               '<div style="display:flex;align-items:center;gap:8px;">' +
               '<span style="font-weight:600;color:var(--accent);">' + formatCurrency(o.totalValue) + '</span>' +
-              (o.sellerName !== currentUserName ? '<button class="btn btn-accent btn-sm" onclick="buyOffer(\'' + p.id + '\',\'' + o.id + '\')"><i class="fas fa-shopping-cart"></i> Comprar</button>' : '<span class="status-badge completed" style="font-size:10px;">Sua oferta</span>') +
+              (o.sellerName !== currentUserName ? '<button class="btn btn-accent btn-sm" onclick="buyOffer(\\'' + p.id + '\\',\\'' + o.id + '\\')"><i class="fas fa-shopping-cart"></i> Comprar</button>' : '<span class="status-badge completed" style="font-size:10px;">Sua oferta</span>') +
               '</div></div>';
             }).join('') + '</div>'
           : '') +
         (myShare && myShare.shares > 1
-          ? '<button class="btn btn-secondary btn-sm btn-full mt-1" onclick="openSellOffer(\'' + p.id + '\', ' + myShare.shares + ', ' + p.sharePrice + ')"><i class="fas fa-tag"></i> Vender Cotas</button>'
+          ? '<button class="btn btn-secondary btn-sm btn-full mt-1" onclick="openSellOffer(\\'' + p.id + '\\', ' + myShare.shares + ', ' + p.sharePrice + ')"><i class="fas fa-tag"></i> Vender Cotas</button>'
           : '') +
-        '<button class="btn btn-secondary btn-sm btn-full mt-1" onclick="sharePool(\'' + p.id + '\')"><i class="fas fa-share-alt"></i> Compartilhar</button>' +
+        '<button class="btn btn-secondary btn-sm btn-full mt-1" onclick="sharePool(\\'' + p.id + '\\')"><i class="fas fa-share-alt"></i> Compartilhar</button>' +
         '</div>';
     }).join('');
   } catch(e) {}
@@ -156,7 +156,7 @@ function openSellOffer(poolId, maxShares, currentPrice) {
   openModal('💲 Vender Cotas', 'Ofereça suas cotas para venda no mercado',
     '<div class="form-group"><label>Quantidade de Cotas (máx ' + maxShares + ')</label><div class="form-input"><input type="number" id="sellShares" value="' + Math.min(5, maxShares) + '" min="1" max="' + maxShares + '"></div></div>' +
     '<div class="form-group"><label>Preço por Cota (R$)</label><div class="form-input"><input type="number" id="sellPrice" value="' + currentPrice.toFixed(2) + '" step="0.01" min="0.01"></div></div>' +
-    '<button class="btn btn-accent btn-full" onclick="confirmSellOffer(\'' + poolId + '\')"><i class="fas fa-tag"></i> Publicar Oferta</button>');
+    '<button class="btn btn-accent btn-full" onclick="confirmSellOffer(\\'' + poolId + '\\')"><i class="fas fa-tag"></i> Publicar Oferta</button>');
 }
 
 async function confirmSellOffer(poolId) {
@@ -199,7 +199,7 @@ function sharePool(poolId) {
     '<a href="https://wa.me/?text=' + encoded + '" target="_blank" class="btn btn-success btn-full"><i class="fab fa-whatsapp"></i> WhatsApp</a>' +
     '<a href="https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text) + '" target="_blank" class="btn btn-primary btn-full"><i class="fab fa-telegram"></i> Telegram</a>' +
     '<a href="https://twitter.com/intent/tweet?text=' + encoded + '" target="_blank" class="btn btn-secondary btn-full"><i class="fab fa-twitter"></i> Twitter</a>' +
-    '<button class="btn btn-secondary btn-full" onclick="copyToClipboard(\'' + url + '\')"><i class="fas fa-link"></i> Copiar Link</button></div>');
+    '<button class="btn btn-secondary btn-full" onclick="copyToClipboard(\\'' + url + '\\')"><i class="fas fa-link"></i> Copiar Link</button></div>');
 }
 
 function copyToClipboard(text) {
@@ -235,7 +235,7 @@ async function createPool(e) {
 async function joinPool(poolId) {
   openModal('🤝 Participar do Bolão', 'Adquira cotas deste bolão',
     '<div class="form-group"><label>Quantidade de Cotas</label><div class="form-input"><input type="number" id="joinShares" value="1" min="1" max="10"></div></div>' +
-    '<button class="btn btn-primary btn-full" onclick="doJoinPool(\'' + poolId + '\')"><i class="fas fa-check"></i> Confirmar</button>' +
+    '<button class="btn btn-primary btn-full" onclick="doJoinPool(\\'' + poolId + '\\')"><i class="fas fa-check"></i> Confirmar</button>' +
     '<hr style="margin:16px 0;border-color:var(--border);">' +
     '<div style="text-align:center;">' +
     '<a href="https://wa.me/?text=' + encodeURIComponent('👥 Participe deste bolão comigo na Lotofácil Platform! 🍀 ' + window.location.origin + '/boloes') + '" target="_blank" class="btn btn-success btn-sm"><i class="fab fa-whatsapp"></i> Convidar amigos</a>' +

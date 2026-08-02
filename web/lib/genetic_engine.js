@@ -164,16 +164,19 @@ class LotteryGeneticEngine {
   /**
    * Simulate N lottery games given a set of weights.
    * Uses roulette-wheel selection without replacement.
+   * @param {number|null} pickCount — nº de dezenas por jogo (ex.: 15–20 na
+   *   Lotofácil). Se omitido, usa o padrão da loteria (numbersToPick).
    */
-  simulateGames(weights, nGames = 500) {
+  simulateGames(weights, nGames = 500, pickCount = null) {
     const probs = this.normalise(weights);
     const games = [];
+    const target = pickCount || this.numbersToPick;
 
     for (let g = 0; g < nGames; g++) {
       const selected = [];
       const available = [...probs];
 
-      for (let p = 0; p < this.numbersToPick; p++) {
+      for (let p = 0; p < target; p++) {
         const total = available.reduce((a, b) => a + b, 0);
         const normed = available.map(w => w / total);
 
@@ -370,16 +373,22 @@ class LotteryGeneticEngine {
     };
   }
 
-  /** Generate `quantity` games using the current best seed */
-  generateGames(quantity = 5) {
+  /**
+   * Generate `quantity` games using the current best seed.
+   * @param {number} quantity   — quantos jogos gerar
+   * @param {number|null} pickCount — quantas dezenas por jogo (15–20 na
+   *   Lotofácil, respeitando a tabela da Caixa). Omitido = padrão da loteria.
+   */
+  generateGames(quantity = 5, pickCount = null) {
     if (this.autoEvolve && !this.currentSeed && this.historicalResults.length > 0) {
       this.evolve(100, 15); // quick first evolution
     }
     const seed = this.currentSeed || this.createIndividual();
-    const games = this.simulateGames(seed, quantity);
+    const games = this.simulateGames(seed, quantity, pickCount);
     return {
       game_type: this.gameType,
       seed_version: `1.0.${this.currentGeneration}`,
+      pickCount: pickCount || this.numbersToPick,
       games,
       generatedAt: new Date().toISOString()
     };

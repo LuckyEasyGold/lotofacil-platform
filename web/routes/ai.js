@@ -5,6 +5,7 @@ const { asyncRouter } = require('../lib/http');
 const { requireAuth } = require('../lib/auth');
 const { geneticEngine, ensureReady, generateMockAIGames, simulateAI } = require('../lib/context');
 const { validate, simulateSchema } = require('../lib/validation');
+const { LOTTERY_CONFIGS } = require('../lib/lottery');
 
 const router = asyncRouter();
 
@@ -23,13 +24,17 @@ router.post('/api/simulate', requireAuth, validate(simulateSchema), async (req, 
 
 /** GET /api/ai/generate — Gerar jogos com a IA */
 router.get('/api/ai/generate', requireAuth, async (req, res) => {
-  const quantity = parseInt(req.query.quantity, 10) || 5;
+  const quantity = Math.min(Math.max(parseInt(req.query.quantity, 10) || 5, 1), 20);
+  // pickCount = quantas dezenas por jogo, limitado à tabela da Caixa da loteria
+  // (15–20 na Lotofácil). O engine é específico da Lotofácil (25 números).
+  const cfg = LOTTERY_CONFIGS.LOTOFACIL;
+  const pickCount = Math.min(Math.max(parseInt(req.query.pickCount, 10) || cfg.pickCount, cfg.minPick), cfg.maxPick);
   try {
     await ensureReady();
-    const result = geneticEngine.generateGames(quantity);
+    const result = geneticEngine.generateGames(quantity, pickCount);
     res.json(result);
   } catch (e) {
-    res.json(generateMockAIGames(quantity));
+    res.json(generateMockAIGames(quantity, pickCount));
   }
 });
 

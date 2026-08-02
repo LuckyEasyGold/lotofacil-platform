@@ -218,7 +218,7 @@ async function loadFromPortfolio() {
     let html = '<div style="max-height:400px;overflow-y:auto;">';
     games.slice(0, 20).forEach((game, idx) => {
       const nums = game.numbers.join(', ');
-      html += '<div style="padding:12px 16px;background:var(--bg-input);border-radius:10px;margin-bottom:8px;cursor:pointer;" onclick="selectGameFromPortfolio(' + JSON.stringify(game.numbers) + ', \'' + game.id + '\'); closeModal();">' +
+      html += '<div style="padding:12px 16px;background:var(--bg-input);border-radius:10px;margin-bottom:8px;cursor:pointer;" onclick="selectGameFromPortfolio(' + JSON.stringify(game.numbers) + ', \\'' + game.id + '\\'); closeModal();">' +
         '<div style="font-size:14px;font-weight:600;color:var(--text);">' + game.name + '</div>' +
         '<div style="font-size:12px;color:var(--text-muted);">' + nums + '</div>' +
         '<div style="display:flex;gap:6px;margin-top:8px;">' +
@@ -245,29 +245,85 @@ function selectGameFromPortfolio(numbers, gameId) {
   showToast('✅ Jogo carregado do portfólio!', 'success');
 }
 
-async function useAIGenerate() {
-  const btn = event?.target?.closest('button') || document.querySelector('.quick-btn:nth-child(2)');
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
-  btn.disabled = true;
-  
-  try {
-    const result = await api.generateAIGames(currentGame, 1);
-    if (result && result.games && result.games[0]) {
-      clearAll();
-      result.games[0].forEach(n => {
-        selectedNumbers.add(n);
-        document.querySelector('[data-number="' + n + '"]').classList.add('selected');
-      });
-      updateSummary();
-      showToast('🧠 Jogo gerado pela Inteligência Artificial!', 'success');
-    }
-  } catch(e) {
-    showToast('Usando geração local...', 'info');
-    quickPick();
+// ==================== GERAR COM IA (pergunta quantos jogos + quantos números) ====================
+function useAIGenerate() {
+  const cfg = getConfig();
+  // O engine de IA é específico da Lotofácil (25 números, 15–20 dezenas).
+  // Para outras loterias, orienta o jogador a usar a seleção manual/Surpresinha.
+  if (currentGame !== 'LOTOFACIL') {
+    showToast('🤖 A IA gera jogos de Lotofácil. Para ' + (cfg.name || currentGame) + ', use a seleção manual ou a Surpresinha.', 'info');
+    return;
   }
-  
-  btn.innerHTML = '<i class="fas fa-brain"></i> Gerar com IA';
-  btn.disabled = false;
+  // Opções de quantidade (1–10 jogos) e de dezenas (mín–máx da loteria, ex.: 15–20)
+  let pickOpts = '';
+  for (let n = cfg.minPick; n <= cfg.maxPick; n++) {
+    pickOpts += '<option value="' + n + '"' + (n === cfg.pick ? ' selected' : '') + '>' + n + ' números · R$ ' + formatNumberBR(getPrice(n) || 0) + '</option>';
+  }
+  let qtyOpts = '';
+  for (let q = 1; q <= 10; q++) qtyOpts += '<option value="' + q + '"' + (q === 1 ? ' selected' : '') + '>' + q + (q === 1 ? ' jogo' : ' jogos') + '</option>';
+
+  const html =
+    '<div class="form-group"><label>Quantidade de jogos</label><div class="form-input"><select id="cgQty" onchange="updateAIPrice()" style="width:100%;">' + qtyOpts + '</select></div></div>' +
+    '<div class="form-group"><label>Números por jogo (mín. ' + cfg.minPick + ' · máx. ' + cfg.maxPick + ')</label><div class="form-input"><select id="cgPick" onchange="updateAIPrice()" style="width:100%;">' + pickOpts + '</select></div></div>' +
+    '<div id="cgTotal" style="background:var(--bg-input);border-radius:10px;padding:14px 16px;margin:12px 0;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--text-secondary);">Valor total</span><span style="font-size:20px;font-weight:700;color:var(--secondary);">R$ 0,00</span></div>' +
+    '<button class="btn btn-primary btn-full btn-lg" id="cgBtn" onclick="confirmAIGenerate()"><i class="fas fa-brain"></i> Gerar e Apostar</button>' +
+    '<p style="font-size:12px;color:var(--text-muted);margin-top:12px;"><i class="fas fa-info-circle"></i> A IA gera os jogos, salva no portfólio (Meus Jogos) e a aposta usa a tabela oficial de preços da Caixa.</p>';
+  openModal('🧠 Gerar Jogos com IA', cfg.name + ' — escolha quantos jogos e com quantos números', html);
+  updateAIPrice();
+}
+
+function updateAIPrice() {
+  const qty = parseInt(document.getElementById('cgQty').value, 10) || 1;
+  const pick = parseInt(document.getElementById('cgPick').value, 10) || getConfig().pick;
+  const unit = getPrice(pick) || 0;
+  const total = qty * unit;
+  document.getElementById('cgTotal').innerHTML =
+    '<span style="font-size:13px;color:var(--text-secondary);">Valor total (' + qty + ' × ' + formatCurrency(unit) + ')</span>' +
+    '<span style="font-size:20px;font-weight:700;color:var(--secondary);">' + formatCurrency(total) + '</span>';
+}
+
+async function confirmAIGenerate() {
+  const cfg = getConfig();
+  const qty = Math.min(Math.max(parseInt(document.getElementById('cgQty').value, 10) || 1, 1), 10);
+  const pick = Math.min(Math.max(parseInt(document.getElementById('cgPick').value, 10) || cfg.pick, cfg.minPick), cfg.maxPick);
+  const unit = getPrice(pick) || 0;
+  const total = qty * unit;
+
+  // Saldo suficiente? (o servidor também valida cada aposta individualmente).
+  // Se a carteira falhar ao carregar, não bloqueia: o servidor é a fonte da verdade.
+  let balance = null;
+  try { const w = await api.getWallet(); balance = w.balance || 0; } catch(e) {}
+  if (balance !== null && balance < total) {
+    showToast('Saldo insuficiente — deposite R$ ' + formatCurrency(total - balance) + ' na Carteira', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('cgBtn');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando e apostando...';
+  btn.disabled = true;
+
+  let ok = 0;
+  try {
+    // 1 chamada de geração com a quantidade pedida + 1 saveBet por jogo.
+    // Para no primeiro erro (ex.: saldo insuficiente no meio) — o usuário vê
+    // exatamente quantos jogos foram apostados e recarrega saldo/badge.
+    const result = await api.generateAIGames(currentGame, qty, pick);
+    const games = (result && result.games) || [];
+    for (const game of games) {
+      if (!game) continue;
+      const bet = await api.saveBet(currentGame, game, unit, null);
+      if (!bet || !bet.success) break;
+      ok++;
+    }
+  } catch(e) { /* erro tratado abaixo */ }
+
+  closeModal();
+  if (ok > 0) {
+    showToast('🎉 ' + ok + ' jogo(s) apostado(s) e salvos no portfólio! Boa sorte!', 'success');
+    setTimeout(() => location.reload(), 2500);
+  } else {
+    showToast('Erro ao gerar apostas. Tente novamente.', 'error');
+  }
 }
 
 function clearAll() {

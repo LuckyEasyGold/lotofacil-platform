@@ -301,14 +301,15 @@ async function syncMissingResults() {
 
 // ==================== AI ENGINE INTEGRATION ====================
 
-function generateMockAIGames(quantity) {
+function generateMockAIGames(quantity, pickCount = 15) {
   const games = [];
+  const pick = Math.min(Math.max(parseInt(pickCount, 10) || 15, 15), 20); // 15–20 dezenas (regra da Caixa)
   for (let i = 0; i < quantity; i++) {
     const numbers = new Set();
-    while (numbers.size < 15) numbers.add(Math.floor(Math.random() * 25) + 1);
+    while (numbers.size < pick) numbers.add(Math.floor(Math.random() * 25) + 1);
     games.push(Array.from(numbers).sort((a, b) => a - b));
   }
-  return { game_type: 'LOTOFACIL', seed_version: '1.0.mock', games, generated_at: new Date().toISOString() };
+  return { game_type: 'LOTOFACIL', seed_version: '1.0.mock', pickCount: pick, games, generated_at: new Date().toISOString() };
 }
 
 function simulateAI(numbers) {

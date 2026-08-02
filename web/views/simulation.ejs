@@ -110,7 +110,7 @@ function clearSimNumbers() {
 }
 
 async function generateAIGames() {
-  const btn = document.querySelector('.card .btn-primary .btn-sm');
+  const btn = document.querySelector('.card .btn-primary.btn-sm');
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
   btn.disabled = true;
   try {
@@ -124,7 +124,7 @@ async function generateAIGames() {
       '<div class="balls" style="gap:4px;">' + game.map(n => '<span class="ball primary" style="width:28px;height:28px;font-size:11px;">' + n + '</span>').join('') + '</div></div>' +
       '<div style="display:flex;gap:4px;">' +
       '<button class="btn btn-secondary btn-sm" onclick="useThisGame(' + JSON.stringify(game) + ')"><i class="fas fa-check"></i></button>' +
-      '<button class="btn btn-primary btn-sm" onclick="saveGameToPortfolio(' + JSON.stringify(game) + ', \'' + (result.seed_version || '1.0') + '\')"><i class="fas fa-save"></i></button></div></div>'
+      '<button class="btn btn-primary btn-sm" onclick="saveGameToPortfolio(' + JSON.stringify(game) + ', \\'' + (result.seed_version || '1.0') + '\\')"><i class="fas fa-save"></i></button></div></div>'
     ).join('') +
     '<div style="margin-top:12px;padding:12px;background:rgba(16,185,129,0.1);border-radius:10px;"><span style="font-size:13px;color:var(--secondary);"><i class="fas fa-robot"></i> Gerado com seed ' + (result.seed_version || '1.0') + '</span></div>';
     generateAnalysis();

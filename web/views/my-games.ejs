@@ -261,20 +261,20 @@ function renderGameCard(game) {
   // Selection checkbox for comparison
   const isChecked = selectedCompareIds.has(game.id);
   const selectHtml = '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 8px;border-radius:6px;background:' + (isChecked ? 'rgba(79,70,229,0.2)' : 'var(--bg-input)') + ';font-size:12px;">' +
-    '<input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="toggleCompare(\'' + game.id + '\')" style="accent-color:var(--primary);"> Comparar</label>';
+    '<input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="toggleCompare(\\'' + game.id + '\\')" style="accent-color:var(--primary);"> Comparar</label>';
 
   // Actions based on status
   let actions = selectHtml + ' ';
   if (game.status === 'active' || game.status === 'used') {
     actions +=
-      '<button class="btn btn-secondary btn-sm" onclick="openUseGame(\'' + game.id + '\')"><i class="fas fa-check"></i> Usar</button> ' +
-      '<button class="btn btn-primary btn-sm" onclick="openCheckResult(\'' + game.id + '\')"><i class="fas fa-search"></i> Verificar</button> ';
+      '<button class="btn btn-secondary btn-sm" onclick="openUseGame(\\'' + game.id + '\\')"><i class="fas fa-check"></i> Usar</button> ' +
+      '<button class="btn btn-primary btn-sm" onclick="openCheckResult(\\'' + game.id + '\\')"><i class="fas fa-search"></i> Verificar</button> ';
   }
   actions +=
-    '<button class="btn btn-secondary btn-sm" onclick="duplicateGame(\'' + game.id + '\')"><i class="fas fa-copy"></i></button> ' +
-    '<button class="btn btn-accent btn-sm" onclick="openPoolFromGame(\'' + game.id + '\')"><i class="fas fa-users"></i></button> ';
+    '<button class="btn btn-secondary btn-sm" onclick="duplicateGame(\\'' + game.id + '\\')"><i class="fas fa-copy"></i></button> ' +
+    '<button class="btn btn-accent btn-sm" onclick="openPoolFromGame(\\'' + game.id + '\\')"><i class="fas fa-users"></i></button> ';
   if (game.status !== 'archived') {
-    actions += '<button class="btn btn-danger btn-sm" onclick="deleteGame(\'' + game.id + '\')"><i class="fas fa-archive"></i></button>';
+    actions += '<button class="btn btn-danger btn-sm" onclick="deleteGame(\\'' + game.id + '\\')"><i class="fas fa-archive"></i></button>';
   }
 
   return '<div class="card" style="padding:20px;">' +
@@ -585,7 +585,7 @@ async function showShareStats() {
       '<a href="https://wa.me/?text=' + encoded + '" target="_blank" class="btn btn-success btn-full"><i class="fab fa-whatsapp"></i> WhatsApp</a>' +
       '<a href="https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text) + '" target="_blank" class="btn btn-primary btn-full"><i class="fab fa-telegram"></i> Telegram</a>' +
       '<a href="https://twitter.com/intent/tweet?text=' + encoded + '" target="_blank" class="btn btn-secondary btn-full"><i class="fab fa-twitter"></i> Twitter</a>' +
-      '<button class="btn btn-secondary btn-full" onclick="copyShareText(\'' + encodeURIComponent(text) + '\')"><i class="fas fa-link"></i> Copiar Texto</button></div>');
+      '<button class="btn btn-secondary btn-full" onclick="copyShareText(\\'' + encodeURIComponent(text) + '\\')"><i class="fas fa-link"></i> Copiar Texto</button></div>');
   } catch(e) {
     showToast('Erro ao carregar estatísticas', 'error');
   }

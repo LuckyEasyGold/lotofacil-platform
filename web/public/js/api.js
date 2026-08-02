@@ -102,8 +102,9 @@ const api = {
   async getAISeed() {
     return fetch(`${API_BASE}/api/ai/seed`).then(r => r.json());
   },
-  async generateAIGames(gameType, quantity = 5) {
-    return fetch(`${API_BASE}/api/ai/generate?gameType=${gameType}&quantity=${quantity}`).then(r => r.json());
+  async generateAIGames(gameType, quantity = 5, pickCount) {
+    const q = `?gameType=${gameType}&quantity=${quantity}` + (pickCount ? `&pickCount=${pickCount}` : '');
+    return fetch(`${API_BASE}/api/ai/generate${q}`).then(r => r.json());
   },
   async simulate(numbers) {
     return fetch(`${API_BASE}/api/simulate`, {
