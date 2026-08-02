@@ -22,4 +22,17 @@ function asyncRouter() {
   return router;
 }
 
-module.exports = { asyncHandler, asyncRouter };
+/**
+ * Responde 500 com mensagem GENÉRICA e loga o erro real no servidor.
+ *
+ * Usar em todos os `catch` de rotas em vez de `res.status(500).json({ error: e.message })`:
+ * vazar `e.message` expõe detalhes internos (SQL, caminhos, libs) ao cliente —
+ * risco de segurança. O erro real continua acessível nos logs do servidor.
+ */
+function sendError(res, e, context = 'rota') {
+  console.error(`Erro em ${context}:`, e.message);
+  if (res.headersSent) return; // não tentar responder de novo se já enviou
+  res.status(500).json({ error: 'Erro interno do servidor' });
+}
+
+module.exports = { asyncHandler, asyncRouter, sendError };

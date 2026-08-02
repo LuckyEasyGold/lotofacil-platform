@@ -11,6 +11,7 @@ const { checkAchievements } = require('../lib/gamification');
 const { syncMissingResults } = require('../lib/context');
 const { processSubscriptions } = require('../lib/subscriptions');
 const { validate, createSubscriptionSchema } = require('../lib/validation');
+const { sendError } = require('../lib/http');
 
 const router = asyncRouter();
 
@@ -79,7 +80,7 @@ router.get('/api/cron/process-subscriptions', async (req, res) => {
     await syncMissingResults();
     res.json({ success: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    sendError(res, e, 'GET /api/cron/process-subscriptions');
   }
 });
 

@@ -8,6 +8,7 @@ const {
   geneticEngine, ensureReady, getResultsCache,
   fetchLatestLotofacilResult, getDatabaseStats
 } = require('../lib/context');
+const { sendError } = require('../lib/http');
 
 const router = asyncRouter();
 
@@ -71,8 +72,9 @@ router.get('/api/dashboard/lucky-numbers', requireAuth, async (req, res) => {
       if (aiResult && aiResult.games && aiResult.games[0]) {
         aiGame = aiResult.games[0];
       }
-    } catch (e) {}
-
+    } catch (e) {
+      console.error('Erro ao gerar jogo IA no lucky-numbers:', e.message);
+    }
     res.json({
       luckyNumbers: [...luckySet].sort((a, b) => a - b),
       aiGenerated: aiGame,
@@ -80,7 +82,7 @@ router.get('/api/dashboard/lucky-numbers', requireAuth, async (req, res) => {
       generatedAt: new Date().toISOString()
     });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    sendError(res, e, 'GET /api/dashboard/lucky-numbers');
   }
 });
 
@@ -133,7 +135,8 @@ router.get('/api/dashboard/portfolio-insights', requireAuth, async (req, res) =>
       hasGames: userGs.length > 0
     });
   } catch (e) {
-    res.json({ hasGames: false, error: e.message });
+    console.error('Erro no portfolio-insights:', e.message);
+    res.json({ hasGames: false });
   }
 });
 

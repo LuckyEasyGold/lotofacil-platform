@@ -160,9 +160,13 @@ async function doWithdraw() {
 }
 </script>
 <style>
+/* Seletores corrigidos: o CSS inline usa repeat(3,1fr) sem espacos;
+   os seletores antigos pediam repeat(3,1fr) com espaco apos os dois
+   pontos e nunca casavam — os 3/4 cards de saldo estouravam no mobile.
+   Agora casam pela parte unica do valor. */
 @media (max-width: 1024px) {
-  div[style*="grid-template-columns: repeat(3,1fr)"] { grid-template-columns: 1fr !important; }
-  div[style*="grid-template-columns: repeat(4,1fr)"] { grid-template-columns: repeat(2,1fr) !important; }
+  div[style*="repeat(3,1fr)"] { grid-template-columns: 1fr !important; }
+  div[style*="repeat(4,1fr)"] { grid-template-columns: repeat(2,1fr) !important; }
 }
 </style>
 ` %>

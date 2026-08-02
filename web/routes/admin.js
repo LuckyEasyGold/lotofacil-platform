@@ -5,6 +5,7 @@ const { asyncRouter } = require('../lib/http');
 const { requireAuth, requireAdmin } = require('../lib/auth');
 const { geneticEngine, ensureReady } = require('../lib/context');
 const { validate, evolveSchema } = require('../lib/validation');
+const { sendError } = require('../lib/http');
 
 const router = asyncRouter();
 
@@ -20,7 +21,7 @@ router.get('/evolucao', requireAuth, requireAdmin, async (req, res) => {
     });
   } catch (e) {
     console.error('❌ Erro ao renderizar evolution:', e);
-    res.status(500).json({ error: 'Erro interno do servidor: ' + e.message });
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 
@@ -30,7 +31,7 @@ router.get('/api/ai/evolution-history', requireAuth, requireAdmin, async (req, r
     await ensureReady();
     res.json(geneticEngine.getEvolutionHistory());
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    sendError(res, e, 'GET /api/ai/evolution-history');
   }
 });
 
@@ -45,7 +46,7 @@ router.post('/api/ai/evolve', requireAuth, requireAdmin, validate(evolveSchema),
     if (e.message === 'Evolução já em andamento') {
       res.status(409).json({ error: 'Já existe uma evolução em andamento', evolving: true });
     } else {
-      res.status(500).json({ error: e.message });
+      sendError(res, e, 'POST /api/ai/evolve');
     }
   }
 });

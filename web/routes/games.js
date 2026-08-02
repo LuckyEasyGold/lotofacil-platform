@@ -12,6 +12,7 @@ const { addNotification } = require('../lib/notifications');
 const { checkAchievements, getUserLevel } = require('../lib/gamification');
 const { fetchLatestLotofacilResult } = require('../lib/context');
 const { validate, createGameSchema } = require('../lib/validation');
+const { sendError } = require('../lib/http');
 
 const router = asyncRouter();
 
@@ -41,7 +42,7 @@ router.post('/api/games', requireAuth, validate(createGameSchema), async (req, r
     await checkAchievements(user.id);
     res.json({ success: true, game });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    sendError(res, e, 'POST /api/games');
   }
 });
 
@@ -172,7 +173,7 @@ router.post('/api/games/:id/check-result', requireAuth, async (req, res) => {
       isWinner: hits >= 11
     }});
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    sendError(res, e, 'POST /api/games/:id/check-result');
   }
 });
 
@@ -182,16 +183,24 @@ router.post('/api/games/:id/create-pool', requireAuth, async (req, res) => {
   const game = await db.getGameById(req.params.id, user.id);
   if (!game) return res.status(404).json({ error: 'Jogo não encontrado' });
   const { name, totalShares, sharePrice } = req.body;
+  // Números de cotas calculados UMA vez (evita re-parse + bug de edge case:
+  // antes, `parseInt(totalShares) - 1 || 49` virava 49 quando totalShares=1,
+  // pois 1-1=0 e `0 || 49` = 49).
+  const total = parseInt(totalShares, 10) || 50;
+  const price = parseFloat(sharePrice) || 25.00;
+  if (price > user.balance) {
+    return res.status(400).json({ error: 'Saldo insuficiente' });
+  }
   const newPool = {
     id: uuidv4(),
     name: name || `Bolão ${game.name}`,
     gameType: game.gameType,
     contestNumber: parseInt(req.body.contestNumber, 10) || 3005,
-    totalShares: parseInt(totalShares, 10) || 50,
-    availableShares: parseInt(totalShares, 10) - 1 || 49,
-    sharePrice: parseFloat(sharePrice) || 25.00,
+    totalShares: total,
+    availableShares: Math.max(total - 1, 0),
+    sharePrice: price,
     minShares: 1,
-    maxShares: Math.floor((parseInt(totalShares, 10) || 50) * 0.2),
+    maxShares: Math.floor(total * 0.2),
     numbers: game.numbers,
     creatorName: user.name,
     status: 'open',
@@ -209,9 +218,9 @@ router.post('/api/games/:id/create-pool', requireAuth, async (req, res) => {
     matched: false
   });
   await db.updateGame(game.id, { pool_id: newPool.id, status: 'used', usageHistory: game.usageHistory });
-  await db.adjustUserBalance(user.id, -(parseFloat(sharePrice) || 25));
+  await db.adjustUserBalance(user.id, -price);
   await db.addTransaction({
-    id: uuidv4(), userId: user.id, type: 'pool_join', amount: -(parseFloat(sharePrice) || 25),
+    id: uuidv4(), userId: user.id, type: 'pool_join', amount: -price,
     description: `Criação do bolão "${newPool.name}" - 1 cota`,
     date: new Date(), status: 'completed'
   });
@@ -305,7 +314,7 @@ router.post('/api/games/compare', requireAuth, async (req, res) => {
       }
     });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    sendError(res, e, 'POST /api/games/compare');
   }
 });
 

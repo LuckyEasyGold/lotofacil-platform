@@ -20,21 +20,27 @@ router.get('/api/pools', requireAuth, async (req, res) => {
 router.post('/api/pools', requireAuth, validate(createPoolSchema), async (req, res) => {
   const user = req.currentUser;
   const pool = req.body;
+  const total = parseInt(pool.totalShares, 10);
+  const price = parseFloat(pool.sharePrice);
+  // Checagem de saldo ANTES de debitar (mesma regra do join).
+  if (price > user.balance) {
+    return res.status(400).json({ error: 'Saldo insuficiente' });
+  }
   const newPool = {
     id: uuidv4(), name: pool.name, gameType: pool.gameType,
     contestNumber: parseInt(pool.contestNumber, 10),
-    totalShares: parseInt(pool.totalShares, 10),
-    availableShares: parseInt(pool.totalShares, 10) - 1,
-    sharePrice: parseFloat(pool.sharePrice),
-    minShares: 1, maxShares: Math.floor(parseInt(pool.totalShares, 10) * 0.2),
+    totalShares: total,
+    availableShares: Math.max(total - 1, 0),
+    sharePrice: price,
+    minShares: 1, maxShares: Math.floor(total * 0.2),
     numbers: pool.numbers, creatorName: user.name,
     status: 'open', createdAt: new Date(),
     participants: [{ name: user.name, shares: 1, paid: true }]
   };
   await db.createPool(newPool);
-  await db.adjustUserBalance(user.id, -parseFloat(pool.sharePrice));
+  await db.adjustUserBalance(user.id, -price);
   await db.addTransaction({
-    id: uuidv4(), userId: user.id, type: 'pool_join', amount: -parseFloat(pool.sharePrice),
+    id: uuidv4(), userId: user.id, type: 'pool_join', amount: -price,
     description: `Criação do bolão "${pool.name}" - 1 cota`,
     date: new Date(), status: 'completed'
   });

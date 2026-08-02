@@ -290,8 +290,12 @@ async function confirmBet() {
 </script>
 <style>
 .quick-btn:hover { background: var(--bg-dark) !important; color: var(--text) !important; border-color: var(--primary) !important; }
+/* Seletor corrigido: o CSS inline tem grid-template-columns:1fr 380px
+   (sem espaco apos os dois pontos). O seletor antigo exigia espaco
+   (grid-template-columns: 1fr 380px) e nunca casava — a grade de 380px
+   ficava esticada no mobile. Agora casa pela parte unica 1fr 380px. */
 @media (max-width: 1024px) {
-  div[style*="grid-template-columns: 1fr 380px"] { grid-template-columns: 1fr !important; }
+  div[style*="1fr 380px"] { grid-template-columns: 1fr !important; }
 }
 </style>
 ` %>

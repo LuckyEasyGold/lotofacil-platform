@@ -6,6 +6,7 @@ const db = require('../db');
 const { asyncRouter } = require('../lib/http');
 const { requireAuth } = require('../lib/auth');
 const { validate, createBetSchema } = require('../lib/validation');
+const { sendError } = require('../lib/http');
 
 const router = asyncRouter();
 
@@ -14,6 +15,11 @@ router.post('/api/bets', requireAuth, validate(createBetSchema), async (req, res
   try {
     const { gameType, numbers, amount } = req.body;
     const user = req.currentUser;
+    // Checagem de saldo ANTES de debitar (era possível criar aposta sem saldo,
+    // deixando o saldo negativo).
+    if (amount > user.balance) {
+      return res.status(400).json({ error: 'Saldo insuficiente' });
+    }
     const bet = { id: uuidv4(), gameType, numbers, amount, date: new Date(), status: 'active', userId: user.id };
     await db.addBet(bet);
     await db.adjustUserBalance(user.id, -amount);
@@ -24,7 +30,7 @@ router.post('/api/bets', requireAuth, validate(createBetSchema), async (req, res
     });
     res.json({ success: true, bet });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    sendError(res, e, 'POST /api/bets');
   }
 });
 

@@ -4,6 +4,7 @@
 const { asyncRouter } = require('../lib/http');
 const { requireAuth } = require('../lib/auth');
 const { ensureReady, getResultsCache } = require('../lib/context');
+const { sendError } = require('../lib/http');
 
 const router = asyncRouter();
 
@@ -99,8 +100,7 @@ router.get('/api/stats/advanced', requireAuth, async (req, res) => {
       maxFrequency: maxFreq
     });
   } catch (e) {
-    console.error('Erro nas estatísticas:', e);
-    res.status(500).json({ error: e.message });
+    sendError(res, e, 'GET /api/stats/advanced');
   }
 });
 

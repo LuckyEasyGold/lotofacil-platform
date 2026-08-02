@@ -39,16 +39,31 @@ body {
   background: var(--bg-dark);
   color: var(--text);
   min-height: 100vh;
+  /* clip em vez de hidden: hidden cria um scroll container que (a) esconde
+     conteúdo que estoura a largura deixando-o inalcançável no mobile e (b)
+     quebra position:sticky. clip corta visualmente SEM criar scroll container.
+     hidden fica como fallback para navegadores antigos. */
   overflow-x: hidden;
+  overflow-x: clip;
 }
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; font-family: inherit; }
+input, select, textarea { font-family: inherit; }
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font-family: inherit; }
 input, select, textarea { font-family: inherit; }
 
 /* ==================== APP LAYOUT ==================== */
+/* Container MESTRE: garante que NADA dentro da página estoure a largura do
+   viewport. width/max-width + overflow-x clip contêm filhos que tentem
+   ultrapassar a tela (o overflow fica clipado DENTRO do app, não esconde
+   a página inteira). min-width:0 nos filhos flex permite que encolham. */
 .app-layout {
   display: flex;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: clip;
 }
 
 /* ==================== SIDEBAR ==================== */
@@ -179,6 +194,9 @@ input, select, textarea { font-family: inherit; }
 .main-content {
   flex: 1;
   margin-left: var(--sidebar-width);
+  min-width: 0;       /* permite encolher abaixo do conteúdo (senão estoura) */
+  max-width: 100%;
+  width: 100%;
 }
 .top-bar {
   background: var(--bg-card);
@@ -247,6 +265,9 @@ input, select, textarea { font-family: inherit; }
 }
 .page-content {
   padding: 32px;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
 }
 
 /* ==================== CARDS ==================== */
@@ -730,7 +751,24 @@ tr:hover td { background: rgba(79,70,229,0.03); }
    e empurra a página para o lado. */
 html, body {
   overflow-x: hidden;
+  overflow-x: clip; /* clip não cria scroll container (preserva sticky); hidden é fallback */
   width: 100%;
+}
+/* Rede de segurança GLOBAL para grades inline com coluna de largura FIXA
+   em px (ex.: `1fr 380px`, `minmax(350px,1fr)`): empilham em 1 coluna no
+   mobile. Cobre grids geradas via JS sem media query própria — sem isso elas
+   empurram a página para o lado e ficam inalcançáveis (o famoso "conteúdo
+   cortado que não dá para arrastar").
+
+   ⚠️ Seletores PRECISOS de propósito: casam apenas quando o VALOR da coluna
+   tem px ou minmax — NÃO qualquer "px" do style (gap/padding), para não
+   derrubar grids legítimos como o heatmap 5-colunas do /estatisticas ou os
+   cards 2-colunas do wallet (que têm regras próprias). */
+@media (max-width: 768px) {
+  div[style*="grid-template-columns:1fr "][style*="px"],
+  div[style*="grid-template-columns"][style*="minmax("] {
+    grid-template-columns: 1fr !important;
+  }
 }
 .page-content > * {
   min-width: 0;
@@ -738,6 +776,11 @@ html, body {
 }
 img, svg, canvas, table, video {
   max-width: 100%;
+}
+/* Texto longo (emails, mensagens, descrições) quebra em vez de estourar */
+p, span, div, a, h1, h2, h3, h4, td, th {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 .balls {
   flex-wrap: wrap;
