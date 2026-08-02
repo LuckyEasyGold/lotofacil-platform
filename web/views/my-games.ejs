@@ -252,7 +252,7 @@ function renderGameCard(game) {
         '<span style="color:var(--text-secondary);">' + (u.contestNumber ? 'Concurso #' + u.contestNumber : '—') + '</span>' +
         '<span>' +
         (u.hits !== null ? '<strong style="color:' + (u.hits >= 11 ? 'var(--secondary)' : 'var(--text-secondary)') + ';">' + u.hits + ' acertos</strong>' : '⏳ Aguardando') +
-        (u.prize > 0 ? ' <span style="color:var(--secondary);font-weight:600;">R$ ' + u.prize.toFixed(2).replace('.',',') + '</span>' : '') +
+        (u.prize > 0 ? ' <span style="color:var(--secondary);font-weight:600;">' + formatCurrency(u.prize) + '</span>' : '') +
         '</span></div>'
       ).join('') +
       '</div>'
@@ -301,7 +301,7 @@ function renderGameCard(game) {
       ? '<div style="margin-top:8px;display:flex;gap:16px;font-size:13px;">' +
         '<span style="color:var(--text-secondary);">🎯 Melhor: <strong>' + Math.max(...game.usageHistory.filter(u => u.hits !== null).map(u => u.hits)) + '</strong> acertos</span>' +
         '<span style="color:var(--text-secondary);">📊 Taxa: <strong>' + hitRate + '%</strong> premiação</span>' +
-        (game.usageHistory.some(u => u.prize > 0) ? '<span style="color:var(--secondary);font-weight:600;">💰 Total: R$ ' + game.usageHistory.reduce((s, u) => s + (u.prize || 0), 0).toFixed(2).replace('.',',') + '</span>' : '') +
+        (game.usageHistory.some(u => u.prize > 0) ? '<span style="color:var(--secondary);font-weight:600;">💰 Total: ' + formatCurrency(game.usageHistory.reduce((s, u) => s + (u.prize || 0), 0)) + '</span>' : '') +
         '</div>'
       : '') +
 
@@ -471,7 +471,7 @@ async function openCheckResult(gameId) {
     if (result.success) {
       const r = result.result;
       if (r.isWinner) {
-        showToast('🏆 PARABÉNS! ' + r.hits + ' acertos! Prêmio: R$ ' + r.prize.toFixed(2).replace('.',','), 'success');
+        showToast('🏆 PARABÉNS! ' + r.hits + ' acertos! Prêmio: ' + formatCurrency(r.prize), 'success');
       } else {
         showToast('📊 Concurso #' + r.contestNumber + ': ' + r.hits + ' acertos' + (r.hits >= 11 ? ' 🎉' : ''), 'info');
       }
@@ -551,10 +551,10 @@ async function showPerformanceReport() {
     html += '<div style="background:var(--bg-input);border-radius:12px;padding:16px;">' +
       '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">' +
       '<span style="font-size:13px;color:var(--text-muted);">Total Gasto</span>' +
-      '<span style="font-weight:600;">R$ ' + r.totalSpent.toFixed(2).replace('.',',') + '</span></div>' +
+      '<span style="font-weight:600;">' + formatCurrency(r.totalSpent) + '</span></div>' +
       '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">' +
       '<span style="font-size:13px;color:var(--text-muted);">Total Prêmios</span>' +
-      '<span style="font-weight:600;color:var(--secondary);">R$ ' + r.totalPrize.toFixed(2).replace('.',',') + '</span></div>' +
+      '<span style="font-weight:600;color:var(--secondary);">' + formatCurrency(r.totalPrize) + '</span></div>' +
       (r.bestGame ? '<div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);">' +
         '<span style="font-size:13px;color:var(--text-muted);">Melhor Jogo</span>' +
         '<span style="font-weight:600;">' + r.bestGame.name + ' (' + r.bestGame.best + ' acertos)</span></div>' : '') +

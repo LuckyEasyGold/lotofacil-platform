@@ -8,6 +8,7 @@ const { requireAuth } = require('../lib/auth');
 const { addNotification } = require('../lib/notifications');
 const { checkAchievements } = require('../lib/gamification');
 const { validate, createPoolSchema, joinPoolSchema, createOfferSchema } = require('../lib/validation');
+const { formatBRL } = require('../lib/format');
 
 const router = asyncRouter();
 
@@ -45,7 +46,7 @@ router.post('/api/pools', requireAuth, validate(createPoolSchema), async (req, r
     date: new Date(), status: 'completed'
   });
   await addNotification(user.id, 'pool', 'Bolão criado!',
-    `"${pool.name}" criado com ${total} cotas a R$ ${price.toFixed(2)} — compartilhe para vender mais!`,
+    `"${pool.name}" criado com ${total} cotas a ${formatBRL(price)} — compartilhe para vender mais!`,
     '/boloes');
   res.json({ success: true, pool: newPool });
 });
@@ -75,7 +76,7 @@ router.post('/api/pools/:id/join', requireAuth, validate(joinPoolSchema), async 
   });
   await checkAchievements(user.id);
   await addNotification(user.id, 'pool', 'Entrou no bolão!',
-    `Você comprou ${qty} cota(s) do bolão "${pool.name}" (R$ ${(qty * pool.sharePrice).toFixed(2)})`,
+    `Você comprou ${qty} cota(s) do bolão "${pool.name}" (${formatBRL(qty * pool.sharePrice)})`,
     '/boloes');
   const updated = await db.getUserById(user.id);
   res.json({ success: true, pool, balance: updated.balance });
@@ -151,7 +152,7 @@ router.post('/api/pools/:id/buy-offer/:offerId', requireAuth, async (req, res) =
   });
 
   await addNotification(user.id, 'pool', 'Cotas adquiridas!',
-    `Você comprou ${offer.shares} cotas do bolão "${pool.name}" por R$ ${offer.totalValue.toFixed(2)}`,
+    `Você comprou ${offer.shares} cotas do bolão "${pool.name}" por ${formatBRL(offer.totalValue)}`,
     '/boloes');
 
   res.json({ success: true, pool });

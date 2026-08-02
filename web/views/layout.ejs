@@ -296,8 +296,8 @@
     async function updateHeaderBalance() {
       try {
         const data = await api.getWallet();
-        document.getElementById('headerBalance').textContent = 
-          'R$ ' + data.balance.toFixed(2).replace('.', ',');
+        document.getElementById('headerBalance').textContent =
+          formatCurrency(data.balance);
       } catch(e) {}
     }
     updateHeaderBalance();
@@ -342,9 +342,13 @@
       openModal(title, '', `<p style="color:var(--text-secondary);line-height:1.6">${message}</p><div class="mt-3 flex gap-2"><button class="btn btn-primary" onclick="closeModal()">OK</button></div>`);
     }
 
-    // Format currency
+    // Format currency (pt-BR com separador de milhar)
+    function formatNumberBR(value) {
+      const num = Number(value) || 0;
+      return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
     function formatCurrency(value) {
-      return 'R$ ' + value.toFixed(2).replace('.', ',');
+      return 'R$ ' + formatNumberBR(value);
     }
 
     // ==================== NOTIFICAÇÕES ====================

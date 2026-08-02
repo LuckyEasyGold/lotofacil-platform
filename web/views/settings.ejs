@@ -96,7 +96,7 @@ async function loadAdminLotteryConfig() {
       return '<div style="background:var(--bg-input);border-radius:12px;padding:16px;margin-bottom:14px;">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
         '<div><div style="font-weight:600;font-size:14px;">🎯 ' + l.name + '</div>' +
-        '<div style="font-size:12px;color:var(--text-muted);">' + l.minPick + '-' + l.maxPick + ' dezenas · base R$ ' + l.basePrice.toFixed(2) + '</div></div>' +
+        '<div style="font-size:12px;color:var(--text-muted);">' + l.minPick + '-' + l.maxPick + ' dezenas · base ' + formatCurrency(l.basePrice) + '</div></div>' +
         '<button class="btn btn-secondary btn-sm" onclick="resetAdminLottery(\'' + l.key + '\')" title="Voltar aos valores da Caixa"><i class="fas fa-undo"></i></button></div>' +
         inputs +
         '<button class="btn btn-primary btn-sm btn-full" style="margin-top:10px;" onclick="saveAdminLottery(\'' + l.key + '\')"><i class="fas fa-save"></i> Salvar preços de ' + l.name + '</button></div>';
@@ -165,12 +165,12 @@ async function loadSubscriptions() {
         return '<div style="background:var(--bg-input);border-radius:12px;padding:16px;">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
           '<div><div style="font-weight:600;font-size:14px;">' + s.name + '</div>' +
-          '<div style="font-size:12px;color:var(--text-muted);">' + c.name + ' · ' + s.interval + ' · R$ ' + c.price.toFixed(2) + '/aposta</div></div>' +
+          '<div style="font-size:12px;color:var(--text-muted);">' + c.name + ' · ' + s.interval + ' · ' + formatCurrency(c.price) + '/aposta</div></div>' +
           '<span class="status-badge active">Ativo</span></div>' +
           '<div style="display:flex;gap:16px;font-size:13px;color:var(--text-secondary);">' +
           '<span>📋 Próximo: #' + s.nextContest + '</span>' +
           '<span>🔄 Execuções: ' + s.totalExecutions + '</span>' +
-          '<span>💰 Gasto: R$ ' + s.totalSpent.toFixed(2).replace('.',',') + '</span></div>' +
+          '<span>💰 Gasto: ' + formatCurrency(s.totalSpent) + '</span></div>' +
           '<div style="margin-top:12px;display:flex;gap:8px;">' +
           '<span class="ball primary" style="width:26px;height:26px;font-size:10px;">' + s.numbers.slice(0, 5).join('</span><span class="ball primary" style="width:26px;height:26px;font-size:10px;">') + '</span>' +
           (s.numbers.length > 5 ? '<span style="font-size:11px;color:var(--text-muted);align-self:center;">+' + (s.numbers.length - 5) + ' nums</span>' : '') +

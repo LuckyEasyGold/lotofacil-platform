@@ -178,12 +178,12 @@ async function runSimulation() {
       '<div style="background:var(--bg-input);border-radius:16px;padding:24px;margin-top:16px;">' +
       '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">' +
       '<div style="text-align:center;"><div style="font-size:28px;font-weight:700;color:var(--' + hitRateClass + ');">' + result.bestHit + '</div><div style="font-size:12px;color:var(--text-muted);">Melhor Pontuação</div></div>' +
-      '<div style="text-align:center;"><div style="font-size:28px;font-weight:700;color:var(--secondary);">' + (result.totalPrize || 0).toFixed(2).replace('.',',') + '</div><div style="font-size:12px;color:var(--text-muted);">Prêmio Total</div></div>' +
+      '<div style="text-align:center;"><div style="font-size:28px;font-weight:700;color:var(--secondary);">' + formatNumberBR(result.totalPrize || 0) + '</div><div style="font-size:12px;color:var(--text-muted);">Prêmio Total</div></div>' +
       '<div style="text-align:center;"><div style="font-size:28px;font-weight:700;color:var(--primary-light);">' + result.hitRate + '%</div><div style="font-size:12px;color:var(--text-muted);">Taxa de Acertos</div></div></div>' +
       '<div style="font-size:13px;color:var(--text-secondary);background:var(--bg-card);border-radius:10px;padding:12px;margin-bottom:12px;"><i class="fas fa-info-circle" style="color:var(--primary-light)"></i> ' +
       (result.bestHit >= 15 ? '🌟 PERFEITO! 15 acertos!' : result.bestHit >= 14 ? '🎯 Excelente! Quase fechou!' : result.bestHit >= 13 ? '💪 Muito bom!' : result.bestHit >= 11 ? '👍 Bom! Você teria premiação.' : '📊 Continue tentando!') + '</div>' +
       '<div style="max-height:200px;overflow-y:auto;"><table style="width:100%;font-size:13px;"><thead><tr><th>Concurso</th><th>Acertos</th><th>Prêmio</th></tr></thead><tbody>' +
-      (result.results || []).slice(0, 20).map(r => '<tr><td>' + r.contestNumber + '</td><td><strong>' + r.hits + '</strong>' + (r.hits >= 11 ? ' 🎉' : '') + '</td><td>' + (r.prize > 0 ? '<span style="color:var(--secondary)">R$ ' + r.prize.toFixed(2).replace('.',',') + '</span>' : '-') + '</td></tr>').join('') +
+      (result.results || []).slice(0, 20).map(r => '<tr><td>' + r.contestNumber + '</td><td><strong>' + r.hits + '</strong>' + (r.hits >= 11 ? ' 🎉' : '') + '</td><td>' + (r.prize > 0 ? '<span style="color:var(--secondary)">' + formatCurrency(r.prize) + '</span>' : '-') + '</td></tr>').join('') +
       '</tbody></table></div></div>';
     showToast('Simulação concluída! Melhor: ' + result.bestHit + ' acertos', 'info');
   } catch(e) { showToast('Erro na simulação', 'error'); }

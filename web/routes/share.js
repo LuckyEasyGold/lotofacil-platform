@@ -5,6 +5,7 @@ const db = require('../db');
 const { asyncRouter } = require('../lib/http');
 const { requireAuth } = require('../lib/auth');
 const { LOTTERY_CONFIGS } = require('../lib/lottery');
+const { formatBRL } = require('../lib/format');
 
 const router = asyncRouter();
 
@@ -42,7 +43,7 @@ router.post('/api/share/pool', requireAuth, async (req, res) => {
   const pool = await db.getPoolById(poolId);
   if (!pool) return res.status(404).json({ error: 'Bolão não encontrado' });
 
-  const shareText = `👥 Participe do bolão "${pool.name}" na Lotofácil Platform! ${pool.availableShares} cotas disponíveis a R$ ${pool.sharePrice.toFixed(2)}! 🍀`;
+  const shareText = `👥 Participe do bolão "${pool.name}" na Lotofácil Platform! ${pool.availableShares} cotas disponíveis a ${formatBRL(pool.sharePrice)}! 🍀`;
   const shareUrl = process.env.SITE_URL || 'https://lotofacil.local/boloes';
   const encoded = encodeURIComponent(shareText + ' ' + shareUrl);
 

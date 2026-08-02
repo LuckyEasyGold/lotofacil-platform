@@ -1,8 +1,9 @@
 <%
-  const _balance = (user?.balance || 0).toFixed(2).replace('.',',');
-  const _prizes = (user?.totalWinnings || 0).toFixed(2).replace('.',',');
-  const _bonus = (user?.bonusBalance || 0).toFixed(2).replace('.',',');
-  const _earnings = ((user?.totalWinnings || 0) + (user?.balance || 0)).toFixed(2).replace('.',',');
+  const _fmt = (v) => (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const _balance = _fmt(user?.balance);
+  const _prizes = _fmt(user?.totalWinnings);
+  const _bonus = _fmt(user?.bonusBalance);
+  const _earnings = _fmt((user?.totalWinnings || 0) + (user?.balance || 0));
   const _memberSince = user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'}) : 'Hoje';
 %>
 <% let body = `

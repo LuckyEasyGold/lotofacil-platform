@@ -9,6 +9,7 @@ const { asyncRouter } = require('../lib/http');
 const { requireAuth } = require('../lib/auth');
 const { PRIZE_TABLES, getGamePrice } = require('../lib/lottery');
 const { addNotification } = require('../lib/notifications');
+const { formatBRL } = require('../lib/format');
 const { checkAchievements, getUserLevel } = require('../lib/gamification');
 const { fetchLatestResultByGameType } = require('../lib/context');
 const { validate, createGameSchema } = require('../lib/validation');
@@ -162,7 +163,7 @@ router.post('/api/games/:id/check-result', requireAuth, async (req, res) => {
           description: `🏆 Prêmio de ${hits} acertos - Concurso ${latest.numero}`,
           date: new Date(), status: 'completed'
         });        await addNotification(user.id, 'prize', 'Jogo premiado!',
-          `"${game.name}" fez ${hits} acertos no concurso ${latest.numero}! Prêmio: R$ ${prize.toFixed(2)}`,
+          `"${game.name}" fez ${hits} acertos no concurso ${latest.numero}! Prêmio: ${formatBRL(prize)}`,
           '/meus-jogos'
         );
       }

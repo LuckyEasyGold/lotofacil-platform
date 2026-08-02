@@ -1,3 +1,4 @@
+<% const _fmt = (v) => (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); %>
 <% let body = `
 <!-- Balance Cards -->
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:32px;">
@@ -7,7 +8,7 @@
       <i class="fas fa-wallet"></i>
     </div>
     <div style="font-size:14px;color:var(--text-muted);margin-bottom:8px;">Saldo Principal</div>
-    <div style="font-size:32px;font-weight:700;background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" id="walletBalance">R$ ${(user?.balance || 0).toFixed(2).replace('.',',')}</div>
+    <div style="font-size:32px;font-weight:700;background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" id="walletBalance">R$ ${_fmt(user?.balance)}</div>
     <div style="display:flex;gap:12px;margin-top:16px;">
       <button class="btn btn-primary btn-sm" onclick="openDepositModal()" style="flex:1;"><i class="fas fa-arrow-down"></i> Depositar</button>
       <button class="btn btn-secondary btn-sm" onclick="openWithdrawModal()" style="flex:1;"><i class="fas fa-arrow-up"></i> Sacar</button>
@@ -19,7 +20,7 @@
       <i class="fas fa-gift"></i>
     </div>
     <div style="font-size:14px;color:var(--text-muted);margin-bottom:8px;">Bônus</div>
-    <div style="font-size:32px;font-weight:700;color:var(--accent);" id="walletBonus">R$ ${(user?.bonusBalance || 0).toFixed(2).replace('.',',')}</div>
+    <div style="font-size:32px;font-weight:700;color:var(--accent);" id="walletBonus">R$ ${_fmt(user?.bonusBalance)}</div>
     <div style="font-size:13px;color:var(--text-muted);margin-top:8px;">Bônus de boas-vindas</div>
   </div>
   <div class="card" style="position:relative;overflow:hidden;">
@@ -28,7 +29,7 @@
       <i class="fas fa-trophy"></i>
     </div>
     <div style="font-size:14px;color:var(--text-muted);margin-bottom:8px;">Total em Prêmios</div>
-    <div style="font-size:32px;font-weight:700;color:var(--secondary);" id="walletPrizes">R$ ${(user?.totalWinnings || 0).toFixed(2).replace('.',',')}</div>
+    <div style="font-size:32px;font-weight:700;color:var(--secondary);" id="walletPrizes">R$ ${_fmt(user?.totalWinnings)}</div>
     <div style="font-size:13px;color:var(--text-muted);margin-top:8px;">Prêmios recebidos</div>
   </div>
 </div>
@@ -103,7 +104,7 @@ async function loadTransactions(filter = 'all') {
         '<td><i class="fas ' + (typeIcons[t.type] || 'fa-circle') + '" style="color:' + (isPositive ? 'var(--secondary)' : 'var(--danger)') + ';margin-right:8px;"></i> ' + (typeLabels[t.type] || t.type) + '</td>' +
         '<td style="color:var(--text)">' + t.description + '</td>' +
         '<td>' + new Date(t.date).toLocaleDateString('pt-BR') + '</td>' +
-        '<td style="text-align:right;font-weight:700;color:' + (isPositive ? 'var(--secondary)' : 'var(--danger)') + '">' + (isPositive ? '+' : '') + 'R$ ' + Math.abs(t.amount).toFixed(2).replace('.', ',') + '</td>' +
+        '<td style="text-align:right;font-weight:700;color:' + (isPositive ? 'var(--secondary)' : 'var(--danger)') + '">' + (isPositive ? '+' : '') + formatCurrency(Math.abs(t.amount)) + '</td>' +
         '<td><span class="status-badge ' + t.status + '">' + (t.status === 'completed' ? 'Concluído' : t.status === 'pending' ? 'Pendente' : t.status) + '</span></td>' +
         '</tr>';
     }).join('');
@@ -140,7 +141,7 @@ async function doDeposit() {
   try {
     const result = await api.deposit(amount, method);
     if (result.success) {
-      showToast('R$ ' + amount.toFixed(2).replace('.',',') + ' depositados com sucesso!', 'success');
+      showToast(formatCurrency(amount) + ' depositados com sucesso!', 'success');
       closeModal();
       setTimeout(() => location.reload(), 1500);
     }
@@ -152,7 +153,7 @@ async function doWithdraw() {
   try {
     const result = await api.withdraw(amount);
     if (result.success) {
-      showToast('Saque de R$ ' + amount.toFixed(2).replace('.',',') + ' solicitado!', 'success');
+      showToast('Saque de ' + formatCurrency(amount) + ' solicitado!', 'success');
       closeModal();
       setTimeout(() => location.reload(), 1500);
     }

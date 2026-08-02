@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { getGamePrice } = require('./lottery');
 const { addNotification } = require('./notifications');
+const { formatBRL } = require('./format');
 
 /** Processa todas as assinaturas ativas — chamado pelo Vercel Cron */
 async function processSubscriptions() {
@@ -56,7 +57,7 @@ async function processSubscriptions() {
       });
 
       await addNotification(sub.userId, 'sub', 'Aposta automática realizada!',
-        `"${sub.name}" apostou no concurso #${sub.nextContest} (R$ ${price.toFixed(2)})`,
+        `"${sub.name}" apostou no concurso #${sub.nextContest} (${formatBRL(price)})`,
         '/meus-jogos');
     } catch (e) {
       console.error('Erro ao processar assinatura:', sub.id, e.message);

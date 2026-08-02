@@ -18,6 +18,7 @@ const { validate, createBetSchema } = require('../lib/validation');
 const { getGamePrice, LOTTERY_CONFIGS } = require('../lib/lottery');
 const { addNotification } = require('../lib/notifications');
 const { sendError } = require('../lib/http');
+const { formatBRL } = require('../lib/format');
 
 const router = asyncRouter();
 
@@ -94,7 +95,7 @@ router.post('/api/bets', requireAuth, validate(createBetSchema), async (req, res
       date: new Date(), status: 'completed'
     });
     await addNotification(user.id, 'bet', 'Aposta confirmada!',
-      `Aposta de ${sorted.length} números (${LOTTERY_CONFIGS[gameType]?.name || gameType}) por R$ ${amount.toFixed(2)} — boa sorte!`,
+      `Aposta de ${sorted.length} números (${LOTTERY_CONFIGS[gameType]?.name || gameType}) por ${formatBRL(amount)} — boa sorte!`,
       '/apostas');
     res.json({ success: true, bet, game, amount });
   } catch (e) {

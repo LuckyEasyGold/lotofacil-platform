@@ -123,7 +123,7 @@ function getPrice(count) {
 }
 
 function formatPriceBR(value) {
-  return 'R$ ' + Number(value).toFixed(2).replace('.', ',');
+  return formatCurrency(value);
 }
 
 // Carrega a tabela oficial de preços do servidor (com overrides do admin)

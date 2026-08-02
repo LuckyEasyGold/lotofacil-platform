@@ -70,7 +70,7 @@ async function loadLatestResult() {
     const prizeHTML = (result.listaRateioPremio || []).map((p, i) =>
       '<div class="flex-between" style="padding:' + (i === 0 ? '0 0 12px 0' : '12px 0') + ';border-bottom:1px solid var(--border);">' +
       '<div><span style="font-weight:600;">' + p.descricaoFaixa + '</span></div>' +
-      '<div style="text-align:right;"><span style="font-size:18px;font-weight:700;color:var(--secondary);">R$ ' + p.valorPremio.toFixed(2).replace('.',',') + '</span>' +
+      '<div style="text-align:right;"><span style="font-size:18px;font-weight:700;color:var(--secondary);">' + formatCurrency(p.valorPremio) + '</span>' +
       '<br><span style="font-size:12px;color:var(--text-muted);">' + p.numeroDeGanhadores + ' ganhador(es)</span></div></div>'
     ).join('');
     container.innerHTML =
@@ -82,7 +82,7 @@ async function loadLatestResult() {
       '<div class="flex-between mt-2"><span style="color:var(--text-muted);">Próximo: ' + (result.dataProximoConcurso || 'N/A') + '</span>' +
       '<span style="font-weight:600;">' + (result.acumulado ? '💰 Acumulou!' : '✅ Houve ganhador(es)') + '</span></div></div>' +
       '<div style="background:var(--bg-input);border-radius:16px;padding:20px;"><h3 style="font-size:16px;margin-bottom:16px;">🏆 Rateio de Prêmios</h3>' + prizeHTML +
-      '<div style="padding-top:12px;margin-top:12px;border-top:1px solid var(--border);"><div class="flex-between"><span>Arrecadação Total</span><span style="font-weight:600;">' + (result.valorArrecadado ? 'R$ ' + result.valorArrecadado.toFixed(2).replace('.',',') : '—') + '</span></div></div></div></div>';
+      '<div style="padding-top:12px;margin-top:12px;border-top:1px solid var(--border);"><div class="flex-between"><span>Arrecadação Total</span><span style="font-weight:600;">' + (result.valorArrecadado ? formatCurrency(result.valorArrecadado) : '—') + '</span></div></div></div></div>';
   } catch(e) {
     document.getElementById('latestResultFull').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle" style="color:var(--accent)"></i><h3>Erro ao carregar</h3><p>Não foi possível carregar os resultados</p></div>';
   }
@@ -96,7 +96,7 @@ async function loadResultsHistory() {
     if (!contests || contests.length === 0) throw new Error('vazio');
     tbody.innerHTML = contests.map(c => {
       const topPrize = (c.listaRateioPremio || []).find(p => p.faixa === 1);
-      const prize = topPrize ? 'R$ ' + topPrize.valorPremio.toFixed(2).replace('.',',') : '-';
+      const prize = topPrize ? formatCurrency(topPrize.valorPremio) : '-';
       const winners = topPrize ? topPrize.numeroDeGanhadores : '-';
       return '<tr style="cursor:pointer;" onclick="searchByContest(' + c.numero + ')">' +
         '<td><strong>#' + c.numero + '</strong></td>' +

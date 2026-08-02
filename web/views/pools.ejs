@@ -106,7 +106,7 @@ async function loadPools() {
         (p.numbers ? '<div class="pool-numbers">' + p.numbers.map(n => '<span class="ball primary" style="width:30px;height:30px;font-size:11px;">' + n + '</span>').join('') + '</div>' : '') +
         '<div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%"></div></div>' +
         '<div class="flex-between"><span style="font-size:13px;color:var(--text-muted)">' + (p.totalShares - p.availableShares) + '/' + p.totalShares + ' cotas vendidas</span>' +
-        '<span style="font-weight:600;color:var(--primary-light)">R$ ' + p.sharePrice.toFixed(2).replace('.',',') + '/cota</span></div>' +
+        '<span style="font-weight:600;color:var(--primary-light)">' + formatCurrency(p.sharePrice) + '/cota</span></div>' +
         (p.status === 'open' ? '<button class="btn btn-primary btn-full btn-sm mt-2" onclick="joinPool(\'' + p.id + '\')"><i class="fas fa-handshake"></i> Participar</button>' : '<button class="btn btn-secondary btn-full btn-sm mt-2" disabled><i class="fas fa-lock"></i> Fechado</button>') +
         '</div>';
     }).join('');
@@ -127,7 +127,7 @@ async function loadMyPools() {
         '<div style="font-size:13px;color:var(--text-muted);margin-top:4px;">📋 ' + p.gameType + ' · Concurso ' + p.contestNumber + '</div></div>' +
         '<span class="status-badge ' + (p.status === 'open' ? 'active' : 'completed') + '">' + (p.status === 'open' ? 'Aberto' : 'Fechado') + '</span></div>' +
         '<div class="pool-meta"><span class="pool-meta-item">📦 <strong>' + (myShare ? myShare.shares : 0) + '</strong> cota(s) sua(s)</span>' +
-        '<span class="pool-meta-item">💰 <strong>R$ ' + ((myShare ? myShare.shares : 0) * p.sharePrice).toFixed(2).replace('.',',') + '</strong> investido</span></div>' +
+        '<span class="pool-meta-item">💰 <strong>' + formatCurrency((myShare ? myShare.shares : 0) * p.sharePrice) + '</strong> investido</span></div>' +
         (p.numbers ? '<div class="pool-numbers">' + p.numbers.map(n => '<span class="ball success" style="width:30px;height:30px;font-size:11px;">' + n + '</span>').join('') + '</div>' : '') +
         // Market offers
         (p.marketOffers && p.marketOffers.filter(function(o) { return o.status === 'active'; }).length > 0
@@ -137,7 +137,7 @@ async function loadMyPools() {
               return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(245,158,11,0.1);border-radius:8px;margin-bottom:4px;">' +
               '<span style="font-size:13px;">' + o.shares + ' cotas de <strong>' + o.sellerName + '</strong></span>' +
               '<div style="display:flex;align-items:center;gap:8px;">' +
-              '<span style="font-weight:600;color:var(--accent);">R$ ' + o.totalValue.toFixed(2).replace('.',',') + '</span>' +
+              '<span style="font-weight:600;color:var(--accent);">' + formatCurrency(o.totalValue) + '</span>' +
               (o.sellerName !== currentUserName ? '<button class="btn btn-accent btn-sm" onclick="buyOffer(\'' + p.id + '\',\'' + o.id + '\')"><i class="fas fa-shopping-cart"></i> Comprar</button>' : '<span class="status-badge completed" style="font-size:10px;">Sua oferta</span>') +
               '</div></div>';
             }).join('') + '</div>'
